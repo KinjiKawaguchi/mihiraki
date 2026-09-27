@@ -1,0 +1,27 @@
+name: "Publish release: attach extension zip"
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions: {}
+
+jobs:
+  publish-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup
+        with:
+          cache: "false"
+      - run: pnpm zip
+      # release-please already created the GitHub release for this tag; attach the package to it.
+      - run: gh release upload "$GITHUB_REF_NAME" apps/extension/.output/mihiraki-*-chrome.zip --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -22,6 +22,6 @@
     "@testing-library/preact": "^3.2.4",
     "jsdom": "^30.1.1",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.2"
+    "vitest": "^5.0.1"
   }
 }

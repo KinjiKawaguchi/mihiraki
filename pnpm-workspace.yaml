@@ -1,3 +1,20 @@
 packages:
   - "packages/*"
   - "apps/*"
+
+# Supply chain hardening (https://pnpm.io/supply-chain-security).
+# Newly published versions are a common vector for hijacked packages; wait until they have
+# been public for a while. Renovate uses the same delay.
+minimumReleaseAge: 4320
+# Refuse versions whose provenance / trust level dropped compared to earlier releases.
+trustPolicy: no-downgrade
+# Transitive dependencies may only come from the registry (pnpm default, kept explicit).
+blockExoticSubdeps: true
+# Dependency install scripts stay blocked unless listed here, and an unlisted one fails the install.
+onlyBuiltDependencies: []
+strictDepBuilds: true
+# Verified false positives: published by the packages' own maintainers from their tagged
+# sources, but without the provenance an earlier-dated release had (checked 2026-09-28).
+trustPolicyExclude:
+  - semver@6.3.1
+  - why-is-node-running@3.2.2
