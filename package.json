@@ -1,0 +1,13 @@
+{
+  "name": "better-gh-md",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "dev:extension": "pnpm --filter @better-gh-md/extension dev",
+    "build:extension": "pnpm --filter @better-gh-md/extension build",
+    "dev:playground": "pnpm --filter @better-gh-md/playground dev"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

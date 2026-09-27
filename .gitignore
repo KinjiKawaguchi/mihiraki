@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.output/
+.wxt/
+*.log
+.DS_Store
+.playwright-mcp/
+harness/dist/
