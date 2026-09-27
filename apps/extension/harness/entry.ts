@@ -12,7 +12,7 @@ import { startInlineReview } from "../src/inline/inline-review";
 
 declare global {
   interface Window {
-    betterGhMd?: Promise<() => void>;
+    mihiraki?: Promise<() => void>;
   }
 }
 
@@ -24,7 +24,7 @@ if (pr) {
   const backend = createGitHubBackend(pr, undefined, {
     onThreadCreated: (created) => hostSync.announceThreadCreated(created),
   });
-  window.betterGhMd = startInlineReview({
+  window.mihiraki = startInlineReview({
     document,
     backend,
     cssText: inheritHostThemeColors(cssText),

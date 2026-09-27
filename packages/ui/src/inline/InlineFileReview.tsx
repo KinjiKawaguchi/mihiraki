@@ -1,4 +1,4 @@
-import type { ChangedFile, CommentMode, CommentTarget, ReviewBackend } from "@better-gh-md/core";
+import type { ChangedFile, CommentMode, CommentTarget, ReviewBackend } from "@mihiraki/core";
 import { FileSplitReview } from "../file-review/FileSplitReview";
 import { errorMessage } from "../format";
 import { type ThreadStore, useThreadStore } from "../threads/thread-store";
@@ -27,13 +27,13 @@ export function InlineFileReview({
   };
 
   return (
-    <div class="bgm-root bgm-inline">
+    <div class="mhr-root mhr-inline">
       {error !== null && (
-        <p class="bgm-message bgm-message--error">
+        <p class="mhr-message mhr-message--error">
           コメントを取得できません: {errorMessage(error)}
         </p>
       )}
-      {hasPendingReview && pendingReviewNotice && <p class="bgm-notice">{pendingReviewNotice}</p>}
+      {hasPendingReview && pendingReviewNotice && <p class="mhr-notice">{pendingReviewNotice}</p>}
       <FileSplitReview
         backend={backend}
         file={file}

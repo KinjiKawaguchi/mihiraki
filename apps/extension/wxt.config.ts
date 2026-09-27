@@ -6,12 +6,13 @@ export default defineConfig({
     plugins: [preact()],
   }),
   zip: {
-    artifactTemplate: "better-gh-md-{{version}}-{{browser}}.zip",
+    artifactTemplate: "mihiraki-{{version}}-{{browser}}.zip",
   },
   manifest: {
-    name: "better-gh-md",
+    name: "Mihiraki for GitHub",
     description:
-      "GitHubのPull RequestでMarkdownをレンダリングしたまま左右分割で比較し、レビューコメントを付ける",
+      "Review Markdown changes in GitHub pull requests rendered side by side, and comment on them inline.",
+    homepage_url: "https://github.com/KinjiKawaguchi/mihiraki",
     permissions: [],
   },
 });

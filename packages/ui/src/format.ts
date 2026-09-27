@@ -1,4 +1,4 @@
-import type { LineRange, Side } from "@better-gh-md/core";
+import type { LineRange, Side } from "@mihiraki/core";
 
 export const SIDE_LABEL: Readonly<Record<Side, string>> = {
   LEFT: "変更前",

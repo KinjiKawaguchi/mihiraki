@@ -1,4 +1,4 @@
-import type { ChangedFile } from "@better-gh-md/core";
+import type { ChangedFile } from "@mihiraki/core";
 
 interface FileListProps {
   readonly files: readonly ChangedFile[];
@@ -15,19 +15,19 @@ const CHANGE_MARK: Readonly<Record<ChangedFile["changeType"], string>> = {
 
 export function FileList({ files, selectedPath, onSelect }: FileListProps) {
   return (
-    <nav class="bgm-files" aria-label="Markdownファイル">
+    <nav class="mhr-files" aria-label="Markdownファイル">
       {files.map((file) => (
         <button
           type="button"
           key={file.path}
-          class="bgm-files__item"
+          class="mhr-files__item"
           aria-current={file.path === selectedPath ? "true" : undefined}
           aria-label={file.path}
           title={file.path}
           onClick={() => onSelect(file.path)}
         >
-          <span class="bgm-files__change">{CHANGE_MARK[file.changeType]}</span>
-          <span class="bgm-files__path">{file.path}</span>
+          <span class="mhr-files__change">{CHANGE_MARK[file.changeType]}</span>
+          <span class="mhr-files__path">{file.path}</span>
         </button>
       ))}
     </nav>

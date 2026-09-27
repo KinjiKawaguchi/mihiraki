@@ -1,24 +1,24 @@
 @import "github-markdown-css/github-markdown.css";
 
 /* Primer variables inherit into shadow roots on github.com; fallbacks cover other hosts. */
-.bgm-root {
-  --bgm-bg: var(--bgColor-default, #ffffff);
-  --bgm-bg-muted: var(--bgColor-muted, #f6f8fa);
-  --bgm-fg: var(--fgColor-default, #1f2328);
-  --bgm-fg-muted: var(--fgColor-muted, #59636e);
-  --bgm-border: var(--borderColor-default, #d1d9e0);
-  --bgm-accent: var(--fgColor-accent, #0969da);
-  --bgm-accent-emphasis: var(--bgColor-accent-emphasis, #0969da);
-  --bgm-added-line: var(--diffBlob-additionLine-bgColor, #dafbe1);
-  --bgm-added-word: var(--diffBlob-additionWord-bgColor, #aceebb);
-  --bgm-removed-line: var(--diffBlob-deletionLine-bgColor, #ffebe9);
-  --bgm-removed-word: var(--diffBlob-deletionWord-bgColor, #ffcecb);
-  --bgm-attention: var(--fgColor-attention, #9a6700);
-  --bgm-danger: var(--fgColor-danger, #d1242f);
-  --bgm-selection: var(--bgColor-attention-muted, #fff8c5);
+.mhr-root {
+  --mhr-bg: var(--bgColor-default, #ffffff);
+  --mhr-bg-muted: var(--bgColor-muted, #f6f8fa);
+  --mhr-fg: var(--fgColor-default, #1f2328);
+  --mhr-fg-muted: var(--fgColor-muted, #59636e);
+  --mhr-border: var(--borderColor-default, #d1d9e0);
+  --mhr-accent: var(--fgColor-accent, #0969da);
+  --mhr-accent-emphasis: var(--bgColor-accent-emphasis, #0969da);
+  --mhr-added-line: var(--diffBlob-additionLine-bgColor, #dafbe1);
+  --mhr-added-word: var(--diffBlob-additionWord-bgColor, #aceebb);
+  --mhr-removed-line: var(--diffBlob-deletionLine-bgColor, #ffebe9);
+  --mhr-removed-word: var(--diffBlob-deletionWord-bgColor, #ffcecb);
+  --mhr-attention: var(--fgColor-attention, #9a6700);
+  --mhr-danger: var(--fgColor-danger, #d1242f);
+  --mhr-selection: var(--bgColor-attention-muted, #fff8c5);
 
-  background: var(--bgm-bg);
-  color: var(--bgm-fg);
+  background: var(--mhr-bg);
+  color: var(--mhr-fg);
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
   font-size: 14px;
@@ -26,75 +26,75 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .bgm-root {
-    --bgm-bg: var(--bgColor-default, #0d1117);
-    --bgm-bg-muted: var(--bgColor-muted, #151b23);
-    --bgm-fg: var(--fgColor-default, #f0f6fc);
-    --bgm-fg-muted: var(--fgColor-muted, #9198a1);
-    --bgm-border: var(--borderColor-default, #3d444d);
-    --bgm-accent: var(--fgColor-accent, #4493f8);
-    --bgm-accent-emphasis: var(--bgColor-accent-emphasis, #1f6feb);
-    --bgm-added-line: var(--diffBlob-additionLine-bgColor, rgba(46, 160, 67, 0.15));
-    --bgm-added-word: var(--diffBlob-additionWord-bgColor, rgba(46, 160, 67, 0.4));
-    --bgm-removed-line: var(--diffBlob-deletionLine-bgColor, rgba(248, 81, 73, 0.1));
-    --bgm-removed-word: var(--diffBlob-deletionWord-bgColor, rgba(248, 81, 73, 0.4));
-    --bgm-attention: var(--fgColor-attention, #d29922);
-    --bgm-danger: var(--fgColor-danger, #f85149);
-    --bgm-selection: var(--bgColor-attention-muted, rgba(187, 128, 9, 0.15));
+  .mhr-root {
+    --mhr-bg: var(--bgColor-default, #0d1117);
+    --mhr-bg-muted: var(--bgColor-muted, #151b23);
+    --mhr-fg: var(--fgColor-default, #f0f6fc);
+    --mhr-fg-muted: var(--fgColor-muted, #9198a1);
+    --mhr-border: var(--borderColor-default, #3d444d);
+    --mhr-accent: var(--fgColor-accent, #4493f8);
+    --mhr-accent-emphasis: var(--bgColor-accent-emphasis, #1f6feb);
+    --mhr-added-line: var(--diffBlob-additionLine-bgColor, rgba(46, 160, 67, 0.15));
+    --mhr-added-word: var(--diffBlob-additionWord-bgColor, rgba(46, 160, 67, 0.4));
+    --mhr-removed-line: var(--diffBlob-deletionLine-bgColor, rgba(248, 81, 73, 0.1));
+    --mhr-removed-word: var(--diffBlob-deletionWord-bgColor, rgba(248, 81, 73, 0.4));
+    --mhr-attention: var(--fgColor-attention, #d29922);
+    --mhr-danger: var(--fgColor-danger, #f85149);
+    --mhr-selection: var(--bgColor-attention-muted, rgba(187, 128, 9, 0.15));
   }
 }
 
 /* ---- App shell ---- */
-.bgm-app {
+.mhr-app {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
-.bgm-app__header {
+.mhr-app__header {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 8px 16px;
-  border-bottom: 1px solid var(--bgm-border);
-  background: var(--bgm-bg-muted);
+  border-bottom: 1px solid var(--mhr-border);
+  background: var(--mhr-bg-muted);
 }
-.bgm-app__title {
+.mhr-app__title {
   font-weight: 600;
 }
-.bgm-app__path {
-  color: var(--bgm-fg-muted);
+.mhr-app__path {
+  color: var(--mhr-fg-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.bgm-app__close {
+.mhr-app__close {
   margin-left: auto;
   font-size: 18px;
   line-height: 1;
 }
-.bgm-app__body {
+.mhr-app__body {
   display: flex;
   flex: 1;
   min-height: 0;
 }
-.bgm-app__main {
+.mhr-app__main {
   flex: 1;
   min-width: 0;
   overflow: auto;
   overscroll-behavior: contain;
 }
 
-.bgm-files {
+.mhr-files {
   display: flex;
   flex-direction: column;
   width: 260px;
   flex-shrink: 0;
   overflow: auto;
-  border-right: 1px solid var(--bgm-border);
+  border-right: 1px solid var(--mhr-border);
   padding: 8px;
   gap: 2px;
 }
-.bgm-files__item {
+.mhr-files__item {
   display: flex;
   gap: 8px;
   align-items: baseline;
@@ -107,96 +107,96 @@
   text-align: left;
   cursor: pointer;
 }
-.bgm-files__item:hover {
-  background: var(--bgm-bg-muted);
+.mhr-files__item:hover {
+  background: var(--mhr-bg-muted);
 }
-.bgm-files__item[aria-current="true"] {
-  background: var(--bgm-bg-muted);
+.mhr-files__item[aria-current="true"] {
+  background: var(--mhr-bg-muted);
   font-weight: 600;
 }
-.bgm-files__change {
+.mhr-files__change {
   font-size: 11px;
-  color: var(--bgm-fg-muted);
+  color: var(--mhr-fg-muted);
   flex-shrink: 0;
 }
-.bgm-files__path {
+.mhr-files__path {
   overflow-wrap: anywhere;
 }
 
-.bgm-message {
+.mhr-message {
   padding: 24px;
-  color: var(--bgm-fg-muted);
+  color: var(--mhr-fg-muted);
 }
-.bgm-message--error {
-  color: var(--bgm-danger);
+.mhr-message--error {
+  color: var(--mhr-danger);
 }
 
 /* ---- Split view ---- */
-.bgm-split__header,
-.bgm-row {
+.mhr-split__header,
+.mhr-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
-.bgm-split__header {
+.mhr-split__header {
   position: sticky;
   top: 0;
   z-index: 2;
-  background: var(--bgm-bg-muted);
-  border-bottom: 1px solid var(--bgm-border);
+  background: var(--mhr-bg-muted);
+  border-bottom: 1px solid var(--mhr-border);
   font-weight: 600;
 }
-.bgm-split__header > div {
+.mhr-split__header > div {
   padding: 6px 16px 6px 36px;
 }
-.bgm-split__header > div:first-child,
-.bgm-cell[data-side="LEFT"] {
-  border-right: 1px solid var(--bgm-border);
+.mhr-split__header > div:first-child,
+.mhr-cell[data-side="LEFT"] {
+  border-right: 1px solid var(--mhr-border);
 }
 
-.bgm-cell {
+.mhr-cell {
   position: relative;
   min-width: 0;
   padding: 0 16px 0 36px;
 }
-.bgm-cell--added {
-  background: var(--bgm-added-line);
+.mhr-cell--added {
+  background: var(--mhr-added-line);
 }
-.bgm-cell--removed {
-  background: var(--bgm-removed-line);
+.mhr-cell--removed {
+  background: var(--mhr-removed-line);
 }
-.bgm-cell--modified[data-side="LEFT"] {
-  box-shadow: inset 3px 0 0 var(--bgm-removed-word);
+.mhr-cell--modified[data-side="LEFT"] {
+  box-shadow: inset 3px 0 0 var(--mhr-removed-word);
 }
-.bgm-cell--modified[data-side="RIGHT"] {
-  box-shadow: inset 3px 0 0 var(--bgm-added-word);
+.mhr-cell--modified[data-side="RIGHT"] {
+  box-shadow: inset 3px 0 0 var(--mhr-added-word);
 }
-.bgm-cell--empty {
-  background: repeating-linear-gradient(135deg, transparent 0 6px, var(--bgm-bg-muted) 6px 12px);
+.mhr-cell--empty {
+  background: repeating-linear-gradient(135deg, transparent 0 6px, var(--mhr-bg-muted) 6px 12px);
 }
 
 /* The block also covers the cell's gutter, so moving onto the "+" there never leaves it. */
-.bgm-block {
+.mhr-block {
   position: relative;
   margin-left: -36px;
   padding: 8px 0 8px 36px;
 }
-.bgm-cell .markdown-body {
+.mhr-cell .markdown-body {
   background: transparent;
   color: inherit;
   font-size: 14px;
 }
-.bgm-cell ins.bgm-ins {
-  background: var(--bgm-added-word);
+.mhr-cell ins.mhr-ins {
+  background: var(--mhr-added-word);
   text-decoration: none;
   border-radius: 2px;
 }
-.bgm-cell del.bgm-del {
-  background: var(--bgm-removed-word);
+.mhr-cell del.mhr-del {
+  background: var(--mhr-removed-word);
   text-decoration: line-through;
   border-radius: 2px;
 }
 
-.bgm-add {
+.mhr-add {
   position: absolute;
   left: 6px;
   width: 24px;
@@ -204,7 +204,7 @@
   padding: 0;
   border: none;
   border-radius: 6px;
-  background: var(--bgm-accent-emphasis);
+  background: var(--mhr-accent-emphasis);
   color: #ffffff;
   font-size: 16px;
   font-weight: 700;
@@ -213,102 +213,102 @@
 }
 
 /* Selection made by pressing "+" and dragging, as on GitHub. */
-.bgm-split--selecting {
+.mhr-split--selecting {
   user-select: none;
 }
-.bgm-cell .bgm-selected {
-  background: var(--bgm-selection);
-  box-shadow: 0 0 0 4px var(--bgm-selection);
+.mhr-cell .mhr-selected {
+  background: var(--mhr-selection);
+  box-shadow: 0 0 0 4px var(--mhr-selection);
   border-radius: 2px;
 }
 
 /* ---- Inline (embedded in a host page's file diff) ---- */
-.bgm-inline {
-  border-top: 1px solid var(--bgm-border);
+.mhr-inline {
+  border-top: 1px solid var(--mhr-border);
 }
-.bgm-inline .bgm-split__header {
+.mhr-inline .mhr-split__header {
   position: static;
 }
-.bgm-notice {
+.mhr-notice {
   margin: 0;
   padding: 6px 16px;
-  border-bottom: 1px solid var(--bgm-border);
-  color: var(--bgm-attention);
+  border-bottom: 1px solid var(--mhr-border);
+  color: var(--mhr-attention);
   font-size: 12px;
 }
 
 /* ---- Threads ---- */
-.bgm-threads {
+.mhr-threads {
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding-bottom: 8px;
 }
-.bgm-thread {
-  border: 1px solid var(--bgm-border);
+.mhr-thread {
+  border: 1px solid var(--mhr-border);
   border-radius: 6px;
-  background: var(--bgm-bg);
+  background: var(--mhr-bg);
   overflow: hidden;
 }
-.bgm-thread--resolved {
+.mhr-thread--resolved {
   opacity: 0.75;
 }
-.bgm-thread__header {
+.mhr-thread__header {
   display: flex;
   gap: 8px;
   width: 100%;
   padding: 6px 10px;
   border: none;
-  border-bottom: 1px solid var(--bgm-border);
-  background: var(--bgm-bg-muted);
-  color: var(--bgm-fg-muted);
+  border-bottom: 1px solid var(--mhr-border);
+  background: var(--mhr-bg-muted);
+  color: var(--mhr-fg-muted);
   font: inherit;
   font-size: 12px;
   text-align: left;
   cursor: pointer;
 }
-.bgm-badge {
+.mhr-badge {
   padding: 0 6px;
-  border: 1px solid var(--bgm-border);
+  border: 1px solid var(--mhr-border);
   border-radius: 999px;
 }
-.bgm-badge--pending {
-  border-color: var(--bgm-attention);
-  color: var(--bgm-attention);
+.mhr-badge--pending {
+  border-color: var(--mhr-attention);
+  color: var(--mhr-attention);
 }
-.bgm-comment {
+.mhr-comment {
   padding: 8px 10px;
 }
-.bgm-comment + .bgm-comment {
-  border-top: 1px solid var(--bgm-border);
+.mhr-comment + .mhr-comment {
+  border-top: 1px solid var(--mhr-border);
 }
-.bgm-comment__meta {
+.mhr-comment__meta {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 12px;
 }
-.bgm-comment__avatar {
+.mhr-comment__avatar {
   border-radius: 50%;
 }
-.bgm-comment__time {
-  color: var(--bgm-fg-muted);
+.mhr-comment__time {
+  color: var(--mhr-fg-muted);
 }
-.bgm-comment__link {
+.mhr-comment__link {
   margin-left: auto;
-  color: var(--bgm-accent);
+  color: var(--mhr-accent);
 }
-.bgm-comment__body {
+.mhr-comment__body {
   margin-top: 4px;
 }
 
 /* ---- Comment form ---- */
 /* The form can sit inside rendered Markdown, so reset what .markdown-body would impose. */
-.bgm-form-slot {
+.mhr-form-slot {
   margin: 8px 0;
   list-style: none;
 }
-.bgm-form {
+.mhr-form {
   font-size: 14px;
   line-height: 1.5;
   text-align: left;
@@ -317,81 +317,81 @@
   gap: 8px;
   margin-bottom: 8px;
   padding: 10px;
-  border: 1px solid var(--bgm-accent);
+  border: 1px solid var(--mhr-accent);
   border-radius: 6px;
-  background: var(--bgm-bg);
+  background: var(--mhr-bg);
 }
-.bgm-form__target {
+.mhr-form__target {
   font-size: 12px;
   font-weight: 600;
-  color: var(--bgm-fg-muted);
+  color: var(--mhr-fg-muted);
 }
-.bgm-form__tabs {
+.mhr-form__tabs {
   display: flex;
   gap: 4px;
-  border-bottom: 1px solid var(--bgm-border);
+  border-bottom: 1px solid var(--mhr-border);
 }
-.bgm-form__tabs button {
+.mhr-form__tabs button {
   padding: 4px 12px;
   border: 1px solid transparent;
   border-bottom: none;
   border-radius: 6px 6px 0 0;
   background: none;
-  color: var(--bgm-fg-muted);
+  color: var(--mhr-fg-muted);
   font: inherit;
   cursor: pointer;
 }
-.bgm-form__tabs button[aria-selected="true"] {
-  border-color: var(--bgm-border);
-  background: var(--bgm-bg);
-  color: var(--bgm-fg);
+.mhr-form__tabs button[aria-selected="true"] {
+  border-color: var(--mhr-border);
+  background: var(--mhr-bg);
+  color: var(--mhr-fg);
   margin-bottom: -1px;
 }
-.bgm-form__preview {
+.mhr-form__preview {
   min-height: 80px;
   padding: 8px;
 }
-.bgm-form__empty {
+.mhr-form__empty {
   margin: 0;
   padding: 8px;
   min-height: 64px;
-  color: var(--bgm-fg-muted);
+  color: var(--mhr-fg-muted);
 }
-.bgm-form__error {
+.mhr-form__error {
   margin: 0;
   font-size: 12px;
-  color: var(--bgm-danger);
+  color: var(--mhr-danger);
 }
-.bgm-form__body {
+.mhr-form__body {
   min-height: 80px;
   padding: 8px;
-  border: 1px solid var(--bgm-border);
+  border: 1px solid var(--mhr-border);
   border-radius: 6px;
-  background: var(--bgm-bg);
+  background: var(--mhr-bg);
   color: inherit;
   font: inherit;
   resize: vertical;
 }
-.bgm-form__actions {
+.mhr-form__actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
 }
-.bgm-button {
+.mhr-button {
   padding: 4px 12px;
-  border: 1px solid var(--bgm-border);
+  border: 1px solid var(--mhr-border);
   border-radius: 6px;
-  background: var(--bgm-bg-muted);
+  background: var(--mhr-bg-muted);
   color: inherit;
   font: inherit;
   cursor: pointer;
 }
-.bgm-button--primary {
+.mhr-button--primary {
   border-color: transparent;
-  background: var(--bgm-accent-emphasis);
+  background: var(--mhr-accent-emphasis);
   color: #ffffff;
 }
-.bgm-button:disabled {
+.mhr-button:disabled {
   opacity: 0.5;
   cursor: default;
 }

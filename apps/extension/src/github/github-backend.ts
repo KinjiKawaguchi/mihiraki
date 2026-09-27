@@ -1,4 +1,4 @@
-import type { ChangedFile, ReviewBackend } from "@better-gh-md/core";
+import type { ChangedFile, ReviewBackend } from "@mihiraki/core";
 import type { ThreadCreatedMessage } from "../host-sync/protocol";
 import { buildCreateCommentPayload } from "./comment-payload";
 import { type FetchFn, fetchFileSource, fetchRouteData, postReviewComment } from "./github-client";

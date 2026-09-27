@@ -3,13 +3,13 @@
  * Class names there are hashed per build, so only ids, roles and data attributes are used.
  */
 
-export const SPLIT_VIEW_TAG = "bgm-split-view";
-export const SPLIT_TOGGLE_TAG = "bgm-split-toggle";
+export const SPLIT_VIEW_TAG = "mhr-split-view";
+export const SPLIT_TOGGLE_TAG = "mhr-split-toggle";
 
 const HEADER_SELECTOR = "[data-diff-header-wrapper]";
 const VIEW_SWITCHER_SELECTOR = `${HEADER_SELECTOR} [data-component="SegmentedControl"]`;
-const SPLIT_ATTR = "data-bgm-split";
-const PAGE_STYLE_ATTR = "data-bgm-page-style";
+const SPLIT_ATTR = "data-mhr-split";
+const PAGE_STYLE_ATTR = "data-mhr-page-style";
 
 /** GitHub's own "source diff / rich diff" switcher in a file header. */
 export function findViewSwitcher(container: Element): Element | null {

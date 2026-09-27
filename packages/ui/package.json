@@ -1,5 +1,5 @@
 {
-  "name": "@better-gh-md/ui",
+  "name": "@mihiraki/ui",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@better-gh-md/core": "workspace:^",
+    "@mihiraki/core": "workspace:^",
     "dompurify": "^3.4.16",
     "github-markdown-css": "^5.9.0",
     "preact": "^10.29.8"

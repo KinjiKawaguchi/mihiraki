@@ -7,15 +7,15 @@ afterEach(() => {
 
 describe("createShadowHost", () => {
   it("creates an isolated host carrying the given styles", () => {
-    const { host, root } = createShadowHost(document, "bgm-test", ".x { color: red; }");
+    const { host, root } = createShadowHost(document, "mhr-test", ".x { color: red; }");
 
-    expect(host.tagName.toLowerCase()).toBe("bgm-test");
+    expect(host.tagName.toLowerCase()).toBe("mhr-test");
     expect(root.querySelector("style")?.textContent).toContain(".x { color: red; }");
     expect(root.querySelector("style")?.textContent).toContain("all: initial");
   });
 
   it("keeps keystrokes inside from reaching the page keyboard shortcuts", () => {
-    const { host, root } = createShadowHost(document, "bgm-test", "");
+    const { host, root } = createShadowHost(document, "mhr-test", "");
     document.body.append(host);
     const input = document.createElement("textarea");
     root.append(input);

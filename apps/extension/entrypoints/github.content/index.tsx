@@ -28,7 +28,7 @@ function startSession(href: string, pullRequestKey: string): Session | null {
     cssText: inheritHostThemeColors(cssText),
     hostSync,
   }).catch((error: unknown) => {
-    console.warn("[better-gh-md] 分割表示を準備できませんでした:", error);
+    console.warn("[mihiraki] 分割表示を準備できませんでした:", error);
     return () => undefined;
   });
   return { pullRequestKey, stopped };

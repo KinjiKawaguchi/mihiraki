@@ -10,7 +10,7 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, "entry.ts"),
       formats: ["iife"],
-      name: "betterGhMdHarness",
+      name: "mihirakiHarness",
       fileName: () => "harness.js",
     },
   },

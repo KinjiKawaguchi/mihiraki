@@ -5,7 +5,7 @@ import {
   groupThreadsByRow,
   type ReviewThread,
   type Side,
-} from "@better-gh-md/core";
+} from "@mihiraki/core";
 import { useMemo, useState } from "preact/hooks";
 import { SIDE_LABEL } from "../format";
 import { SplitCellView } from "./SplitCellView";
@@ -44,16 +44,16 @@ export function SplitReview({
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: tracks the pointer while dragging a selection from "+"
     <div
-      class={`bgm-split${comment.isDragging ? " bgm-split--selecting" : ""}`}
+      class={`mhr-split${comment.isDragging ? " mhr-split--selecting" : ""}`}
       onMouseMove={comment.handleMouseMove}
       onMouseUp={comment.selection.finish}
     >
-      <div class="bgm-split__header">
+      <div class="mhr-split__header">
         <div>{SIDE_LABEL.LEFT}</div>
         <div>{SIDE_LABEL.RIGHT}</div>
       </div>
       {rows.map((row, rowIndex) => (
-        <div class="bgm-row" key={rowIndex}>
+        <div class="mhr-row" key={rowIndex}>
           {SIDES.map((side) => {
             const cellKey = `${rowIndex}:${side}`;
             const isSelectionSide = comment.selectedSide === side;

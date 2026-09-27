@@ -1,4 +1,4 @@
-import type { LineRange } from "@better-gh-md/core";
+import type { LineRange } from "@mihiraki/core";
 import type { ComponentChild } from "preact";
 import { createPortal } from "preact/compat";
 import { useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
@@ -50,7 +50,7 @@ function AddCommentButton({ hovered, onSelectionStart, onRequestComment }: AddCo
   return (
     <button
       type="button"
-      class="bgm-add"
+      class="mhr-add"
       aria-label="コメントを追加"
       title="クリックでコメント、ドラッグで範囲を選択"
       style={{ top: `${hovered.top}px` }}
@@ -109,7 +109,7 @@ export function RenderedBlock(props: RenderedBlockProps) {
     // biome-ignore lint/a11y/noStaticElementInteractions: pointer tracking for the hover affordance
     // biome-ignore lint/a11y/useKeyWithMouseEvents: see above; keyboard access is a known gap
     <div
-      class="bgm-block"
+      class="mhr-block"
       ref={containerRef}
       onMouseOver={handlePointer}
       onMouseMove={handlePointer}

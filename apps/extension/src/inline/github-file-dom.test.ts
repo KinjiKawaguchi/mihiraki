@@ -34,9 +34,9 @@ describe("github file DOM", () => {
     installPageStyle(document);
     installPageStyle(document);
 
-    const styles = document.head.querySelectorAll("style[data-bgm-page-style]");
+    const styles = document.head.querySelectorAll("style[data-mhr-page-style]");
     expect(styles).toHaveLength(1);
-    expect(styles[0]?.textContent).toContain("[data-bgm-split]");
+    expect(styles[0]?.textContent).toContain("[data-mhr-split]");
     expect(styles[0]?.textContent).toContain(":not([data-diff-header-wrapper])");
   });
 });

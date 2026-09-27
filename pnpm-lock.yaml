@@ -14,10 +14,10 @@ importers:
 
   apps/extension:
     dependencies:
-      '@better-gh-md/core':
+      '@mihiraki/core':
         specifier: workspace:^
         version: link:../../packages/core
-      '@better-gh-md/ui':
+      '@mihiraki/ui':
         specifier: workspace:^
         version: link:../../packages/ui
       preact:
@@ -51,10 +51,10 @@ importers:
 
   apps/playground:
     dependencies:
-      '@better-gh-md/core':
+      '@mihiraki/core':
         specifier: workspace:^
         version: link:../../packages/core
-      '@better-gh-md/ui':
+      '@mihiraki/ui':
         specifier: workspace:^
         version: link:../../packages/ui
       preact:
@@ -104,7 +104,7 @@ importers:
 
   packages/ui:
     dependencies:
-      '@better-gh-md/core':
+      '@mihiraki/core':
         specifier: workspace:^
         version: link:../core
       dompurify:

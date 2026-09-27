@@ -4,7 +4,7 @@ import type {
   ReviewComment,
   ReviewThread,
   Side,
-} from "@better-gh-md/core";
+} from "@mihiraki/core";
 import { asArray, asRecord, asRecords, asString, type JsonRecord, pick } from "./json";
 
 export interface RouteData {

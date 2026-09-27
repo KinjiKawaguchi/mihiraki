@@ -9,8 +9,8 @@ export interface BlockHtmlDiff {
 type Marker = "ins" | "del";
 
 const MARKER_CLASS: Readonly<Record<Marker, string>> = {
-  ins: "bgm-ins",
-  del: "bgm-del",
+  ins: "mhr-ins",
+  del: "mhr-del",
 };
 
 /** Per-token "changed" flags for one side of a diff. */

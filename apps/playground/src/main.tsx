@@ -1,6 +1,6 @@
-import { createMemoryBackend } from "@better-gh-md/core";
-import { ReviewApp } from "@better-gh-md/ui";
-import "@better-gh-md/ui/styles.css";
+import { createMemoryBackend } from "@mihiraki/core";
+import { ReviewApp } from "@mihiraki/ui";
+import "@mihiraki/ui/styles.css";
 import { render } from "preact";
 import { sampleFiles, sampleThreads } from "./samples";
 

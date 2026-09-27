@@ -86,7 +86,9 @@ describe("host sync between the extension and the page bridge", () => {
     install({ findStores: () => fakeStores().stores, register });
 
     document.dispatchEvent(
-      new CustomEvent("bgm:thread-created", { detail: '{"requestId":"x","message":{"target":1}}' }),
+      new CustomEvent("mihiraki:thread-created", {
+        detail: '{"requestId":"x","message":{"target":1}}',
+      }),
     );
 
     expect(register).not.toHaveBeenCalled();

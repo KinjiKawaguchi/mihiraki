@@ -1,4 +1,4 @@
-import type { CommentMode, CommentTarget } from "@better-gh-md/core";
+import type { CommentMode, CommentTarget } from "@mihiraki/core";
 import { useState } from "preact/hooks";
 import { formatLineRange } from "../format";
 import { CommentPreview } from "./CommentPreview";
@@ -35,7 +35,7 @@ function EditorTabs({
   readonly onChange: (isPreview: boolean) => void;
 }) {
   return (
-    <div class="bgm-form__tabs" role="tablist">
+    <div class="mhr-form__tabs" role="tablist">
       <button type="button" role="tab" aria-selected={!isPreview} onClick={() => onChange(false)}>
         書く
       </button>
@@ -59,7 +59,7 @@ function SubmitButtons({ hasPendingReview, canSubmit, onSubmit }: SubmitButtonsP
         <button
           key={mode}
           type="button"
-          class={`bgm-button${mode === "review" ? " bgm-button--primary" : ""}`}
+          class={`mhr-button${mode === "review" ? " mhr-button--primary" : ""}`}
           disabled={!canSubmit}
           onClick={() => onSubmit(mode)}
         >
@@ -82,14 +82,14 @@ export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: Co
   };
 
   return (
-    <form class="bgm-form" onSubmit={(event) => event.preventDefault()}>
-      <div class="bgm-form__target">{formatLineRange(target.side, lines)} にコメント</div>
+    <form class="mhr-form" onSubmit={(event) => event.preventDefault()}>
+      <div class="mhr-form__target">{formatLineRange(target.side, lines)} にコメント</div>
       <EditorTabs isPreview={isPreview} onChange={setIsPreview} />
       {isPreview ? (
         <CommentPreview body={draft.body} />
       ) : (
         <textarea
-          class="bgm-form__body"
+          class="mhr-form__body"
           value={draft.body}
           placeholder="コメントを書く（Markdown可、⌘/Ctrl+Enterで送信）"
           onInput={(event) => draft.setBody((event.target as HTMLTextAreaElement).value)}
@@ -98,9 +98,9 @@ export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: Co
           autoFocus
         />
       )}
-      {draft.error && <p class="bgm-form__error">{draft.error}</p>}
-      <div class="bgm-form__actions">
-        <button type="button" class="bgm-button" onClick={onCancel}>
+      {draft.error && <p class="mhr-form__error">{draft.error}</p>}
+      <div class="mhr-form__actions">
+        <button type="button" class="mhr-button" onClick={onCancel}>
           キャンセル
         </button>
         <SubmitButtons

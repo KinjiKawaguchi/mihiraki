@@ -1,6 +1,6 @@
 /** Styles for the toggle's own shadow root, modelled on GitHub's small header buttons. */
 export const SPLIT_TOGGLE_CSS = `
-.bgm-toggle {
+.mhr-toggle {
   height: 28px;
   padding: 0 10px;
   border: 1px solid var(--borderColor-default, #d1d9e0);
@@ -11,8 +11,8 @@ export const SPLIT_TOGGLE_CSS = `
   cursor: pointer;
   white-space: nowrap;
 }
-.bgm-toggle:hover { background: var(--bgColor-muted, #f6f8fa); }
-.bgm-toggle[aria-pressed='true'] {
+.mhr-toggle:hover { background: var(--bgColor-muted, #f6f8fa); }
+.mhr-toggle[aria-pressed='true'] {
   border-color: transparent;
   background: var(--bgColor-accent-emphasis, #0969da);
   color: var(--fgColor-onEmphasis, #ffffff);
@@ -28,7 +28,7 @@ export function SplitToggle({ isActive, onToggle }: SplitToggleProps) {
   return (
     <button
       type="button"
-      class="bgm-toggle"
+      class="mhr-toggle"
       aria-pressed={isActive ? "true" : "false"}
       title="Markdownをレンダリングしたまま左右分割で表示"
       onClick={onToggle}

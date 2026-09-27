@@ -56,7 +56,7 @@ function renderFrontMatter(md: MarkdownIt, token: Token): string {
     .join("");
   const start = token.attrGet(LINE_START_ATTR) ?? "";
   const end = token.attrGet(LINE_END_ATTR) ?? "";
-  return `<table class="bgm-frontmatter" ${LINE_START_ATTR}="${start}" ${LINE_END_ATTR}="${end}"><tbody>${rows}</tbody></table>\n`;
+  return `<table class="mhr-frontmatter" ${LINE_START_ATTR}="${start}" ${LINE_END_ATTR}="${end}"><tbody>${rows}</tbody></table>\n`;
 }
 
 /** GitHub-flavoured markdown-it instance that annotates block elements with source lines. */
@@ -66,7 +66,7 @@ export function createMarkdownRenderer(): MarkdownIt {
     .use(githubAlerts)
     .use(taskLists, { enabled: false })
     .use(emoji);
-  md.core.ruler.push("bgm_line_attrs", annotateLines);
+  md.core.ruler.push("mhr_line_attrs", annotateLines);
   md.renderer.rules.front_matter = (tokens, idx) => {
     const token = tokens[idx];
     return token ? renderFrontMatter(md, token) : "";

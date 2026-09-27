@@ -1,4 +1,4 @@
-import type { CommentMode } from "@better-gh-md/core";
+import type { CommentMode } from "@mihiraki/core";
 import { useState } from "preact/hooks";
 import { errorMessage } from "../format";
 

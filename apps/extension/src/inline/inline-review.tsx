@@ -1,5 +1,5 @@
-import type { ChangedFile, ReviewBackend } from "@better-gh-md/core";
-import { createThreadStore } from "@better-gh-md/ui";
+import type { ChangedFile, ReviewBackend } from "@mihiraki/core";
+import { createThreadStore } from "@mihiraki/ui";
 import type { HostSyncClient } from "../host-sync/client";
 import { watchDocument } from "./document-watch";
 import { fileContainerId } from "./file-anchor";
