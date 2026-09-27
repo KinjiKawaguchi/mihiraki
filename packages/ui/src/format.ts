@@ -1,10 +1,5 @@
 import type { LineRange, Side } from "@mihiraki/core";
 
-export const SIDE_LABEL: Readonly<Record<Side, string>> = {
-  base: "変更前",
-  head: "変更後",
-};
-
 /** GitHub's notation: L for lines of the base (left) file, R for the head (right) file. */
 const SIDE_PREFIX: Readonly<Record<Side, string>> = {
   base: "L",
@@ -18,9 +13,9 @@ export function formatLineRange(side: Side, lines: LineRange): string {
     : `${prefix}${lines.start}〜${prefix}${lines.end}`;
 }
 
-export function formatDateTime(iso: string): string {
+export function formatDateTime(iso: string, locale: string): string {
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleString(locale);
 }
 
 export function errorMessage(error: unknown): string {

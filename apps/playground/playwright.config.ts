@@ -7,6 +7,8 @@ export default defineConfig({
     baseURL: "http://localhost:5179",
     ...devices["Desktop Chrome"],
     viewport: { width: 1400, height: 1000 },
+    // The specs read the Japanese UI; the playground follows the browser's language.
+    locale: "ja-JP",
   },
   webServer: {
     command: "vite --port 5179 --strictPort",

@@ -1,0 +1,46 @@
+import type { Messages } from "./messages";
+
+export const ja: Messages = {
+  locale: "ja",
+  sideLabel: { base: "変更前", head: "変更後" },
+  addComment: "コメントを追加",
+  addCommentHint: "クリックでコメント、ドラッグで範囲を選択",
+  commentOn: (lines) => `${lines} にコメント`,
+  singleComment: "コメント",
+  startReview: "レビューを開始",
+  addToReview: "レビューに追加",
+  write: "書く",
+  preview: "プレビュー",
+  nothingToPreview: "プレビューする内容がありません",
+  bodyPlaceholder: "コメントを書く（Markdown可、⌘/Ctrl+Enterで送信）",
+  cancel: "キャンセル",
+  loading: "読み込み中…",
+  staleRevision:
+    "このPRは表示中の版から更新されています。コメントの位置は表示中の版に対して付きます。",
+  loadLatest: "最新の版を読み込む",
+  couldNotLoadFile: (path) => `${path} を読み込めませんでした`,
+  couldNotLoadFiles: "変更されたファイルを読み込めませんでした",
+  couldNotLoadComments: "コメントを取得できませんでした",
+  couldNotPostComment: "コメントを投稿できませんでした",
+  pendingReviewConflict:
+    "保留中のレビューがあります。単発で送ると保留中のコメントもまとめて公開されるため、「レビューに追加」を使ってください。",
+  lineNotResolved:
+    "コメントする行を特定できませんでした。表示中の版の後に内容が更新された可能性があります。最新の版を読み込んでから、もう一度コメントしてください。",
+  timeout: "応答がありませんでした。時間をおいて再度お試しください。",
+  network: "通信できませんでした。ネットワーク接続を確認してください。",
+  unexpectedResponse:
+    "応答を解釈できませんでした。サインインが切れているか、拡張機能が対応していない変更が入った可能性があります。",
+  failure: (what, why) => (why === null ? `${what}。` : `${what}。${why}`),
+  failureWithDetail: (what, detail) => `${what}（${detail}）。`,
+  noMarkdownChanges: "このPRにMarkdownファイルの変更はありません。",
+  appTitle: "Markdown 分割レビュー",
+  close: "閉じる",
+  markdownFiles: "Markdownファイル",
+  changeType: { ADDED: "追加", MODIFIED: "変更", REMOVED: "削除", RENAMED: "移動" },
+  pending: "保留中",
+  resolved: "解決済み",
+  outdated: "古い差分",
+  openOnGitHub: "GitHubで開く",
+  commentCount: (count) => `${count}件`,
+  unplacedThreads: "本文の横に表示できないコメント",
+};

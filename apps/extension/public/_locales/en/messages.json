@@ -1,0 +1,10 @@
+{
+  "extName": {
+    "message": "Mihiraki for GitHub",
+    "description": "Name of the extension in the browser and the Chrome Web Store."
+  },
+  "extDescription": {
+    "message": "Review Markdown changes in GitHub pull requests rendered side by side, and comment on them inline.",
+    "description": "Short description in the browser and the Chrome Web Store (at most 132 characters)."
+  }
+}

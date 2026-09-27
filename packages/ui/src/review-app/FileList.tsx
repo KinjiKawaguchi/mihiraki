@@ -1,4 +1,5 @@
 import type { ChangedFile } from "@mihiraki/core";
+import { useMessages } from "../i18n/i18n";
 
 interface FileListProps {
   readonly files: readonly ChangedFile[];
@@ -6,16 +7,10 @@ interface FileListProps {
   readonly onSelect: (path: string) => void;
 }
 
-const CHANGE_MARK: Readonly<Record<ChangedFile["changeType"], string>> = {
-  ADDED: "追加",
-  MODIFIED: "変更",
-  REMOVED: "削除",
-  RENAMED: "移動",
-};
-
 export function FileList({ files, selectedPath, onSelect }: FileListProps) {
+  const t = useMessages();
   return (
-    <nav class="mhr-files" aria-label="Markdownファイル">
+    <nav class="mhr-files" aria-label={t.markdownFiles}>
       {files.map((file) => (
         <button
           type="button"
@@ -26,7 +21,7 @@ export function FileList({ files, selectedPath, onSelect }: FileListProps) {
           title={file.path}
           onClick={() => onSelect(file.path)}
         >
-          <span class="mhr-files__change">{CHANGE_MARK[file.changeType]}</span>
+          <span class="mhr-files__change">{t.changeType[file.changeType]}</span>
           <span class="mhr-files__path">{file.path}</span>
         </button>
       ))}

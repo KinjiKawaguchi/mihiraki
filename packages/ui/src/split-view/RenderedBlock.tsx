@@ -2,6 +2,7 @@ import type { LineRange } from "@mihiraki/core";
 import type { ComponentChild } from "preact";
 import { createPortal } from "preact/compat";
 import { useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
+import { useMessages } from "../i18n/i18n";
 import { SafeHtml } from "../safe-html/SafeHtml";
 import { type SanitizedHtml, sanitizeHtml } from "../safe-html/sanitize";
 import { insertSlotBelow, lineElementAt, markSelectedElements, readLines } from "./rendered-dom";
@@ -50,12 +51,13 @@ interface AddCommentButtonProps {
 
 /** Press and drag selects a range (see useBlockSelection); keyboard activation comments right away. */
 function AddCommentButton({ hovered, onSelectionStart, onRequestComment }: AddCommentButtonProps) {
+  const t = useMessages();
   return (
     <button
       type="button"
       class="mhr-add"
-      aria-label="コメントを追加"
-      title="クリックでコメント、ドラッグで範囲を選択"
+      aria-label={t.addComment}
+      title={t.addCommentHint}
       style={{ top: `${hovered.top}px` }}
       onMouseDown={(event) => {
         event.preventDefault();

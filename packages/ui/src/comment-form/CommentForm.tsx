@@ -1,6 +1,8 @@
 import { availableCommentModes, type CommentMode, type CommentTarget } from "@mihiraki/core";
 import { useState } from "preact/hooks";
 import { formatLineRange } from "../format";
+import { useMessages } from "../i18n/i18n";
+import type { Messages } from "../i18n/messages";
 import { CommentPreview } from "./CommentPreview";
 import { type SubmitDraft, useCommentDraft } from "./use-comment-draft";
 
@@ -12,9 +14,9 @@ interface CommentFormProps {
   readonly onCancel: () => void;
 }
 
-function modeLabel(mode: CommentMode, hasPendingReview: boolean): string {
-  if (mode === "single") return "コメント";
-  return hasPendingReview ? "レビューに追加" : "レビューを開始";
+function modeLabel(t: Messages, mode: CommentMode, hasPendingReview: boolean): string {
+  if (mode === "single") return t.singleComment;
+  return hasPendingReview ? t.addToReview : t.startReview;
 }
 
 function EditorTabs({
@@ -24,13 +26,14 @@ function EditorTabs({
   readonly isPreview: boolean;
   readonly onChange: (isPreview: boolean) => void;
 }) {
+  const t = useMessages();
   return (
     <div class="mhr-form__tabs" role="tablist">
       <button type="button" role="tab" aria-selected={!isPreview} onClick={() => onChange(false)}>
-        書く
+        {t.write}
       </button>
       <button type="button" role="tab" aria-selected={isPreview} onClick={() => onChange(true)}>
-        プレビュー
+        {t.preview}
       </button>
     </div>
   );
@@ -43,6 +46,7 @@ interface SubmitButtonsProps {
 }
 
 function SubmitButtons({ hasPendingReview, canSubmit, onSubmit }: SubmitButtonsProps) {
+  const t = useMessages();
   return (
     <>
       {availableCommentModes(hasPendingReview).map((mode) => (
@@ -53,7 +57,7 @@ function SubmitButtons({ hasPendingReview, canSubmit, onSubmit }: SubmitButtonsP
           disabled={!canSubmit}
           onClick={() => onSubmit(mode)}
         >
-          {modeLabel(mode, hasPendingReview)}
+          {modeLabel(t, mode, hasPendingReview)}
         </button>
       ))}
     </>
@@ -61,6 +65,7 @@ function SubmitButtons({ hasPendingReview, canSubmit, onSubmit }: SubmitButtonsP
 }
 
 export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: CommentFormProps) {
+  const t = useMessages();
   const draft = useCommentDraft(onSubmit);
   const [isPreview, setIsPreview] = useState(false);
   const shortcutMode: CommentMode = hasPendingReview ? "review" : "single";
@@ -72,7 +77,7 @@ export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: Co
 
   return (
     <form class="mhr-form" onSubmit={(event) => event.preventDefault()}>
-      <div class="mhr-form__target">{formatLineRange(target.side, target.lines)} にコメント</div>
+      <div class="mhr-form__target">{t.commentOn(formatLineRange(target.side, target.lines))}</div>
       <EditorTabs isPreview={isPreview} onChange={setIsPreview} />
       {isPreview ? (
         <CommentPreview body={draft.body} />
@@ -80,7 +85,7 @@ export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: Co
         <textarea
           class="mhr-form__body"
           value={draft.body}
-          placeholder="コメントを書く（Markdown可、⌘/Ctrl+Enterで送信）"
+          placeholder={t.bodyPlaceholder}
           onInput={(event) => draft.setBody((event.target as HTMLTextAreaElement).value)}
           onKeyDown={handleKeyDown}
           // biome-ignore lint/a11y/noAutofocus: the form opens because the reviewer asked to write, as on GitHub
@@ -90,7 +95,7 @@ export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: Co
       {draft.error && <p class="mhr-form__error">{draft.error}</p>}
       <div class="mhr-form__actions">
         <button type="button" class="mhr-button" disabled={draft.isSubmitting} onClick={onCancel}>
-          キャンセル
+          {t.cancel}
         </button>
         <SubmitButtons
           hasPendingReview={hasPendingReview}

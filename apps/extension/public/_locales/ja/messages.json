@@ -1,0 +1,10 @@
+{
+  "extName": {
+    "message": "Mihiraki for GitHub",
+    "description": "ブラウザとChromeウェブストアに表示する拡張機能の名前。"
+  },
+  "extDescription": {
+    "message": "GitHubのプルリクエストで、Markdownの変更をレンダリングしたまま左右に並べて確認し、その場でコメントできます。",
+    "description": "ブラウザとChromeウェブストアに表示する短い説明（132文字以内）。"
+  }
+}

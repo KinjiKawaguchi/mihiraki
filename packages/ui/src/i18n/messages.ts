@@ -1,0 +1,47 @@
+import type { FileChangeType, Side } from "@mihiraki/core";
+import type { Locale } from "./locale";
+
+/** Every text the UI shows. Each language provides all of them, so none can be missed. */
+export interface Messages {
+  readonly locale: Locale;
+  readonly sideLabel: Readonly<Record<Side, string>>;
+  readonly addComment: string;
+  readonly addCommentHint: string;
+  /** Title of the comment form, e.g. for "R3" or "R3〜R5". */
+  readonly commentOn: (lines: string) => string;
+  readonly singleComment: string;
+  readonly startReview: string;
+  readonly addToReview: string;
+  readonly write: string;
+  readonly preview: string;
+  readonly nothingToPreview: string;
+  readonly bodyPlaceholder: string;
+  readonly cancel: string;
+  readonly loading: string;
+  readonly staleRevision: string;
+  readonly loadLatest: string;
+  readonly couldNotLoadFile: (path: string) => string;
+  readonly couldNotLoadFiles: string;
+  readonly couldNotLoadComments: string;
+  readonly couldNotPostComment: string;
+  readonly pendingReviewConflict: string;
+  readonly lineNotResolved: string;
+  readonly timeout: string;
+  readonly network: string;
+  readonly unexpectedResponse: string;
+  /** "<what failed>" followed by why, as one or two sentences. */
+  readonly failure: (what: string, why: string | null) => string;
+  /** "<what failed>" with the host's own explanation. */
+  readonly failureWithDetail: (what: string, detail: string) => string;
+  readonly noMarkdownChanges: string;
+  readonly appTitle: string;
+  readonly close: string;
+  readonly markdownFiles: string;
+  readonly changeType: Readonly<Record<FileChangeType, string>>;
+  readonly pending: string;
+  readonly resolved: string;
+  readonly outdated: string;
+  readonly openOnGitHub: string;
+  readonly commentCount: (count: number) => string;
+  readonly unplacedThreads: string;
+}

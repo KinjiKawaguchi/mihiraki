@@ -1,6 +1,7 @@
 import type { CommentMode } from "@mihiraki/core";
 import { useState } from "preact/hooks";
 import { errorMessage } from "../format";
+import { useMessages } from "../i18n/i18n";
 import { describePostCommentError } from "./post-error-message";
 import type { SubmitComment } from "./submit-comment";
 
@@ -9,6 +10,7 @@ export type SubmitDraft = (body: string, mode: CommentMode) => ReturnType<Submit
 
 /** Text, submission state and error of a comment being written. */
 export function useCommentDraft(onSubmit: SubmitDraft) {
+  const t = useMessages();
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -19,7 +21,7 @@ export function useCommentDraft(onSubmit: SubmitDraft) {
     setIsSubmitting(true);
     setError(null);
     const failure = await onSubmit(body, mode).then(
-      (result) => (result.ok ? null : describePostCommentError(result.error)),
+      (result) => (result.ok ? null : describePostCommentError(t, result.error)),
       // A rejection is a bug, not a foreseeable failure; still keep the draft usable.
       (unexpected: unknown) => errorMessage(unexpected),
     );

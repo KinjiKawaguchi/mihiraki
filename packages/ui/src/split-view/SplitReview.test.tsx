@@ -1,12 +1,18 @@
 import { commitId, err, ok, type ReviewThread } from "@mihiraki/core";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/preact";
+import type { ComponentChildren } from "preact";
 import { describe, expect, it, vi } from "vitest";
+import { I18nProvider } from "../i18n/i18n";
 import { SplitReview, type SplitReviewProps } from "./SplitReview";
 
 const revision = { base: commitId("b1b1b1b"), head: commitId("c1c1c1c") };
 
 const base = "# Title\n\nThe cache expires after ten minutes.\n";
 const head = "# Title\n\nThe cache expires after five minutes.\n";
+
+function Japanese({ children }: { readonly children: ComponentChildren }) {
+  return <I18nProvider locale="ja">{children}</I18nProvider>;
+}
 
 function renderReview(overrides: Partial<Parameters<typeof SplitReview>[0]> = {}) {
   const onSubmitComment = vi.fn().mockResolvedValue(ok(undefined));
@@ -20,6 +26,7 @@ function renderReview(overrides: Partial<Parameters<typeof SplitReview>[0]> = {}
       onSubmitComment={onSubmitComment}
       {...overrides}
     />,
+    { wrapper: Japanese },
   );
   const column = (side: "base" | "head") =>
     Array.from(view.container.querySelectorAll(`[data-side="${side}"]`))
@@ -198,5 +205,27 @@ describe("SplitReview", () => {
 
     const unplaced = screen.getByRole("region", { name: "本文の横に表示できないコメント" });
     expect(within(unplaced).getByText("Why ten?")).toBeTruthy();
+  });
+
+  it("labels the comment form in the language it is given", () => {
+    const { container } = render(
+      <I18nProvider locale="en">
+        <SplitReview
+          path="doc.md"
+          base={base}
+          head={head}
+          threads={[]}
+          revision={revision}
+          onSubmitComment={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    fireEvent.mouseOver(container.querySelector('[data-side="head"] p') as Element);
+    fireEvent.click(screen.getByRole("button", { name: "Add a comment" }));
+
+    expect(screen.getByText("Comment on R3")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Start a review" })).toBeTruthy();
+    expect(screen.getByText("After")).toBeTruthy();
   });
 });

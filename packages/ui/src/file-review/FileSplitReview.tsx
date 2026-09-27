@@ -7,6 +7,7 @@ import {
 import { useMemo, useState } from "preact/hooks";
 import type { SubmitComment } from "../comment-form/submit-comment";
 import { describeLoadFailure } from "../host-errors/describe";
+import { useMessages } from "../i18n/i18n";
 import { useAsync } from "../review-app/use-async";
 import { SplitReview } from "../split-view/SplitReview";
 
@@ -19,11 +20,12 @@ export interface FileSplitReviewProps {
 }
 
 function StaleRevisionNotice({ onReload }: { readonly onReload: () => void }) {
+  const t = useMessages();
   return (
     <p class="mhr-notice mhr-notice--stale">
-      このPRは表示中の版から更新されています。コメントの位置は表示中の版に対して付きます。
+      {t.staleRevision}
       <button type="button" class="mhr-button" onClick={onReload}>
-        最新の版を読み込む
+        {t.loadLatest}
       </button>
     </p>
   );
@@ -34,6 +36,7 @@ function StaleRevisionNotice({ onReload }: { readonly onReload: () => void }) {
  * (keyed by its path), so a view never shows another file's text while loading.
  */
 export function FileSplitReview({ backend, file, threads, onSubmitComment }: FileSplitReviewProps) {
+  const t = useMessages();
   const [reloads, setReloads] = useState(0);
   const loaded = useAsync(() => backend.loadFileVersions(file), [backend, file, reloads]);
   const fileThreads = useMemo(
@@ -44,10 +47,10 @@ export function FileSplitReview({ backend, file, threads, onSubmitComment }: Fil
   if (loaded.status === "failure")
     return (
       <p class="mhr-message mhr-message--error">
-        {describeLoadFailure(`${file.path} を読み込めませんでした`, loaded.failure)}
+        {describeLoadFailure(t, t.couldNotLoadFile(file.path), loaded.failure)}
       </p>
     );
-  if (!loaded.value) return <p class="mhr-message">読み込み中…</p>;
+  if (!loaded.value) return <p class="mhr-message">{t.loading}</p>;
   const versions = loaded.value;
   // Unknown until the threads are loaded; nothing is claimed about them before that.
   const isStale = threads !== null && !isSameRevision(threads.revision, versions.revision);

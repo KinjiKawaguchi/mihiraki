@@ -5,12 +5,13 @@ import {
   type Result,
   type ReviewBackend,
 } from "@mihiraki/core";
-import { createThreadStore } from "@mihiraki/ui";
+import { createThreadStore, type Locale } from "@mihiraki/ui";
 import type { HostSyncClient } from "../host-sync/client";
 import { watchDocument } from "./document-watch";
 import { fileContainerId } from "./file-anchor";
 import { createFileDecorator } from "./file-decorator";
 import { installPageStyle, removePageStyle, setSplitActive } from "./github-file-dom";
+import { INLINE_MESSAGES } from "./messages";
 
 export interface InlineReviewOptions {
   readonly document: Document;
@@ -19,14 +20,9 @@ export interface InlineReviewOptions {
   readonly cssText: string;
   /** Keeps GitHub's own UI and the split views showing the same threads, when available. */
   readonly hostSync?: HostSyncClient;
+  /** Language of everything added to the page. */
+  readonly locale: Locale;
 }
-
-/**
- * Without host sync, GitHub's "Submit review" counter does not notice comments added
- * from here until the page is reloaded, although submitting still includes them.
- */
-const PENDING_REVIEW_NOTICE =
-  "保留中のコメントは GitHub の「Submit review」から提出できます。件数に反映されていなければ再読み込みしてください。";
 
 /** GitHub updates several stores per comment; reload our threads once they settle. */
 const HOST_REFRESH_DELAY_MS = 300;
@@ -117,12 +113,10 @@ function restoreAll(document: Document, targets: readonly FileTarget[]) {
  * and swaps the file's diff for the rendered split review while it is on.
  * Returns a function that removes everything again, or why the files could not be found.
  */
-export async function startInlineReview({
-  document,
-  backend,
-  cssText,
-  hostSync,
-}: InlineReviewOptions): Promise<Result<() => void, HostError>> {
+export async function startInlineReview(
+  options: InlineReviewOptions,
+): Promise<Result<() => void, HostError>> {
+  const { document, backend, cssText, hostSync, locale } = options;
   const located = await locateFiles(backend);
   if (!located.ok) return located;
   const targets = located.value;
@@ -137,7 +131,9 @@ export async function startInlineReview({
     backend,
     store,
     cssText,
-    pendingReviewNotice: () => (isHostSynced ? undefined : PENDING_REVIEW_NOTICE),
+    pendingReviewNotice: () =>
+      isHostSynced ? undefined : INLINE_MESSAGES[locale].pendingReviewNotice,
+    locale,
     isActive: activation.isActive,
     setActive: (path, isActive) => {
       activation.set(path, isActive);
@@ -160,9 +156,7 @@ export async function startInlineReview({
   });
 
   return ok(() => {
-    stopWatching();
-    stopHostWatch();
-    decorator.dispose();
+    for (const stop of [stopWatching, stopHostWatch, decorator.dispose]) stop();
     restoreAll(document, targets);
     removePageStyle(document);
   });

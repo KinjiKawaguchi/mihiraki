@@ -1,4 +1,5 @@
 import type { HostError, Result } from "@mihiraki/core";
+import { resolveLocale } from "@mihiraki/ui";
 import { createGitHubBackend } from "../../src/github/github-backend";
 import {
   isFilesTab,
@@ -25,6 +26,7 @@ function startReview(pr: PullRequestLocation): Promise<Result<() => void, HostEr
     backend,
     cssText: inheritHostThemeColors(cssText),
     hostSync,
+    locale: resolveLocale(navigator.languages),
   });
 }
 
@@ -41,7 +43,7 @@ export default defineContentScript({
         const pr = pullRequests.get(key);
         return pr ? startReview(pr) : Promise.reject(new Error(`Unknown pull request: ${key}`));
       },
-      onGiveUp: (error) => console.warn("[mihiraki] 分割表示を準備できませんでした:", error),
+      onGiveUp: (error) => console.warn("[mihiraki] Could not start the split view:", error),
     });
 
     const sync = () => {

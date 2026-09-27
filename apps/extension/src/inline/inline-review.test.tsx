@@ -1,5 +1,6 @@
 import { err, type ReviewBackend, type ReviewThread } from "@mihiraki/core";
 import { createMemoryBackend } from "@mihiraki/core/memory";
+import type { Locale } from "@mihiraki/ui";
 import { waitFor } from "@testing-library/preact";
 import { afterEach, describe, expect, it } from "vitest";
 import type { HostSyncClient } from "../host-sync/client";
@@ -21,8 +22,13 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-async function start(reviewBackend: ReviewBackend = backend) {
-  const started = await startInlineReview({ document, backend: reviewBackend, cssText: "" });
+async function start(reviewBackend: ReviewBackend = backend, locale: Locale = "ja") {
+  const started = await startInlineReview({
+    document,
+    backend: reviewBackend,
+    cssText: "",
+    locale,
+  });
   if (!started.ok) throw new Error(`Unexpected failure: ${started.error.kind}`);
   stop = started.value;
 }
@@ -48,6 +54,13 @@ describe("startInlineReview", () => {
         ?.nextElementSibling?.tagName.toLowerCase(),
     ).toBe(SPLIT_TOGGLE_TAG);
     expect(toggleButton(code)).toBeNull();
+  });
+
+  it("labels the toggle in the language it is given", async () => {
+    const container = await appendFileBlock(document, "docs/a.md");
+    await start(backend, "en");
+
+    expect(toggleButton(container)?.textContent).toBe("Split");
   });
 
   it("replaces the diff with the rendered split view when toggled on", async () => {
@@ -79,7 +92,12 @@ describe("startInlineReview", () => {
       listChangedMarkdownFiles: async () => err({ kind: "network" }),
     };
 
-    const started = await startInlineReview({ document, backend: offline, cssText: "" });
+    const started = await startInlineReview({
+      document,
+      backend: offline,
+      cssText: "",
+      locale: "ja",
+    });
 
     expect(started).toEqual(err({ kind: "network" }));
     expect(toggleButton(container)).toBeNull();
@@ -179,7 +197,13 @@ describe("startInlineReview", () => {
 
     async function startWith(hostSync: HostSyncClient, backend: ReviewBackend) {
       const container = await appendFileBlock(document, "docs/a.md");
-      const started = await startInlineReview({ document, backend, cssText: "", hostSync });
+      const started = await startInlineReview({
+        document,
+        backend,
+        cssText: "",
+        hostSync,
+        locale: "ja",
+      });
       if (!started.ok) throw new Error(`Unexpected failure: ${started.error.kind}`);
       stop = started.value;
       toggleButton(container)?.click();

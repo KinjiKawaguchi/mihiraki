@@ -7,7 +7,7 @@ import {
 } from "@mihiraki/core";
 import { useMemo, useState } from "preact/hooks";
 import type { SubmitComment } from "../comment-form/submit-comment";
-import { SIDE_LABEL } from "../format";
+import { useMessages } from "../i18n/i18n";
 import { UnplacedThreads } from "../threads/ThreadList";
 import { SplitCellView } from "./SplitCellView";
 import { useCommentSelection } from "./use-comment-selection";
@@ -39,6 +39,7 @@ export function SplitReview({
   hasPendingReview = false,
   onSubmitComment,
 }: SplitReviewProps) {
+  const t = useMessages();
   const rows = useMemo(() => buildSplitRows(base, head), [base, head]);
   const placement = useMemo(() => placeThreads(rows, threads), [rows, threads]);
   const [activeCell, setActiveCell] = useState<string | null>(null);
@@ -53,7 +54,7 @@ export function SplitReview({
       <UnplacedThreads threads={placement.unplaced} />
       <div class="mhr-split__header">
         {SIDES.map((side) => (
-          <div key={side}>{SIDE_LABEL[side]}</div>
+          <div key={side}>{t.sideLabel[side]}</div>
         ))}
       </div>
       {rows.map((row, rowIndex) => (

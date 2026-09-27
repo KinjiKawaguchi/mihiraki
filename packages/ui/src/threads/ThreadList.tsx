@@ -1,10 +1,12 @@
 import type { ReviewComment, ReviewThread } from "@mihiraki/core";
 import { useMemo, useState } from "preact/hooks";
 import { formatDateTime, formatLineRange } from "../format";
+import { useMessages } from "../i18n/i18n";
 import { SafeHtml } from "../safe-html/SafeHtml";
 import { sanitizeHtml } from "../safe-html/sanitize";
 
 function CommentView({ comment }: { readonly comment: ReviewComment }) {
+  const t = useMessages();
   const safeBody = useMemo(() => sanitizeHtml(comment.bodyHtml), [comment.bodyHtml]);
   return (
     <div class="mhr-comment">
@@ -13,11 +15,11 @@ function CommentView({ comment }: { readonly comment: ReviewComment }) {
           <img class="mhr-comment__avatar" src={comment.avatarUrl} alt="" width={20} height={20} />
         )}
         <strong>{comment.author}</strong>
-        <span class="mhr-comment__time">{formatDateTime(comment.createdAt)}</span>
-        {comment.isPending && <span class="mhr-badge mhr-badge--pending">保留中</span>}
+        <span class="mhr-comment__time">{formatDateTime(comment.createdAt, t.locale)}</span>
+        {comment.isPending && <span class="mhr-badge mhr-badge--pending">{t.pending}</span>}
         {comment.url && (
           <a class="mhr-comment__link" href={comment.url} target="_blank" rel="noreferrer">
-            GitHubで開く
+            {t.openOnGitHub}
           </a>
         )}
       </div>
@@ -27,14 +29,15 @@ function CommentView({ comment }: { readonly comment: ReviewComment }) {
 }
 
 function ThreadView({ thread }: { readonly thread: ReviewThread }) {
+  const t = useMessages();
   const [isExpanded, setIsExpanded] = useState(!thread.isResolved);
   return (
     <div class={`mhr-thread${thread.isResolved ? " mhr-thread--resolved" : ""}`}>
       <button type="button" class="mhr-thread__header" onClick={() => setIsExpanded(!isExpanded)}>
         <span>{formatLineRange(thread.side, thread.lines)}</span>
-        <span>{thread.comments.length}件</span>
-        {thread.isResolved && <span class="mhr-badge">解決済み</span>}
-        {thread.isOutdated && <span class="mhr-badge">古い差分</span>}
+        <span>{t.commentCount(thread.comments.length)}</span>
+        {thread.isResolved && <span class="mhr-badge">{t.resolved}</span>}
+        {thread.isOutdated && <span class="mhr-badge">{t.outdated}</span>}
       </button>
       {isExpanded &&
         thread.comments.map((comment) => <CommentView key={comment.id} comment={comment} />)}
@@ -42,14 +45,13 @@ function ThreadView({ thread }: { readonly thread: ReviewThread }) {
   );
 }
 
-const UNPLACED_LABEL = "本文の横に表示できないコメント";
-
 /** Threads that no rendered block can hold, e.g. base-side threads of an added file. */
 export function UnplacedThreads({ threads }: { readonly threads: readonly ReviewThread[] }) {
+  const t = useMessages();
   if (threads.length === 0) return null;
   return (
-    <section class="mhr-unplaced" aria-label={UNPLACED_LABEL}>
-      <p class="mhr-unplaced__title">{UNPLACED_LABEL}</p>
+    <section class="mhr-unplaced" aria-label={t.unplacedThreads}>
+      <p class="mhr-unplaced__title">{t.unplacedThreads}</p>
       <ThreadList threads={threads} />
     </section>
   );
