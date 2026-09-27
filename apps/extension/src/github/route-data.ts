@@ -4,6 +4,8 @@ import { asArray, asRecord, asRecords, asString, pick, type JsonRecord } from '.
 export interface RouteData {
   readonly baseOid: string;
   readonly headOid: string;
+  /** Whether the viewer has started a review that is not submitted yet. */
+  readonly hasPendingReview: boolean;
   readonly files: readonly ChangedFile[];
   readonly threads: readonly ReviewThread[];
 }
@@ -92,5 +94,11 @@ export function parseRouteData(json: unknown): RouteData {
     seen.add(location.id);
     return toThread(location, threadsById[location.id]) ?? [];
   });
-  return { baseOid, headOid, files: summaries.flatMap((s) => toChangedFile(s) ?? []), threads };
+  return {
+    baseOid,
+    headOid,
+    hasPendingReview: asString(pick(route, 'viewerPendingReview', 'id')) !== null,
+    files: summaries.flatMap((s) => toChangedFile(s) ?? []),
+    threads,
+  };
 }

@@ -102,6 +102,14 @@ describe('parseRouteData', () => {
     ]);
   });
 
+  it('tells whether the viewer has an unsubmitted review', () => {
+    const withPending = structuredClone(response);
+    (withPending.payload.pullRequestsChangesRoute as Record<string, unknown>)['viewerPendingReview'] = { id: 5, comments: [] };
+
+    expect(parseRouteData(response).hasPendingReview).toBe(false);
+    expect(parseRouteData(withPending).hasPendingReview).toBe(true);
+  });
+
   it('rejects a response without the comparison commits', () => {
     expect(() => parseRouteData({ payload: {} })).toThrow(/pull request/);
   });

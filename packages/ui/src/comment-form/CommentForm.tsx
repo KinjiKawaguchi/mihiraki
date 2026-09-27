@@ -12,15 +12,23 @@ interface CommentFormProps {
   readonly onCancel: () => void;
 }
 
-/** GitHub's wording changes once a review is in progress; so do the defaults. */
-function submitLabels(hasPendingReview: boolean): Readonly<Record<CommentMode, string>> {
-  return hasPendingReview ? { single: '単発でコメント', review: 'レビューに追加' } : { single: 'コメント', review: 'レビューを開始' };
+/**
+ * While a review is pending GitHub only offers "Add review comment": posting a single
+ * comment then would publish the whole pending review along with it.
+ */
+function submitModes(hasPendingReview: boolean): readonly { readonly mode: CommentMode; readonly label: string }[] {
+  return hasPendingReview
+    ? [{ mode: 'review', label: 'レビューに追加' }]
+    : [
+        { mode: 'single', label: 'コメント' },
+        { mode: 'review', label: 'レビューを開始' },
+      ];
 }
 
 export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: CommentFormProps) {
   const draft = useCommentDraft(onSubmit);
   const [isPreview, setIsPreview] = useState(false);
-  const labels = submitLabels(hasPendingReview);
+  const modes = submitModes(hasPendingReview);
   const shortcutMode: CommentMode = hasPendingReview ? 'review' : 'single';
   const lines = { start: target.startLine ?? target.line, end: target.line };
 
@@ -57,12 +65,17 @@ export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: Co
         <button type="button" class="bgm-button" onClick={onCancel}>
           キャンセル
         </button>
-        <button type="button" class="bgm-button" disabled={!draft.canSubmit} onClick={() => void draft.submit('single')}>
-          {labels.single}
-        </button>
-        <button type="button" class="bgm-button bgm-button--primary" disabled={!draft.canSubmit} onClick={() => void draft.submit('review')}>
-          {labels.review}
-        </button>
+        {modes.map(({ mode, label }) => (
+          <button
+            key={mode}
+            type="button"
+            class={`bgm-button${mode === 'review' ? ' bgm-button--primary' : ''}`}
+            disabled={!draft.canSubmit}
+            onClick={() => void draft.submit(mode)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
     </form>
   );

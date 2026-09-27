@@ -6,6 +6,10 @@ import type { RouteData } from './route-data';
 
 const MARKDOWN_PATH = /\.(?:md|markdown)$/i;
 
+/** GitHub folds a single comment into the pending review and publishes all of it. */
+const SINGLE_COMMENT_WHILE_PENDING =
+  '保留中のレビューがあります。このまま単発で送ると保留中のコメントもまとめて公開されるため、「レビューに追加」を使ってください。';
+
 /**
  * ReviewBackend for a github.com pull request. Uses the same internal endpoints and
  * session cookies as GitHub's own UI, so no token is needed and permissions match.
@@ -42,7 +46,10 @@ export function createGitHubBackend(
     loadThreads: async () => (await refreshRoute()).threads,
 
     postComment: async (target, body, mode) => {
-      const payload = buildCreateCommentPayload(target, body, await currentRoute(), mode);
+      // The review may have been started in GitHub's own UI since our data was loaded.
+      const route = mode === 'single' ? await refreshRoute() : await currentRoute();
+      if (mode === 'single' && route.hasPendingReview) throw new Error(SINGLE_COMMENT_WHILE_PENDING);
+      const payload = buildCreateCommentPayload(target, body, route, mode);
       await postReviewComment(fetchFn, pr, target, payload);
     },
   };

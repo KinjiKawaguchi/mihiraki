@@ -117,13 +117,15 @@ describe('SplitReview', () => {
     await waitFor(() => expect(onSubmitComment).toHaveBeenCalledWith(expect.anything(), 'later', 'review'));
   });
 
-  it('adds to the pending review by default once one exists', async () => {
+  it('only offers adding to the review once one is pending, as GitHub does', async () => {
+    // GitHub publishes the whole pending review when a single comment is posted meanwhile.
     const { container, onSubmitComment } = renderReview({ hasPendingReview: true });
 
     openCommentForm(container.querySelector('[data-side="RIGHT"] p') as Element);
     fireEvent.input(screen.getByRole('textbox'), { target: { value: 'more' } });
 
-    expect(screen.getByRole('button', { name: '単発でコメント' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '単発でコメント' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'コメント' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'レビューに追加' }));
     await waitFor(() => expect(onSubmitComment).toHaveBeenCalledWith(expect.anything(), 'more', 'review'));
   });

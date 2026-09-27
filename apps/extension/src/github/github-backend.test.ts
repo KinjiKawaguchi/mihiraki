@@ -131,6 +131,17 @@ describe('createGitHubBackend', () => {
     ).rejects.toThrow(/再読み込み/);
   });
 
+  it('refuses a single comment while a review is pending, instead of publishing that review', async () => {
+    const pendingRoute = routeJson();
+    (pendingRoute.payload.pullRequestsChangesRoute as Record<string, unknown>)['viewerPendingReview'] = { id: 9, comments: [] };
+    const { fetchFn, requests } = fakeGitHub({ [changesUrl]: json(pendingRoute), [postUrl]: json({ thread: {} }) });
+
+    await expect(
+      createGitHubBackend(pr, fetchFn).postComment({ path: 'docs/a.md', side: 'RIGHT', line: 3, startLine: null }, 'x', 'single'),
+    ).rejects.toThrow(/保留中のレビュー/);
+    expect(requests.some((request) => request.url === postUrl)).toBe(false);
+  });
+
   it('reports other failures with the HTTP status', async () => {
     const { fetchFn } = fakeGitHub({ [changesUrl]: json(routeJson()), [postUrl]: json({ message: 'Forbidden' }, 403) });
 
