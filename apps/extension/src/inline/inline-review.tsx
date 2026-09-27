@@ -39,11 +39,41 @@ function debounce(callback: () => void, delayMs: number): () => void {
   };
 }
 
-/** Reloads our threads (once they were requested) whenever GitHub's own threads change. */
-function followHostThreads(hostSync: HostSyncClient | undefined, refresh: () => void): () => void {
-  return (
-    hostSync?.onHostThreadsChanged(debounce(refresh, HOST_REFRESH_DELAY_MS)) ?? (() => undefined)
+interface HostWatch {
+  readonly onThreadsChanged: () => void;
+  readonly onSyncLost: () => void;
+}
+
+/** Follows GitHub's own UI: changes to its threads, and comments it could not take in. */
+function watchHost(hostSync: HostSyncClient | undefined, handlers: HostWatch): () => void {
+  if (!hostSync) return () => undefined;
+  const stopThreads = hostSync.onHostThreadsChanged(
+    debounce(handlers.onThreadsChanged, HOST_REFRESH_DELAY_MS),
   );
+  const stopLoss = hostSync.onSyncLost(handlers.onSyncLost);
+  return () => {
+    stopThreads();
+    stopLoss();
+  };
+}
+
+/** Which files show the split view; switching the first one on calls `onFirstActivation`. */
+function createActivation(onFirstActivation: () => void) {
+  let activePaths: ReadonlySet<string> = new Set();
+  let hasActivated = false;
+  return {
+    isActive: (path: string) => activePaths.has(path),
+    hasActivated: () => hasActivated,
+    set: (path: string, isActive: boolean) => {
+      activePaths = new Set(
+        [...activePaths].filter((active) => active !== path).concat(isActive ? [path] : []),
+      );
+      if (isActive && !hasActivated) {
+        hasActivated = true;
+        onFirstActivation();
+      }
+    },
+  };
 }
 
 interface FileTarget {
@@ -64,6 +94,24 @@ async function locateFiles(
   );
 }
 
+type FileDecorator = ReturnType<typeof createFileDecorator>;
+
+/** Brings every file block that is on the page in line with the current state. */
+function decorateAll(document: Document, targets: readonly FileTarget[], decorator: FileDecorator) {
+  for (const { file, containerId } of targets) {
+    const container = document.getElementById(containerId);
+    if (container) decorator.sync(container, file);
+  }
+}
+
+/** Shows GitHub's own diff again in every file block. */
+function restoreAll(document: Document, targets: readonly FileTarget[]) {
+  for (const { containerId } of targets) {
+    const container = document.getElementById(containerId);
+    if (container) setSplitActive(container, false);
+  }
+}
+
 /**
  * Adds a "split" toggle to every changed Markdown file on GitHub's Files changed page
  * and swaps the file's diff for the rendered split review while it is on.
@@ -78,33 +126,21 @@ export async function startInlineReview({
   const located = await locateFiles(backend);
   if (!located.ok) return located;
   const targets = located.value;
-  const isHostSynced = hostSync ? await hostSync.isHostAvailable() : false;
+  let isHostSynced = hostSync ? await hostSync.isHostAvailable() : false;
   const store = createThreadStore(backend);
-  let activePaths: ReadonlySet<string> = new Set();
-  let hasRequestedThreads = false;
+  const activation = createActivation(() => void store.refresh());
 
-  const sync = () => {
-    for (const { file, containerId } of targets) {
-      const container = document.getElementById(containerId);
-      if (container) decorator.sync(container, file);
-    }
-  };
+  const sync = () => decorateAll(document, targets, decorator);
 
   const decorator = createFileDecorator({
     document,
     backend,
     store,
     cssText,
-    pendingReviewNotice: isHostSynced ? undefined : PENDING_REVIEW_NOTICE,
-    isActive: (path) => activePaths.has(path),
+    pendingReviewNotice: () => (isHostSynced ? undefined : PENDING_REVIEW_NOTICE),
+    isActive: activation.isActive,
     setActive: (path, isActive) => {
-      activePaths = new Set(
-        [...activePaths].filter((active) => active !== path).concat(isActive ? [path] : []),
-      );
-      if (isActive && !hasRequestedThreads) {
-        hasRequestedThreads = true;
-        void store.refresh();
-      }
+      activation.set(path, isActive);
       sync();
     },
   });
@@ -112,18 +148,22 @@ export async function startInlineReview({
   installPageStyle(document);
   sync();
   const stopWatching = watchDocument(document, sync);
-  const stopHostWatch = followHostThreads(hostSync, () => {
-    if (hasRequestedThreads) void store.refresh();
+  const stopHostWatch = watchHost(hostSync, {
+    onThreadsChanged: () => {
+      if (activation.hasActivated()) void store.refresh();
+    },
+    // A comment GitHub's UI could not take in leaves its counts stale until reloaded.
+    onSyncLost: () => {
+      isHostSynced = false;
+      sync();
+    },
   });
 
   return ok(() => {
     stopWatching();
     stopHostWatch();
     decorator.dispose();
-    targets.forEach(({ containerId }) => {
-      const container = document.getElementById(containerId);
-      if (container) setSplitActive(container, false);
-    });
+    restoreAll(document, targets);
     removePageStyle(document);
   });
 }

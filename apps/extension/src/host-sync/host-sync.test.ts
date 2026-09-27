@@ -68,6 +68,28 @@ describe("host sync between the extension and the page bridge", () => {
     expect(register).toHaveBeenCalledWith(expect.anything(), message);
   });
 
+  it("tells listeners when a created thread could not be shown in GitHub UI", async () => {
+    install({ findStores: () => fakeStores().stores, register: vi.fn().mockReturnValue(false) });
+    const client = createHostSyncClient(document, { timeoutMs: 50 });
+    const onSyncLost = vi.fn();
+    cleanups.push(client.onSyncLost(onSyncLost));
+
+    await client.announceThreadCreated(message);
+
+    expect(onSyncLost).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not bother listeners while created threads are shown in GitHub UI", async () => {
+    install({ findStores: () => fakeStores().stores, register: vi.fn().mockReturnValue(true) });
+    const client = createHostSyncClient(document, { timeoutMs: 50 });
+    const onSyncLost = vi.fn();
+    cleanups.push(client.onSyncLost(onSyncLost));
+
+    await client.announceThreadCreated(message);
+
+    expect(onSyncLost).not.toHaveBeenCalled();
+  });
+
   it("forwards changes made to GitHub threads to the extension", async () => {
     const { stores, emitChange } = fakeStores();
     install({ findStores: () => stores, register: vi.fn() });
