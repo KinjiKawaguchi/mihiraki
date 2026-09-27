@@ -1,5 +1,6 @@
 export type { BlockKind, LineRange, SourceBlock } from './markdown/types';
 export { parseBlocks } from './markdown/blocks';
+export { renderMarkdown } from './markdown/render';
 export type { AlignedRow, RowKind } from './diff/align';
 export { alignBlocks } from './diff/align';
 export { diffBlockHtml } from './diff/inline-diff';
