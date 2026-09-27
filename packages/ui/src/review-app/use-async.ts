@@ -29,7 +29,7 @@ export function useAsync<T>(
     return () => {
       isCurrent = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // `load` is a new closure on every render; the caller names what it depends on.
   }, deps);
 
   return state;

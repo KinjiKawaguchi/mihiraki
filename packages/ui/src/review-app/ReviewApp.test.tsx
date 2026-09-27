@@ -57,6 +57,22 @@ describe("ReviewApp", () => {
     await waitForColumn(container, "head", "Bravo text changed.");
   });
 
+  it("does not show the previous file while the next one is loading", async () => {
+    const memory = createMemoryBackend(files);
+    const backend: ReviewBackend = {
+      ...memory,
+      loadFileVersions: (file) =>
+        file.path === "docs/b.md" ? new Promise(() => undefined) : memory.loadFileVersions(file),
+    };
+    const { container } = render(<ReviewApp backend={backend} />);
+    await waitForColumn(container, "head", "Alpha version two.");
+
+    fireEvent.click(screen.getByRole("button", { name: "docs/b.md" }));
+
+    expect(await screen.findByText("読み込み中…")).toBeTruthy();
+    expect(columnText(container, "head")).not.toContain("Alpha version two.");
+  });
+
   it("shows only the threads of the selected file", async () => {
     const backend = createMemoryBackend(files, [
       threadOn("docs/a.md", "about A"),
