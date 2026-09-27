@@ -69,15 +69,10 @@ export async function fetchRouteData(
     credentials: "include",
     headers: ROUTE_HEADERS,
   });
-  if (!response.ok)
-    throw new HttpStatusError(
-      response.status,
-      `pull requestの情報を取得できませんでした (HTTP ${response.status})`,
-    );
+  if (!response.ok) throw new HttpStatusError(response.status);
   const json: unknown = await response.json().catch(() => {
-    throw new UnexpectedResponseError(
-      "GitHubのpull requestデータを解釈できませんでした（サインインが切れているか、内部仕様が変わった可能性があります）",
-    );
+    // e.g. the sign-in page when the session has expired.
+    throw new UnexpectedResponseError("pull request route data is not JSON");
   });
   return parseRouteData(json);
 }
@@ -91,14 +86,9 @@ export async function fetchFileSource(
 ): Promise<string> {
   const url = `https://github.com/${encodeURIComponent(pr.owner)}/${encodeURIComponent(pr.repo)}/blob/${oid}/${encodePath(path)}`;
   const response = await fetchFn(url, { credentials: "include" });
-  if (!response.ok)
-    throw new HttpStatusError(
-      response.status,
-      `${path} を取得できませんでした (HTTP ${response.status})`,
-    );
+  if (!response.ok) throw new HttpStatusError(response.status);
   const source = extractBlobSource(await response.text());
-  if (source === null)
-    throw new UnexpectedResponseError(`${path} の内容をページから読み取れませんでした`);
+  if (source === null) throw new UnexpectedResponseError(`no source in the blob page of ${path}`);
   return source;
 }
 

@@ -1,4 +1,5 @@
 import type { Result } from "../result";
+import type { HostError } from "./host-error";
 import type { PostCommentError } from "./post-comment-error";
 import type { CommentMode, CommentTarget, ReviewThread, Revision } from "./types";
 
@@ -35,11 +36,12 @@ export interface ThreadSnapshot {
 /**
  * What a hosting platform (GitHub PR, local git refs, ...) must provide for a
  * rendered split review. Implemented by adapters, consumed by the UI.
+ * Foreseeable failures are returned as values; a rejected promise means a bug.
  */
 export interface ReviewBackend {
-  listChangedMarkdownFiles(): Promise<readonly ChangedFile[]>;
-  loadFileVersions(file: ChangedFile): Promise<FileVersions>;
-  loadThreads(): Promise<ThreadSnapshot>;
+  listChangedMarkdownFiles(): Promise<Result<readonly ChangedFile[], HostError>>;
+  loadFileVersions(file: ChangedFile): Promise<Result<FileVersions, HostError>>;
+  loadThreads(): Promise<Result<ThreadSnapshot, HostError>>;
   postComment(
     target: CommentTarget,
     body: string,

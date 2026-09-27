@@ -1,3 +1,4 @@
+import { err, ok } from "@mihiraki/core";
 import { describe, expect, it, vi } from "vitest";
 import { createSessionManager } from "./session-manager";
 
@@ -25,7 +26,7 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 describe("createSessionManager", () => {
   it("starts a session for a pull request and stops it when leaving", async () => {
     const stop = vi.fn();
-    const start = vi.fn().mockResolvedValue(stop);
+    const start = vi.fn().mockResolvedValue(ok(stop));
     const manager = createSessionManager({ start });
 
     manager.sync("acme/docs#1");
@@ -41,8 +42,8 @@ describe("createSessionManager", () => {
     const scheduler = manualScheduler();
     const start = vi
       .fn()
-      .mockRejectedValueOnce(new Error("network"))
-      .mockResolvedValueOnce(vi.fn());
+      .mockResolvedValueOnce(err({ kind: "network" }))
+      .mockResolvedValueOnce(ok(vi.fn()));
     const manager = createSessionManager({
       start,
       retryDelaysMs: [2000, 10000],
@@ -61,7 +62,7 @@ describe("createSessionManager", () => {
 
   it("drops a pending retry when the reviewer moves elsewhere", async () => {
     const scheduler = manualScheduler();
-    const start = vi.fn().mockRejectedValue(new Error("network"));
+    const start = vi.fn().mockResolvedValue(err({ kind: "network" }));
     const manager = createSessionManager({
       start,
       retryDelaysMs: [2000],
@@ -80,7 +81,7 @@ describe("createSessionManager", () => {
   it("gives up after the configured retries", async () => {
     const scheduler = manualScheduler();
     const onGiveUp = vi.fn();
-    const start = vi.fn().mockRejectedValue(new Error("network"));
+    const start = vi.fn().mockResolvedValue(err({ kind: "network" }));
     const manager = createSessionManager({
       start,
       retryDelaysMs: [10, 20],
@@ -96,6 +97,20 @@ describe("createSessionManager", () => {
     await flush();
 
     expect(start).toHaveBeenCalledTimes(3);
-    expect(onGiveUp).toHaveBeenCalledTimes(1);
+    expect(onGiveUp).toHaveBeenCalledWith({ kind: "network" });
+  });
+
+  it("gives up at once on a start that breaks, since retrying a bug cannot help", async () => {
+    const scheduler = manualScheduler();
+    const onGiveUp = vi.fn();
+    const bug = new TypeError("x is undefined");
+    const start = vi.fn().mockRejectedValue(bug);
+    const manager = createSessionManager({ start, schedule: scheduler.schedule, onGiveUp });
+
+    manager.sync("acme/docs#1");
+    await flush();
+
+    expect(scheduler.pending()).toBe(0);
+    expect(onGiveUp).toHaveBeenCalledWith(bug);
   });
 });

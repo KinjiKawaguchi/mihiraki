@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { ok } from "../result";
+import type { ReviewBackend } from "./backend";
 import { commitId } from "./commit-id";
 import { createMemoryBackend } from "./memory-backend";
 import type { CommentTarget } from "./types";
@@ -16,25 +18,31 @@ const target: CommentTarget = {
   revision,
 };
 
+async function loadSnapshot(backend: ReviewBackend) {
+  const loaded = await backend.loadThreads();
+  if (!loaded.ok) throw new Error(`Unexpected failure: ${loaded.error.kind}`);
+  return loaded.value;
+}
+
 describe("createMemoryBackend", () => {
   it("lists the given files with a change type derived from which versions exist", async () => {
     const backend = createMemoryBackend(files);
 
-    expect(await backend.listChangedMarkdownFiles()).toEqual([
-      { path: "docs/a.md", changeType: "MODIFIED" },
-      { path: "docs/b.md", changeType: "ADDED" },
-      { path: "docs/c.md", changeType: "REMOVED" },
-    ]);
+    expect(await backend.listChangedMarkdownFiles()).toEqual(
+      ok([
+        { path: "docs/a.md", changeType: "MODIFIED" },
+        { path: "docs/b.md", changeType: "ADDED" },
+        { path: "docs/c.md", changeType: "REMOVED" },
+      ]),
+    );
   });
 
   it("returns both versions of a file, null where the file does not exist", async () => {
     const backend = createMemoryBackend(files, [], { revision });
 
-    expect(await backend.loadFileVersions({ path: "docs/b.md", changeType: "ADDED" })).toEqual({
-      revision,
-      base: null,
-      head: "b\n",
-    });
+    expect(await backend.loadFileVersions({ path: "docs/b.md", changeType: "ADDED" })).toEqual(
+      ok({ revision, base: null, head: "b\n" }),
+    );
   });
 
   it("stores posted comments as new threads with rendered bodies", async () => {
@@ -45,7 +53,7 @@ describe("createMemoryBackend", () => {
       "Looks **good**",
       "single",
     );
-    const [thread] = (await backend.loadThreads()).threads;
+    const [thread] = (await loadSnapshot(backend)).threads;
 
     expect(result).toEqual({ ok: true, value: undefined });
     expect(thread).toMatchObject({
@@ -62,7 +70,7 @@ describe("createMemoryBackend", () => {
     const backend = createMemoryBackend(files);
 
     await backend.postComment(target, "later", "review");
-    const snapshot = await backend.loadThreads();
+    const snapshot = await loadSnapshot(backend);
 
     expect(snapshot.threads[0]?.isPending).toBe(true);
     expect(snapshot.hasPendingReview).toBe(true);
@@ -75,19 +83,19 @@ describe("createMemoryBackend", () => {
     const result = await backend.postComment(target, "now", "single");
 
     expect(result).toEqual({ ok: false, error: { kind: "pendingReviewConflict" } });
-    expect((await backend.loadThreads()).threads).toHaveLength(1);
+    expect((await loadSnapshot(backend)).threads).toHaveLength(1);
   });
 
   it("has no pending review until a comment is added to one", async () => {
-    expect((await createMemoryBackend(files).loadThreads()).hasPendingReview).toBe(false);
+    expect((await loadSnapshot(createMemoryBackend(files))).hasPendingReview).toBe(false);
   });
 
   it("reports the revision its versions and threads belong to", async () => {
     const backend = createMemoryBackend(files, [], { revision });
 
-    expect((await backend.loadThreads()).revision).toEqual(revision);
+    expect((await loadSnapshot(backend)).revision).toEqual(revision);
     expect(
-      (await backend.loadFileVersions({ path: "docs/a.md", changeType: "MODIFIED" })).revision,
-    ).toEqual(revision);
+      await backend.loadFileVersions({ path: "docs/a.md", changeType: "MODIFIED" }),
+    ).toMatchObject(ok({ revision }));
   });
 });

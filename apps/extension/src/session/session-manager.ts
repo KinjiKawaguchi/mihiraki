@@ -1,11 +1,17 @@
+import type { Result } from "@mihiraki/core";
+
 type Stop = () => void;
 
 export interface SessionManagerOptions {
-  /** Starts the review for a key (a pull request); resolves to the function that stops it. */
-  readonly start: (key: string) => Promise<Stop>;
+  /**
+   * Starts the review for a key (a pull request): the function that stops it, or why it
+   * could not start. A failure is retried; a rejection is a bug and is not.
+   */
+  readonly start: (key: string) => Promise<Result<Stop, unknown>>;
   /** Delays before each retry of a failed start; its length is the number of retries. */
   readonly retryDelaysMs?: readonly number[];
   readonly schedule?: (callback: () => void, delayMs: number) => () => void;
+  /** Called with the last failure once retries run out, or with the bug that broke a start. */
   readonly onGiveUp?: (error: unknown) => void;
 }
 
@@ -37,18 +43,30 @@ export function createSessionManager({
 }: SessionManagerOptions) {
   let current: Session | null = null;
 
+  const retryOrGiveUp = (session: Session, attempt: number, error: unknown): void => {
+    if (!session.isActive) return;
+    const delayMs = retryDelaysMs[attempt];
+    if (delayMs === undefined) {
+      onGiveUp(error);
+      return;
+    }
+    session.cancelRetry = schedule(() => {
+      if (session.isActive) launch(session, attempt + 1);
+    }, delayMs);
+  };
+
   const launch = (session: Session, attempt: number): void => {
-    const started = start(session.key).catch((error: unknown) => {
-      const delayMs = retryDelaysMs[attempt];
-      if (session.isActive && delayMs !== undefined) {
-        session.cancelRetry = schedule(() => {
-          if (session.isActive) launch(session, attempt + 1);
-        }, delayMs);
-      } else if (session.isActive) {
-        onGiveUp(error);
-      }
-      return noop;
-    });
+    const started = start(session.key).then(
+      (result) => {
+        if (result.ok) return result.value;
+        retryOrGiveUp(session, attempt, result.error);
+        return noop;
+      },
+      (bug: unknown) => {
+        if (session.isActive) onGiveUp(bug);
+        return noop;
+      },
+    );
     session.stops = [...session.stops, started];
   };
 

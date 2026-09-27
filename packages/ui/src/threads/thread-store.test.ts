@@ -1,6 +1,8 @@
 import {
   commitId,
   createMemoryBackend,
+  err,
+  ok,
   type ReviewBackend,
   type ReviewThread,
 } from "@mihiraki/core";
@@ -45,8 +47,8 @@ describe("createThreadStore", () => {
     let shouldFail = false;
     const backend: ReviewBackend = {
       ...working,
-      loadThreads: () =>
-        shouldFail ? Promise.reject(new Error("HTTP 500")) : working.loadThreads(),
+      loadThreads: async () =>
+        shouldFail ? err({ kind: "rejected", detail: "HTTP 500" }) : working.loadThreads(),
     };
     const store = createThreadStore(backend);
     await store.refresh();
@@ -55,7 +57,10 @@ describe("createThreadStore", () => {
     await store.refresh();
 
     expect(store.getThreads()).toEqual([thread]);
-    expect(store.getError()).toBeInstanceOf(Error);
+    expect(store.getError()).toEqual({
+      kind: "host",
+      error: { kind: "rejected", detail: "HTTP 500" },
+    });
   });
 
   it("exposes the revision the threads belong to", async () => {
@@ -84,11 +89,13 @@ describe("createThreadStore", () => {
       loadThreads: () =>
         new Promise((resolve) => {
           pending.push((threads) =>
-            resolve({
-              revision: { base: commitId("b1b1b1b"), head: commitId("c1c1c1c") },
-              threads,
-              hasPendingReview: false,
-            }),
+            resolve(
+              ok({
+                revision: { base: commitId("b1b1b1b"), head: commitId("c1c1c1c") },
+                threads,
+                hasPendingReview: false,
+              }),
+            ),
           );
         }),
     };

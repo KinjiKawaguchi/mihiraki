@@ -1,4 +1,4 @@
-import { createMemoryBackend, type ReviewBackend, type ReviewThread } from "@mihiraki/core";
+import { createMemoryBackend, err, type ReviewBackend, type ReviewThread } from "@mihiraki/core";
 import { fireEvent, render, screen, waitFor } from "@testing-library/preact";
 import { describe, expect, it, vi } from "vitest";
 import { ReviewApp } from "./ReviewApp";
@@ -88,11 +88,23 @@ describe("ReviewApp", () => {
   it("shows why loading failed", async () => {
     const backend: ReviewBackend = {
       ...createMemoryBackend(files),
-      listChangedMarkdownFiles: vi.fn().mockRejectedValue(new Error("HTTP 404")),
+      listChangedMarkdownFiles: async () => err({ kind: "rejected", detail: "HTTP 404" }),
     };
     render(<ReviewApp backend={backend} />);
 
-    expect(await screen.findByText(/HTTP 404/)).toBeTruthy();
+    expect(
+      await screen.findByText(/変更されたファイルを読み込めませんでした（HTTP 404）/),
+    ).toBeTruthy();
+  });
+
+  it("still tells the reviewer something when loading breaks unexpectedly", async () => {
+    const backend: ReviewBackend = {
+      ...createMemoryBackend(files),
+      listChangedMarkdownFiles: () => Promise.reject(new Error("boom")),
+    };
+    render(<ReviewApp backend={backend} />);
+
+    expect(await screen.findByText(/boom/)).toBeTruthy();
   });
 
   it("calls onClose from the close button", async () => {

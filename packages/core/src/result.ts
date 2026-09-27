@@ -13,3 +13,8 @@ export function ok<T>(value: T): Result<T, never> {
 export function err<E>(error: E): Result<never, E> {
   return { ok: false, error };
 }
+
+/** Applies `transform` to the value of a success; a failure is returned as it is. */
+export function mapResult<T, U, E>(result: Result<T, E>, transform: (value: T) => U): Result<U, E> {
+  return result.ok ? ok(transform(result.value)) : result;
+}

@@ -1,4 +1,4 @@
-import { createMemoryBackend, type ReviewBackend, type ReviewThread } from "@mihiraki/core";
+import { createMemoryBackend, err, type ReviewBackend, type ReviewThread } from "@mihiraki/core";
 import { waitFor } from "@testing-library/preact";
 import { afterEach, describe, expect, it } from "vitest";
 import type { HostSyncClient } from "../host-sync/client";
@@ -20,8 +20,10 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-async function start() {
-  stop = await startInlineReview({ document, backend, cssText: "" });
+async function start(reviewBackend: ReviewBackend = backend) {
+  const started = await startInlineReview({ document, backend: reviewBackend, cssText: "" });
+  if (!started.ok) throw new Error(`Unexpected failure: ${started.error.kind}`);
+  stop = started.value;
 }
 
 function toggleButton(container: Element): HTMLButtonElement | null {
@@ -67,6 +69,20 @@ describe("startInlineReview", () => {
 
     expect(isSplitActive(container)).toBe(false);
     expect(container.querySelector(SPLIT_VIEW_TAG)).toBeNull();
+  });
+
+  it("reports a pull request whose files cannot be listed, leaving the page alone", async () => {
+    const container = await appendFileBlock(document, "docs/a.md");
+    const offline: ReviewBackend = {
+      ...backend,
+      listChangedMarkdownFiles: async () => err({ kind: "network" }),
+    };
+
+    const started = await startInlineReview({ document, backend: offline, cssText: "" });
+
+    expect(started).toEqual(err({ kind: "network" }));
+    expect(toggleButton(container)).toBeNull();
+    expect(document.head.querySelector("style")).toBeNull();
   });
 
   it("decorates file blocks that GitHub renders later", async () => {
@@ -146,7 +162,9 @@ describe("startInlineReview", () => {
 
     async function startWith(hostSync: HostSyncClient, backend: ReviewBackend) {
       const container = await appendFileBlock(document, "docs/a.md");
-      stop = await startInlineReview({ document, backend, cssText: "", hostSync });
+      const started = await startInlineReview({ document, backend, cssText: "", hostSync });
+      if (!started.ok) throw new Error(`Unexpected failure: ${started.error.kind}`);
+      stop = started.value;
       toggleButton(container)?.click();
       await waitFor(() => expect(splitViewText(container)).toContain("Alpha version two."));
       return container;

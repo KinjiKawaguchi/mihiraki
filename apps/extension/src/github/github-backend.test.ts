@@ -1,4 +1,12 @@
-import { type ChangedFile, type CommentTarget, commitId, err, ok } from "@mihiraki/core";
+import {
+  type ChangedFile,
+  type CommentTarget,
+  commitId,
+  err,
+  mapResult,
+  ok,
+  type ReviewBackend,
+} from "@mihiraki/core";
 import { describe, expect, it, vi } from "vitest";
 import { createGitHubBackend } from "./github-backend";
 
@@ -62,13 +70,21 @@ const json =
   () =>
     new Response(JSON.stringify(value), { status });
 
+async function loadSnapshot(backend: ReviewBackend) {
+  const loaded = await backend.loadThreads();
+  if (!loaded.ok) throw new Error(`Unexpected failure: ${loaded.error.kind}`);
+  return loaded.value;
+}
+
 describe("createGitHubBackend", () => {
   it("lists only Markdown files, requesting route data with the browser session", async () => {
     const { fetchFn, requests } = fakeGitHub({ [changesUrl]: json(routeJson()) });
 
     const files = await createGitHubBackend(pr, fetchFn).listChangedMarkdownFiles();
 
-    expect(files.map((file) => file.path)).toEqual(["docs/a.md", "docs/new.md", "docs/moved.md"]);
+    expect(mapResult(files, (list) => list.map((file) => file.path))).toEqual(
+      ok(["docs/a.md", "docs/new.md", "docs/moved.md"]),
+    );
     expect(requests[0]?.init).toMatchObject({
       credentials: "include",
       headers: { Accept: "application/json" },
@@ -85,11 +101,9 @@ describe("createGitHubBackend", () => {
     });
     const file: ChangedFile = { path: "docs/a.md", changeType: "MODIFIED" };
 
-    expect(await createGitHubBackend(pr, fetchFn).loadFileVersions(file)).toEqual({
-      revision,
-      base: "old",
-      head: "new",
-    });
+    expect(await createGitHubBackend(pr, fetchFn).loadFileVersions(file)).toEqual(
+      ok({ revision, base: "old", head: "new" }),
+    );
   });
 
   it("does not fetch a base version for an added file", async () => {
@@ -100,11 +114,9 @@ describe("createGitHubBackend", () => {
     });
     const file: ChangedFile = { path: "docs/new.md", changeType: "ADDED" };
 
-    expect(await createGitHubBackend(pr, fetchFn).loadFileVersions(file)).toEqual({
-      revision,
-      base: null,
-      head: "fresh",
-    });
+    expect(await createGitHubBackend(pr, fetchFn).loadFileVersions(file)).toEqual(
+      ok({ revision, base: null, head: "fresh" }),
+    );
     expect(requests.some((request) => request.url.includes(BASE))).toBe(false);
   });
 
@@ -122,13 +134,12 @@ describe("createGitHubBackend", () => {
       changeType: "RENAMED",
     };
 
-    expect(await createGitHubBackend(pr, fetchFn).loadFileVersions(file)).toMatchObject({
-      base: "before",
-      head: "after",
-    });
+    expect(await createGitHubBackend(pr, fetchFn).loadFileVersions(file)).toMatchObject(
+      ok({ base: "before", head: "after" }),
+    );
   });
 
-  it("fails clearly when a blob page carries no source", async () => {
+  it("reports a blob page without the file's source as an unexpected response", async () => {
     const { fetchFn } = fakeGitHub({
       [changesUrl]: json(routeJson()),
       [`https://github.com/acme/docs/blob/${HEAD}/docs/new.md`]: () =>
@@ -136,8 +147,25 @@ describe("createGitHubBackend", () => {
     });
     const file: ChangedFile = { path: "docs/new.md", changeType: "ADDED" };
 
-    await expect(createGitHubBackend(pr, fetchFn).loadFileVersions(file)).rejects.toThrow(
-      /docs\/new\.md/,
+    expect(await createGitHubBackend(pr, fetchFn).loadFileVersions(file)).toEqual(
+      err({ kind: "unexpectedResponse" }),
+    );
+  });
+
+  it("reports a file GitHub refuses to serve with the HTTP status", async () => {
+    const { fetchFn } = fakeGitHub({ [changesUrl]: json(routeJson()) });
+    const file: ChangedFile = { path: "docs/new.md", changeType: "ADDED" };
+
+    expect(await createGitHubBackend(pr, fetchFn).loadFileVersions(file)).toEqual(
+      err({ kind: "rejected", detail: "HTTP 404" }),
+    );
+  });
+
+  it("reports threads that cannot be loaded for lack of a connection", async () => {
+    const offlineFetch = () => Promise.reject(new TypeError("Failed to fetch"));
+
+    expect(await createGitHubBackend(pr, offlineFetch).loadThreads()).toEqual(
+      err({ kind: "network" }),
     );
   });
 
@@ -153,8 +181,8 @@ describe("createGitHubBackend", () => {
     });
     const backend = createGitHubBackend(pr, fetchFn);
 
-    expect((await backend.loadThreads()).threads).toHaveLength(0);
-    expect((await backend.loadThreads()).threads).toHaveLength(1);
+    expect((await loadSnapshot(backend)).threads).toHaveLength(0);
+    expect((await loadSnapshot(backend)).threads).toHaveLength(1);
   });
 
   it("reports whether the viewer has a pending review with the threads", async () => {
@@ -163,7 +191,7 @@ describe("createGitHubBackend", () => {
       { id: 9, comments: [] };
     const { fetchFn } = fakeGitHub({ [changesUrl]: json(pendingRoute) });
 
-    expect((await createGitHubBackend(pr, fetchFn).loadThreads()).hasPendingReview).toBe(true);
+    expect((await loadSnapshot(createGitHubBackend(pr, fetchFn))).hasPendingReview).toBe(true);
   });
 
   it("posts a review comment through the internal endpoint", async () => {
@@ -244,7 +272,7 @@ describe("createGitHubBackend", () => {
   it("reports the latest revision with the threads, so a stale view can be noticed", async () => {
     const { fetchFn } = fakeGitHub({ [changesUrl]: json(routeJson({}, {}, NEWER_HEAD)) });
 
-    expect((await createGitHubBackend(pr, fetchFn).loadThreads()).revision).toEqual({
+    expect((await loadSnapshot(createGitHubBackend(pr, fetchFn))).revision).toEqual({
       base: BASE,
       head: NEWER_HEAD,
     });
@@ -275,9 +303,9 @@ describe("createGitHubBackend", () => {
         init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
       });
 
-    await expect(
-      createGitHubBackend(pr, hangingFetch, { timeoutMs: 20 }).listChangedMarkdownFiles(),
-    ).rejects.toThrow(/応答/);
+    expect(
+      await createGitHubBackend(pr, hangingFetch, { timeoutMs: 20 }).listChangedMarkdownFiles(),
+    ).toEqual(err({ kind: "timeout" }));
   });
 
   it("reports other refusals with the HTTP status and GitHub's message", async () => {

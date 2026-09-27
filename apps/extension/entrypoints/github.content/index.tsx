@@ -1,3 +1,4 @@
+import type { HostError, Result } from "@mihiraki/core";
 import { createGitHubBackend } from "../../src/github/github-backend";
 import {
   isFilesTab,
@@ -14,7 +15,7 @@ function keyOf(pr: PullRequestLocation): string {
   return `${pr.owner}/${pr.repo}#${pr.number}`;
 }
 
-function startReview(pr: PullRequestLocation): Promise<() => void> {
+function startReview(pr: PullRequestLocation): Promise<Result<() => void, HostError>> {
   const hostSync = createHostSyncClient(document);
   const backend = createGitHubBackend(pr, undefined, {
     onThreadCreated: (created) => hostSync.announceThreadCreated(created),

@@ -21,7 +21,7 @@ import {
   postReviewComment,
 } from "./github-client";
 import type { PullRequestLocation } from "./pr-location";
-import { toPostCommentError } from "./request-errors";
+import { settleRequest, toHostError } from "./request-errors";
 import type { RouteData } from "./route-data";
 
 const MARKDOWN_PATH = /\.(?:md|markdown)$/i;
@@ -90,29 +90,33 @@ export function createGitHubBackend(
   const postContext: PostContext = { request, pr, refreshRoute, onThreadCreated };
 
   return {
-    listChangedMarkdownFiles: async () =>
-      (await currentRoute()).files.filter((file) => MARKDOWN_PATH.test(file.path)),
+    listChangedMarkdownFiles: () =>
+      settleRequest(async () =>
+        (await currentRoute()).files.filter((file) => MARKDOWN_PATH.test(file.path)),
+      ),
 
-    loadFileVersions: async (file: ChangedFile) => {
-      const { revision } = await currentRoute();
-      const basePath = basePathOf(file);
-      const headPath = headPathOf(file);
-      const [base, head] = await Promise.all([
-        basePath === null ? null : fetchFileSource(request, pr, revision.base, basePath),
-        headPath === null ? null : fetchFileSource(request, pr, revision.head, headPath),
-      ]);
-      return { revision, base, head };
-    },
+    loadFileVersions: (file: ChangedFile) =>
+      settleRequest(async () => {
+        const { revision } = await currentRoute();
+        const basePath = basePathOf(file);
+        const headPath = headPathOf(file);
+        const [base, head] = await Promise.all([
+          basePath === null ? null : fetchFileSource(request, pr, revision.base, basePath),
+          headPath === null ? null : fetchFileSource(request, pr, revision.head, headPath),
+        ]);
+        return { revision, base, head };
+      }),
 
     // Always refetched so comments posted elsewhere (or just now) show up.
-    loadThreads: async () => {
-      const { revision, threads, hasPendingReview } = await refreshRoute();
-      return { revision, threads, hasPendingReview };
-    },
+    loadThreads: () =>
+      settleRequest(async () => {
+        const { revision, threads, hasPendingReview } = await refreshRoute();
+        return { revision, threads, hasPendingReview };
+      }),
 
     postComment: (target, body, mode) =>
       postComment(postContext, target, body, mode).catch((error: unknown) =>
-        err(toPostCommentError(error)),
+        err(toHostError(error)),
       ),
   };
 }
