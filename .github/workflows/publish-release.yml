@@ -1,4 +1,4 @@
-name: "Publish release: attach extension zip"
+name: "Publish release: attach extension zip, submit to Chrome Web Store"
 
 on:
   push:
@@ -25,3 +25,43 @@ jobs:
       - run: gh release upload "$GITHUB_REF_NAME" apps/extension/.output/mihiraki-*-chrome.zip --clobber
         env:
           GH_TOKEN: ${{ github.token }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: extension-zip
+          path: apps/extension/.output/mihiraki-*-chrome.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  # Uploads the same package to the store. Keyless: GitHub's OIDC token is exchanged for a
+  # short-lived Google token through Workload Identity Federation, which only accepts
+  # v* tags of this repository (see apps/extension/store/README.md).
+  submit-chrome-web-store:
+    needs: publish-release
+    if: vars.CWS_EXTENSION_ID != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: extension-zip
+          path: dist
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        id: google
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/chromewebstore
+          create_credentials_file: false
+          export_environment_variables: false
+      - run: .github/scripts/submit-chrome-web-store.sh dist/mihiraki-*-chrome.zip
+        env:
+          CWS_ACCESS_TOKEN: ${{ steps.google.outputs.access_token }}
+          CWS_PUBLISHER_ID: ${{ vars.CWS_PUBLISHER_ID }}
+          CWS_EXTENSION_ID: ${{ vars.CWS_EXTENSION_ID }}
