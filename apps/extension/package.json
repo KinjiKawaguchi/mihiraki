@@ -1,0 +1,29 @@
+{
+  "name": "@better-gh-md/extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "test": "vitest run",
+    "typecheck": "wxt prepare && tsc -p tsconfig.json",
+    "build:harness": "vite build --config harness/vite.config.ts"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "@testing-library/preact": "^3.2.4",
+    "@types/node": "^26.6.3",
+    "jsdom": "^30.1.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2",
+    "wxt": "^0.21.4"
+  },
+  "dependencies": {
+    "@better-gh-md/core": "workspace:^",
+    "@better-gh-md/ui": "workspace:^",
+    "preact": "^10.29.8"
+  }
+}

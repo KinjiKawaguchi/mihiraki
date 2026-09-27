@@ -1,0 +1,135 @@
+import type { ChangedFile } from '@better-gh-md/core';
+import { describe, expect, it } from 'vitest';
+import { createGitHubBackend } from './github-backend';
+
+const pr = { owner: 'acme', repo: 'docs', number: 7 };
+const BASE = 'b'.repeat(40);
+const HEAD = 'h'.repeat(40);
+
+function routeJson(threads: Record<string, unknown> = {}, markersMap: Record<string, unknown> = {}) {
+  return {
+    payload: {
+      pullRequestsChangesRoute: {
+        comparison: { fullDiff: { baseOid: BASE, headOid: HEAD } },
+        diffSummaries: [
+          { path: 'docs/a.md', changeType: 'MODIFIED', markersMap },
+          { path: 'src/main.ts', changeType: 'MODIFIED' },
+          { path: 'docs/new.md', changeType: 'ADDED' },
+        ],
+        markers: { threads },
+      },
+    },
+  };
+}
+
+function blobPage(lines: string[]) {
+  return `<script type="application/json">${JSON.stringify({ payload: { blob: { rawLines: lines } } })}</script>`;
+}
+
+interface RecordedRequest {
+  readonly url: string;
+  readonly init: RequestInit | undefined;
+}
+
+function fakeGitHub(handlers: Record<string, () => Response>) {
+  const requests: RecordedRequest[] = [];
+  const fetchFn = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    requests.push({ url, init });
+    const handler = handlers[url];
+    return handler ? handler() : new Response('not found', { status: 404 });
+  };
+  return { fetchFn, requests };
+}
+
+const changesUrl = 'https://github.com/acme/docs/pull/7/changes';
+const postUrl = 'https://github.com/acme/docs/pull/7/page_data/create_review_comment';
+const json = (value: unknown, status = 200) => () => new Response(JSON.stringify(value), { status });
+
+describe('createGitHubBackend', () => {
+  it('lists only Markdown files, requesting route data with the browser session', async () => {
+    const { fetchFn, requests } = fakeGitHub({ [changesUrl]: json(routeJson()) });
+
+    const files = await createGitHubBackend(pr, fetchFn).listChangedMarkdownFiles();
+
+    expect(files.map((file) => file.path)).toEqual(['docs/a.md', 'docs/new.md']);
+    expect(requests[0]?.init).toMatchObject({ credentials: 'include', headers: { Accept: 'application/json' } });
+  });
+
+  it('loads the base version at the base commit and the head version at the head commit', async () => {
+    const { fetchFn } = fakeGitHub({
+      [changesUrl]: json(routeJson()),
+      [`https://github.com/acme/docs/blob/${BASE}/docs/a.md`]: () => new Response(blobPage(['old'])),
+      [`https://github.com/acme/docs/blob/${HEAD}/docs/a.md`]: () => new Response(blobPage(['new'])),
+    });
+    const file: ChangedFile = { path: 'docs/a.md', previousPath: null, changeType: 'MODIFIED' };
+
+    expect(await createGitHubBackend(pr, fetchFn).loadFileVersions(file)).toEqual({ base: 'old', head: 'new' });
+  });
+
+  it('does not fetch a base version for an added file', async () => {
+    const { fetchFn, requests } = fakeGitHub({
+      [changesUrl]: json(routeJson()),
+      [`https://github.com/acme/docs/blob/${HEAD}/docs/new.md`]: () => new Response(blobPage(['fresh'])),
+    });
+    const file: ChangedFile = { path: 'docs/new.md', previousPath: null, changeType: 'ADDED' };
+
+    expect(await createGitHubBackend(pr, fetchFn).loadFileVersions(file)).toEqual({ base: '', head: 'fresh' });
+    expect(requests.some((request) => request.url.includes(BASE))).toBe(false);
+  });
+
+  it('fails clearly when a blob page carries no source', async () => {
+    const { fetchFn } = fakeGitHub({
+      [changesUrl]: json(routeJson()),
+      [`https://github.com/acme/docs/blob/${HEAD}/docs/new.md`]: () => new Response('<html></html>'),
+    });
+    const file: ChangedFile = { path: 'docs/new.md', previousPath: null, changeType: 'ADDED' };
+
+    await expect(createGitHubBackend(pr, fetchFn).loadFileVersions(file)).rejects.toThrow(/docs\/new\.md/);
+  });
+
+  it('refetches route data when loading threads so new comments appear', async () => {
+    let calls = 0;
+    const { fetchFn } = fakeGitHub({
+      [changesUrl]: () => {
+        calls += 1;
+        const threads = calls > 1 ? { '5': { id: 5, subjectType: 'LINE', commentsData: { comments: [] } } } : {};
+        return new Response(JSON.stringify(routeJson(threads, { R3: { threads: [{ id: 5 }] } })));
+      },
+    });
+    const backend = createGitHubBackend(pr, fetchFn);
+
+    expect(await backend.loadThreads()).toHaveLength(0);
+    expect(await backend.loadThreads()).toHaveLength(1);
+  });
+
+  it('posts a review comment through the internal endpoint', async () => {
+    const { fetchFn, requests } = fakeGitHub({ [changesUrl]: json(routeJson()), [postUrl]: json({ thread: {} }) });
+
+    await createGitHubBackend(pr, fetchFn).postComment({ path: 'docs/a.md', side: 'RIGHT', line: 3, startLine: null }, 'LGTM');
+
+    const post = requests.find((request) => request.url === postUrl);
+    expect(post?.init?.method).toBe('POST');
+    expect(post?.init?.credentials).toBe('include');
+    expect(JSON.parse(String(post?.init?.body))).toMatchObject({ path: 'docs/a.md', line: 3, comparisonStartOid: BASE, text: 'LGTM' });
+  });
+
+  it('explains a rejection caused by commenting outside the diff', async () => {
+    const { fetchFn } = fakeGitHub({
+      [changesUrl]: json(routeJson()),
+      [postUrl]: json({ error: 'Line could not be resolved.' }, 422),
+    });
+
+    await expect(
+      createGitHubBackend(pr, fetchFn).postComment({ path: 'docs/a.md', side: 'RIGHT', line: 90, startLine: null }, 'x'),
+    ).rejects.toThrow(/差分の外/);
+  });
+
+  it('reports other failures with the HTTP status', async () => {
+    const { fetchFn } = fakeGitHub({ [changesUrl]: json(routeJson()), [postUrl]: json({ message: 'Forbidden' }, 403) });
+
+    await expect(
+      createGitHubBackend(pr, fetchFn).postComment({ path: 'docs/a.md', side: 'RIGHT', line: 3, startLine: null }, 'x'),
+    ).rejects.toThrow(/403/);
+  });
+});
