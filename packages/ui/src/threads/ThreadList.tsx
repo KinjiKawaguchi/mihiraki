@@ -28,7 +28,7 @@ function ThreadView({ thread }: { readonly thread: ReviewThread }) {
   return (
     <div class={`bgm-thread${thread.isResolved ? ' bgm-thread--resolved' : ''}`}>
       <button type="button" class="bgm-thread__header" onClick={() => setIsExpanded(!isExpanded)}>
-        <span>{formatLineRange(lines)}</span>
+        <span>{formatLineRange(thread.side, lines)}</span>
         <span>{thread.comments.length}件</span>
         {thread.isResolved && <span class="bgm-badge">解決済み</span>}
         {thread.isOutdated && <span class="bgm-badge">古い差分</span>}

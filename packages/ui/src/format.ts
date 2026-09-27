@@ -5,8 +5,15 @@ export const SIDE_LABEL: Readonly<Record<Side, string>> = {
   RIGHT: '変更後',
 };
 
-export function formatLineRange(lines: LineRange): string {
-  return lines.start === lines.end ? `L${lines.start}` : `L${lines.start}–L${lines.end}`;
+/** GitHub's notation: L for lines of the base (left) file, R for the head (right) file. */
+const SIDE_PREFIX: Readonly<Record<Side, string>> = {
+  LEFT: 'L',
+  RIGHT: 'R',
+};
+
+export function formatLineRange(side: Side, lines: LineRange): string {
+  const prefix = SIDE_PREFIX[side];
+  return lines.start === lines.end ? `${prefix}${lines.start}` : `${prefix}${lines.start}〜${prefix}${lines.end}`;
 }
 
 export function formatDateTime(iso: string): string {

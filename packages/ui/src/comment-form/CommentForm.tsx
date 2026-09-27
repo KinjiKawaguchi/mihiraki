@@ -1,5 +1,5 @@
 import type { CommentTarget } from '@better-gh-md/core';
-import { formatLineRange, SIDE_LABEL } from '../format';
+import { formatLineRange } from '../format';
 import { useCommentDraft } from './use-comment-draft';
 
 interface CommentFormProps {
@@ -28,7 +28,7 @@ export function CommentForm({ target, isInsideDiff, onSubmit, onCancel }: Commen
       }}
     >
       <div class="bgm-form__target">
-        {SIDE_LABEL[target.side]} {formatLineRange(lines)} にコメント
+        {formatLineRange(target.side, lines)} にコメント
       </div>
       {!isInsideDiff && (
         <p class="bgm-form__warning">この範囲は差分の外にあるため、GitHubに拒否される可能性があります。</p>
