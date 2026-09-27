@@ -35,6 +35,34 @@ function useFormSlot(contentRef: { current: HTMLDivElement | null }, html: strin
   return slot;
 }
 
+interface AddCommentButtonProps {
+  readonly hovered: HoveredElement;
+  readonly onSelectionStart: (lines: LineRange) => void;
+  readonly onRequestComment: (lines: LineRange) => void;
+}
+
+/** Press and drag selects a range (see useBlockSelection); keyboard activation comments right away. */
+function AddCommentButton({ hovered, onSelectionStart, onRequestComment }: AddCommentButtonProps) {
+  return (
+    <button
+      type="button"
+      class="bgm-add"
+      aria-label="コメントを追加"
+      title="クリックでコメント、ドラッグで範囲を選択"
+      style={{ top: `${hovered.top}px` }}
+      onMouseDown={(event) => {
+        event.preventDefault();
+        onSelectionStart(hovered.lines);
+      }}
+      onClick={(event) => {
+        if (event.detail === 0) onRequestComment(hovered.lines);
+      }}
+    >
+      +
+    </button>
+  );
+}
+
 /** Sanitised rendered Markdown with a "+" button on whichever source-mapped element is hovered. */
 export function RenderedBlock(props: RenderedBlockProps) {
   const { html, isActive, onActivate, onSelectionStart, onRequestComment, highlightedLines, formAfterLines, form } = props;
@@ -70,22 +98,7 @@ export function RenderedBlock(props: RenderedBlockProps) {
     >
       <div class="markdown-body" ref={contentRef} dangerouslySetInnerHTML={{ __html: safeHtml }} />
       {isActive && hovered && (
-        <button
-          type="button"
-          class="bgm-add"
-          aria-label="コメントを追加"
-          title="クリックでコメント、ドラッグで範囲を選択"
-          style={{ top: `${hovered.top}px` }}
-          onMouseDown={(event) => {
-            event.preventDefault();
-            onSelectionStart(hovered.lines);
-          }}
-          onClick={(event) => {
-            if (event.detail === 0) onRequestComment(hovered.lines);
-          }}
-        >
-          +
-        </button>
+        <AddCommentButton hovered={hovered} onSelectionStart={onSelectionStart} onRequestComment={onRequestComment} />
       )}
       {slot && createPortal(form, slot)}
     </div>

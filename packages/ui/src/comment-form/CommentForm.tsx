@@ -25,10 +25,46 @@ function submitModes(hasPendingReview: boolean): readonly { readonly mode: Comme
       ];
 }
 
+function EditorTabs({ isPreview, onChange }: { readonly isPreview: boolean; readonly onChange: (isPreview: boolean) => void }) {
+  return (
+    <div class="bgm-form__tabs" role="tablist">
+      <button type="button" role="tab" aria-selected={!isPreview} onClick={() => onChange(false)}>
+        書く
+      </button>
+      <button type="button" role="tab" aria-selected={isPreview} onClick={() => onChange(true)}>
+        プレビュー
+      </button>
+    </div>
+  );
+}
+
+interface SubmitButtonsProps {
+  readonly hasPendingReview: boolean;
+  readonly canSubmit: boolean;
+  readonly onSubmit: (mode: CommentMode) => void;
+}
+
+function SubmitButtons({ hasPendingReview, canSubmit, onSubmit }: SubmitButtonsProps) {
+  return (
+    <>
+      {submitModes(hasPendingReview).map(({ mode, label }) => (
+        <button
+          key={mode}
+          type="button"
+          class={`bgm-button${mode === 'review' ? ' bgm-button--primary' : ''}`}
+          disabled={!canSubmit}
+          onClick={() => onSubmit(mode)}
+        >
+          {label}
+        </button>
+      ))}
+    </>
+  );
+}
+
 export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: CommentFormProps) {
   const draft = useCommentDraft(onSubmit);
   const [isPreview, setIsPreview] = useState(false);
-  const modes = submitModes(hasPendingReview);
   const shortcutMode: CommentMode = hasPendingReview ? 'review' : 'single';
   const lines = { start: target.startLine ?? target.line, end: target.line };
 
@@ -40,14 +76,7 @@ export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: Co
   return (
     <form class="bgm-form" onSubmit={(event) => event.preventDefault()}>
       <div class="bgm-form__target">{formatLineRange(target.side, lines)} にコメント</div>
-      <div class="bgm-form__tabs" role="tablist">
-        <button type="button" role="tab" aria-selected={!isPreview} onClick={() => setIsPreview(false)}>
-          書く
-        </button>
-        <button type="button" role="tab" aria-selected={isPreview} onClick={() => setIsPreview(true)}>
-          プレビュー
-        </button>
-      </div>
+      <EditorTabs isPreview={isPreview} onChange={setIsPreview} />
       {isPreview ? (
         <CommentPreview body={draft.body} />
       ) : (
@@ -65,17 +94,7 @@ export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: Co
         <button type="button" class="bgm-button" onClick={onCancel}>
           キャンセル
         </button>
-        {modes.map(({ mode, label }) => (
-          <button
-            key={mode}
-            type="button"
-            class={`bgm-button${mode === 'review' ? ' bgm-button--primary' : ''}`}
-            disabled={!draft.canSubmit}
-            onClick={() => void draft.submit(mode)}
-          >
-            {label}
-          </button>
-        ))}
+        <SubmitButtons hasPendingReview={hasPendingReview} canSubmit={draft.canSubmit} onSubmit={(mode) => void draft.submit(mode)} />
       </div>
     </form>
   );
