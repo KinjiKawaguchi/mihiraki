@@ -2,9 +2,19 @@
  * Runs in the page's main world, where GitHub's React stores are reachable, and serves
  * requests from the extension's isolated world (see client.ts).
  */
-import { asRecord, asString } from '../github/json';
-import { findReviewStores, registerCreatedThread, watchReviewThreads, type ReviewStores } from './github-stores';
-import { HOST_SYNC_EVENTS, parseJson, toThreadCreatedMessage, type ThreadCreatedMessage } from './protocol';
+import { asRecord, asString } from "../github/json";
+import {
+  findReviewStores,
+  type ReviewStores,
+  registerCreatedThread,
+  watchReviewThreads,
+} from "./github-stores";
+import {
+  HOST_SYNC_EVENTS,
+  parseJson,
+  type ThreadCreatedMessage,
+  toThreadCreatedMessage,
+} from "./protocol";
 
 export interface HostBridgeOptions {
   readonly findStores?: (document: Document) => ReviewStores | null;
@@ -13,7 +23,7 @@ export interface HostBridgeOptions {
 
 export function installHostBridge(document: Document, options: HostBridgeOptions = {}): () => void {
   const { findStores = findReviewStores, register = registerCreatedThread } = options;
-  let watched: { readonly layout: ReviewStores['layout']; readonly stop: () => void } | null = null;
+  let watched: { readonly layout: ReviewStores["layout"]; readonly stop: () => void } | null = null;
 
   const reply = (type: string, payload: Record<string, unknown>) =>
     document.dispatchEvent(new CustomEvent(type, { detail: JSON.stringify(payload) }));
@@ -35,11 +45,14 @@ export function installHostBridge(document: Document, options: HostBridgeOptions
 
   const onThreadCreated = (event: Event) => {
     const detail = asRecord(parseJson((event as CustomEvent<unknown>).detail));
-    const requestId = asString(detail?.['requestId']);
-    const message = toThreadCreatedMessage(detail?.['message']);
+    const requestId = asString(detail?.requestId);
+    const message = toThreadCreatedMessage(detail?.message);
     if (!requestId || !message) return;
     const stores = currentStores();
-    reply(HOST_SYNC_EVENTS.threadRegistered, { requestId, isRegistered: stores !== null && register(stores, message) });
+    reply(HOST_SYNC_EVENTS.threadRegistered, {
+      requestId,
+      isRegistered: stores !== null && register(stores, message),
+    });
   };
 
   document.addEventListener(HOST_SYNC_EVENTS.ping, onPing);

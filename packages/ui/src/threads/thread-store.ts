@@ -1,5 +1,5 @@
-import type { ReviewBackend, ReviewThread } from '@better-gh-md/core';
-import { useEffect, useState } from 'preact/hooks';
+import type { ReviewBackend, ReviewThread } from "@better-gh-md/core";
+import { useEffect, useState } from "preact/hooks";
 
 /** Review threads of a whole pull request, shared by every file view showing part of it. */
 export interface ThreadStore {
@@ -30,13 +30,19 @@ export function createThreadStore(backend: ReviewBackend): ThreadStore {
       } catch (loadError) {
         error = loadError;
       }
-      listeners.forEach((listener) => listener());
+      for (const listener of listeners) listener();
     },
   };
 }
 
-export function useThreadStore(store: ThreadStore): { threads: readonly ReviewThread[]; error: unknown } {
-  const [snapshot, setSnapshot] = useState(() => ({ threads: store.getThreads(), error: store.getError() }));
+export function useThreadStore(store: ThreadStore): {
+  threads: readonly ReviewThread[];
+  error: unknown;
+} {
+  const [snapshot, setSnapshot] = useState(() => ({
+    threads: store.getThreads(),
+    error: store.getError(),
+  }));
   useEffect(() => {
     const update = () => setSnapshot({ threads: store.getThreads(), error: store.getError() });
     update();

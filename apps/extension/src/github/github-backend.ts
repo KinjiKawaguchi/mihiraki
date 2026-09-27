@@ -1,15 +1,15 @@
-import type { ChangedFile, ReviewBackend } from '@better-gh-md/core';
-import type { ThreadCreatedMessage } from '../host-sync/protocol';
-import { buildCreateCommentPayload } from './comment-payload';
-import { fetchFileSource, fetchRouteData, postReviewComment, type FetchFn } from './github-client';
-import type { PullRequestLocation } from './pr-location';
-import type { RouteData } from './route-data';
+import type { ChangedFile, ReviewBackend } from "@better-gh-md/core";
+import type { ThreadCreatedMessage } from "../host-sync/protocol";
+import { buildCreateCommentPayload } from "./comment-payload";
+import { type FetchFn, fetchFileSource, fetchRouteData, postReviewComment } from "./github-client";
+import type { PullRequestLocation } from "./pr-location";
+import type { RouteData } from "./route-data";
 
 const MARKDOWN_PATH = /\.(?:md|markdown)$/i;
 
 /** GitHub folds a single comment into the pending review and publishes all of it. */
 const SINGLE_COMMENT_WHILE_PENDING =
-  '保留中のレビューがあります。このまま単発で送ると保留中のコメントもまとめて公開されるため、「レビューに追加」を使ってください。';
+  "保留中のレビューがあります。このまま単発で送ると保留中のコメントもまとめて公開されるため、「レビューに追加」を使ってください。";
 
 export interface GitHubBackendOptions {
   /** Called after a comment is stored, e.g. to show the new thread in GitHub's own UI too. */
@@ -38,13 +38,16 @@ export function createGitHubBackend(
   const currentRoute = (): Promise<RouteData> => cachedRoute ?? refreshRoute();
 
   return {
-    listChangedMarkdownFiles: async () => (await currentRoute()).files.filter((file) => MARKDOWN_PATH.test(file.path)),
+    listChangedMarkdownFiles: async () =>
+      (await currentRoute()).files.filter((file) => MARKDOWN_PATH.test(file.path)),
 
     loadFileVersions: async (file: ChangedFile) => {
       const { baseOid, headOid } = await currentRoute();
       const [base, head] = await Promise.all([
-        file.changeType === 'ADDED' ? '' : fetchFileSource(fetchFn, pr, baseOid, file.previousPath ?? file.path),
-        file.changeType === 'REMOVED' ? '' : fetchFileSource(fetchFn, pr, headOid, file.path),
+        file.changeType === "ADDED"
+          ? ""
+          : fetchFileSource(fetchFn, pr, baseOid, file.previousPath ?? file.path),
+        file.changeType === "REMOVED" ? "" : fetchFileSource(fetchFn, pr, headOid, file.path),
       ]);
       return { base, head };
     },
@@ -54,8 +57,9 @@ export function createGitHubBackend(
 
     postComment: async (target, body, mode) => {
       // The review may have been started in GitHub's own UI since our data was loaded.
-      const route = mode === 'single' ? await refreshRoute() : await currentRoute();
-      if (mode === 'single' && route.hasPendingReview) throw new Error(SINGLE_COMMENT_WHILE_PENDING);
+      const route = mode === "single" ? await refreshRoute() : await currentRoute();
+      if (mode === "single" && route.hasPendingReview)
+        throw new Error(SINGLE_COMMENT_WHILE_PENDING);
       const payload = buildCreateCommentPayload(target, body, route, mode);
       const thread = await postReviewComment(fetchFn, pr, target, payload);
       if (!thread || !onThreadCreated) return;

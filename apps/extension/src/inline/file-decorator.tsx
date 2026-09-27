@@ -1,9 +1,15 @@
-import type { ChangedFile, ReviewBackend } from '@better-gh-md/core';
-import { InlineFileReview, type ThreadStore } from '@better-gh-md/ui';
-import { render } from 'preact';
-import { findHeader, findViewSwitcher, setSplitActive, SPLIT_TOGGLE_TAG, SPLIT_VIEW_TAG } from './github-file-dom';
-import { createShadowHost, type ShadowHost } from './shadow-host';
-import { SPLIT_TOGGLE_CSS, SplitToggle } from './SplitToggle';
+import type { ChangedFile, ReviewBackend } from "@better-gh-md/core";
+import { InlineFileReview, type ThreadStore } from "@better-gh-md/ui";
+import { render } from "preact";
+import {
+  findHeader,
+  findViewSwitcher,
+  SPLIT_TOGGLE_TAG,
+  SPLIT_VIEW_TAG,
+  setSplitActive,
+} from "./github-file-dom";
+import { SPLIT_TOGGLE_CSS, SplitToggle } from "./SplitToggle";
+import { createShadowHost, type ShadowHost } from "./shadow-host";
 
 export interface FileDecoratorContext {
   readonly document: Document;
@@ -24,7 +30,12 @@ function unmount(shadow: ShadowHost | undefined): void {
 
 type HostsByPath = Map<string, ShadowHost>;
 
-function syncToggle(context: FileDecoratorContext, toggles: HostsByPath, container: HTMLElement, file: ChangedFile) {
+function syncToggle(
+  context: FileDecoratorContext,
+  toggles: HostsByPath,
+  container: HTMLElement,
+  file: ChangedFile,
+) {
   let toggle = toggles.get(file.path);
   if (!toggle || !container.contains(toggle.host)) {
     const switcher = findViewSwitcher(container);
@@ -37,10 +48,18 @@ function syncToggle(context: FileDecoratorContext, toggles: HostsByPath, contain
     toggles.set(file.path, toggle);
   }
   const isOn = context.isActive(file.path);
-  render(<SplitToggle isActive={isOn} onToggle={() => context.setActive(file.path, !isOn)} />, toggle.mount);
+  render(
+    <SplitToggle isActive={isOn} onToggle={() => context.setActive(file.path, !isOn)} />,
+    toggle.mount,
+  );
 }
 
-function syncView(context: FileDecoratorContext, views: HostsByPath, container: HTMLElement, file: ChangedFile) {
+function syncView(
+  context: FileDecoratorContext,
+  views: HostsByPath,
+  container: HTMLElement,
+  file: ChangedFile,
+) {
   const view = views.get(file.path);
   const isOn = context.isActive(file.path);
   setSplitActive(container, isOn);

@@ -1,8 +1,8 @@
-const CJK = '\\p{Script=Han}\\p{Script=Hiragana}\\p{Script=Katakana}';
+const CJK = "\\p{Script=Han}\\p{Script=Hiragana}\\p{Script=Katakana}";
 
 const TEXT_UNIT_PATTERN = new RegExp(
-  ['&[#a-zA-Z0-9]+;', `[${CJK}]`, `(?:(?![${CJK}])[\\p{L}\\p{N}_])+`, '\\s+', '.'].join('|'),
-  'gsu',
+  ["&[#a-zA-Z0-9]+;", `[${CJK}]`, `(?:(?![${CJK}])[\\p{L}\\p{N}_])+`, "\\s+", "."].join("|"),
+  "gsu",
 );
 const WORD_UNIT_PATTERN = /^[\p{L}\p{N}_]+$/u;
 

@@ -8,7 +8,13 @@
     "dev:extension": "pnpm --filter @better-gh-md/extension dev",
     "build:extension": "pnpm --filter @better-gh-md/extension build",
     "dev:playground": "pnpm --filter @better-gh-md/playground dev",
-    "test:e2e": "pnpm --filter @better-gh-md/playground test:e2e"
+    "test:e2e": "pnpm --filter @better-gh-md/playground test:e2e",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write ."
   },
-  "packageManager": "pnpm@9.15.0"
+  "packageManager": "pnpm@9.15.0",
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.14"
+  }
 }

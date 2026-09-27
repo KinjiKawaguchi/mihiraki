@@ -3,13 +3,13 @@
  * Class names there are hashed per build, so only ids, roles and data attributes are used.
  */
 
-export const SPLIT_VIEW_TAG = 'bgm-split-view';
-export const SPLIT_TOGGLE_TAG = 'bgm-split-toggle';
+export const SPLIT_VIEW_TAG = "bgm-split-view";
+export const SPLIT_TOGGLE_TAG = "bgm-split-toggle";
 
-const HEADER_SELECTOR = '[data-diff-header-wrapper]';
+const HEADER_SELECTOR = "[data-diff-header-wrapper]";
 const VIEW_SWITCHER_SELECTOR = `${HEADER_SELECTOR} [data-component="SegmentedControl"]`;
-const SPLIT_ATTR = 'data-bgm-split';
-const PAGE_STYLE_ATTR = 'data-bgm-page-style';
+const SPLIT_ATTR = "data-bgm-split";
+const PAGE_STYLE_ATTR = "data-bgm-page-style";
 
 /** GitHub's own "source diff / rich diff" switcher in a file header. */
 export function findViewSwitcher(container: Element): Element | null {
@@ -25,7 +25,7 @@ export function findHeader(container: Element): Element | null {
  * directly, so React re-renders cannot undo it and switching back leaves no trace.
  */
 export function setSplitActive(container: Element, isActive: boolean): void {
-  if (isActive) container.setAttribute(SPLIT_ATTR, '');
+  if (isActive) container.setAttribute(SPLIT_ATTR, "");
   else container.removeAttribute(SPLIT_ATTR);
 }
 
@@ -41,8 +41,8 @@ ${SPLIT_VIEW_TAG} { display: block; }
 
 export function installPageStyle(document: Document): void {
   if (document.head.querySelector(`style[${PAGE_STYLE_ATTR}]`)) return;
-  const style = document.createElement('style');
-  style.setAttribute(PAGE_STYLE_ATTR, '');
+  const style = document.createElement("style");
+  style.setAttribute(PAGE_STYLE_ATTR, "");
   style.textContent = PAGE_STYLE;
   document.head.append(style);
 }

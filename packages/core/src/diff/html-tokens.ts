@@ -1,6 +1,6 @@
-import { splitTextUnits } from './text-units';
+import { splitTextUnits } from "./text-units";
 
-export type HtmlTokenKind = 'tag' | 'text';
+export type HtmlTokenKind = "tag" | "text";
 
 export interface HtmlToken {
   readonly kind: HtmlTokenKind;
@@ -14,7 +14,7 @@ const TAG_PATTERN = /<!--[\s\S]*?-->|<[^>]*>/g;
 const LINE_ATTR_PATTERN = / data-line-(?:start|end)="[^"]*"/g;
 
 function tokenizeText(text: string): HtmlToken[] {
-  return splitTextUnits(text).map((value) => ({ kind: 'text' as const, value, key: value }));
+  return splitTextUnits(text).map((value) => ({ kind: "text" as const, value, key: value }));
 }
 
 /** Splits HTML into tags and diff-friendly text units (words, CJK characters, whitespace). */
@@ -24,7 +24,7 @@ export function tokenizeHtml(html: string): HtmlToken[] {
   for (const match of html.matchAll(TAG_PATTERN)) {
     const index = match.index ?? 0;
     tokens.push(...tokenizeText(html.slice(cursor, index)));
-    tokens.push({ kind: 'tag', value: match[0], key: match[0].replace(LINE_ATTR_PATTERN, '') });
+    tokens.push({ kind: "tag", value: match[0], key: match[0].replace(LINE_ATTR_PATTERN, "") });
     cursor = index + match[0].length;
   }
   tokens.push(...tokenizeText(html.slice(cursor)));

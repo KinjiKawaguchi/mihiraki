@@ -1,12 +1,12 @@
-import type { LineRange } from '@better-gh-md/core';
+import type { LineRange } from "@better-gh-md/core";
 
 /** Rendered elements carrying the source lines they came from (set by the core renderer). */
-export const LINE_ELEMENT_SELECTOR = '[data-line-start]';
-export const SELECTED_CLASS = 'bgm-selected';
+export const LINE_ELEMENT_SELECTOR = "[data-line-start]";
+export const SELECTED_CLASS = "bgm-selected";
 
 export function readLines(element: Element): LineRange | null {
-  const start = Number(element.getAttribute('data-line-start'));
-  const end = Number(element.getAttribute('data-line-end'));
+  const start = Number(element.getAttribute("data-line-start"));
+  const end = Number(element.getAttribute("data-line-end"));
   return Number.isInteger(start) && start > 0 ? { start, end: Math.max(start, end) } : null;
 }
 
@@ -18,14 +18,23 @@ function isWithin(inner: LineRange | null, outer: LineRange): boolean {
 export function markSelectedElements(container: Element, range: LineRange | null): void {
   for (const element of Array.from(container.querySelectorAll(LINE_ELEMENT_SELECTOR))) {
     const parent = element.parentElement?.closest(LINE_ELEMENT_SELECTOR);
-    const isParentSelected = range !== null && parent != null && container.contains(parent) && isWithin(readLines(parent), range);
-    element.classList.toggle(SELECTED_CLASS, range !== null && !isParentSelected && isWithin(readLines(element), range));
+    const isParentSelected =
+      range !== null &&
+      parent != null &&
+      container.contains(parent) &&
+      isWithin(readLines(parent), range);
+    element.classList.toggle(
+      SELECTED_CLASS,
+      range !== null && !isParentSelected && isWithin(readLines(element), range),
+    );
   }
 }
 
 /** The element for exactly `lines`; the innermost one when several share the same lines. */
 function findElement(container: Element, lines: LineRange): Element | null {
-  const matches = container.querySelectorAll(`[data-line-start="${lines.start}"][data-line-end="${lines.end}"]`);
+  const matches = container.querySelectorAll(
+    `[data-line-start="${lines.start}"][data-line-end="${lines.end}"]`,
+  );
   return matches[matches.length - 1] ?? null;
 }
 
@@ -37,10 +46,10 @@ function findElement(container: Element, lines: LineRange): Element | null {
 export function insertSlotBelow(container: Element, lines: LineRange): HTMLElement | null {
   const target = findElement(container, lines);
   if (!target) return null;
-  const slot = target.ownerDocument.createElement('div');
-  slot.className = 'bgm-form-slot';
-  const table = target.closest('table');
-  if (target.matches('li')) target.append(slot);
+  const slot = target.ownerDocument.createElement("div");
+  slot.className = "bgm-form-slot";
+  const table = target.closest("table");
+  if (target.matches("li")) target.append(slot);
   else if (table && container.contains(table)) table.after(slot);
   else target.after(slot);
   return slot;
@@ -64,8 +73,13 @@ function elementAtHeight(root: Element, clientY: number): Element | null {
  * (in the gutter holding the "+" button, as when dragging straight down from it), the
  * innermost element at the pointer's height is used instead.
  */
-export function lineElementAt(root: Element, target: EventTarget | null, clientY: number): Element | null {
-  const targetElement = target instanceof Element ? target : target instanceof Node ? target.parentElement : null;
+export function lineElementAt(
+  root: Element,
+  target: EventTarget | null,
+  clientY: number,
+): Element | null {
+  const targetElement =
+    target instanceof Element ? target : target instanceof Node ? target.parentElement : null;
   const direct = targetElement?.closest(LINE_ELEMENT_SELECTOR);
   if (direct && root.contains(direct)) return direct;
   return elementAtHeight(root, clientY);

@@ -1,8 +1,8 @@
-import { alignBlocks, type AlignedRow, type RowKind } from '../diff/align';
-import { diffBlockHtml } from '../diff/inline-diff';
-import { parseBlocks } from '../markdown/blocks';
-import type { SourceBlock } from '../markdown/types';
-import type { ReviewThread, Side } from '../review/types';
+import { type AlignedRow, alignBlocks, type RowKind } from "../diff/align";
+import { diffBlockHtml } from "../diff/inline-diff";
+import { parseBlocks } from "../markdown/blocks";
+import type { SourceBlock } from "../markdown/types";
+import type { ReviewThread, Side } from "../review/types";
 
 export interface SplitCell {
   readonly block: SourceBlock;
@@ -23,9 +23,13 @@ export interface RowThreads {
 
 function toSplitRow(row: AlignedRow): SplitRow {
   const { base, head } = row;
-  if (row.kind === 'modified' && base && head) {
+  if (row.kind === "modified" && base && head) {
     const highlighted = diffBlockHtml(base.html, head.html);
-    return { kind: row.kind, left: { block: base, html: highlighted.base }, right: { block: head, html: highlighted.head } };
+    return {
+      kind: row.kind,
+      left: { block: base, html: highlighted.base },
+      right: { block: head, html: highlighted.head },
+    };
   }
   return {
     kind: row.kind,
@@ -40,7 +44,7 @@ export function buildSplitRows(baseSource: string, headSource: string): SplitRow
 }
 
 function cellOn(row: SplitRow, side: Side): SplitCell | null {
-  return side === 'LEFT' ? row.left : row.right;
+  return side === "LEFT" ? row.left : row.right;
 }
 
 /** Row whose block on `side` contains `line`, else the closest row above it, else the first row. */
@@ -55,16 +59,21 @@ function findAnchorRow(rows: readonly SplitRow[], side: Side, line: number): num
 }
 
 /** Groups review threads by the row (and side) they should be displayed next to. */
-export function groupThreadsByRow(rows: readonly SplitRow[], threads: readonly ReviewThread[]): RowThreads[] {
+export function groupThreadsByRow(
+  rows: readonly SplitRow[],
+  threads: readonly ReviewThread[],
+): RowThreads[] {
   const anchors = threads.map((thread) => ({
     thread,
     rowIndex: findAnchorRow(rows, thread.side, thread.startLine ?? thread.line),
   }));
   return rows.map((_, index) => {
-    const here = anchors.filter((anchor) => anchor.rowIndex === index).map((anchor) => anchor.thread);
+    const here = anchors
+      .filter((anchor) => anchor.rowIndex === index)
+      .map((anchor) => anchor.thread);
     return {
-      left: here.filter((thread) => thread.side === 'LEFT'),
-      right: here.filter((thread) => thread.side === 'RIGHT'),
+      left: here.filter((thread) => thread.side === "LEFT"),
+      right: here.filter((thread) => thread.side === "RIGHT"),
     };
   });
 }

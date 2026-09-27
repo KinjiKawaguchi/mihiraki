@@ -1,5 +1,5 @@
-import type { LineRange, Side } from '@better-gh-md/core';
-import { useEffect, useState } from 'preact/hooks';
+import type { LineRange, Side } from "@better-gh-md/core";
+import { useEffect, useState } from "preact/hooks";
 
 /** A source-mapped element of one row, identified by the lines it covers. */
 export interface BlockRef {
@@ -24,7 +24,9 @@ export function selectionRange(selection: BlockSelection): LineRange {
 
 /** Where the comment form goes: below the selected element that ends last, like GitHub. */
 export function selectionEnd(selection: BlockSelection): BlockRef {
-  return selection.focus.lines.end >= selection.anchor.lines.end ? selection.focus : selection.anchor;
+  return selection.focus.lines.end >= selection.anchor.lines.end
+    ? selection.focus
+    : selection.anchor;
 }
 
 /** GitHub-style "press + and drag" selection of consecutive elements on one side. */
@@ -32,20 +34,25 @@ export function useBlockSelection() {
   const [selection, setSelection] = useState<BlockSelection | null>(null);
   const isDragging = selection?.isDragging === true;
 
-  const finish = () => setSelection((current) => (current?.isDragging ? { ...current, isDragging: false } : current));
+  const finish = () =>
+    setSelection((current) => (current?.isDragging ? { ...current, isDragging: false } : current));
 
   useEffect(() => {
     if (!isDragging) return undefined;
-    window.addEventListener('mouseup', finish);
-    return () => window.removeEventListener('mouseup', finish);
+    window.addEventListener("mouseup", finish);
+    return () => window.removeEventListener("mouseup", finish);
   }, [isDragging]);
 
   return {
     selection,
-    start: (side: Side, ref: BlockRef) => setSelection({ side, anchor: ref, focus: ref, isDragging: true }),
-    open: (side: Side, ref: BlockRef) => setSelection({ side, anchor: ref, focus: ref, isDragging: false }),
+    start: (side: Side, ref: BlockRef) =>
+      setSelection({ side, anchor: ref, focus: ref, isDragging: true }),
+    open: (side: Side, ref: BlockRef) =>
+      setSelection({ side, anchor: ref, focus: ref, isDragging: false }),
     extend: (side: Side, ref: BlockRef) =>
-      setSelection((current) => (current?.isDragging && current.side === side ? { ...current, focus: ref } : current)),
+      setSelection((current) =>
+        current?.isDragging && current.side === side ? { ...current, focus: ref } : current,
+      ),
     finish,
     clear: () => setSelection(null),
   };

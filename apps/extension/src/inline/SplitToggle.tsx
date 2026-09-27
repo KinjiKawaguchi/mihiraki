@@ -29,7 +29,7 @@ export function SplitToggle({ isActive, onToggle }: SplitToggleProps) {
     <button
       type="button"
       class="bgm-toggle"
-      aria-pressed={isActive ? 'true' : 'false'}
+      aria-pressed={isActive ? "true" : "false"}
       title="Markdownをレンダリングしたまま左右分割で表示"
       onClick={onToggle}
     >

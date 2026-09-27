@@ -1,5 +1,5 @@
 /** GitHub's naming: LEFT is the base (old) file, RIGHT the head (new) file. */
-export type Side = 'LEFT' | 'RIGHT';
+export type Side = "LEFT" | "RIGHT";
 
 export interface ReviewComment {
   readonly id: string;
@@ -30,7 +30,7 @@ export interface ReviewThread {
  * `single` publishes the comment immediately ("Comment" on GitHub); `review` adds it to
  * the viewer's pending review ("Start a review" / "Add review comment").
  */
-export type CommentMode = 'single' | 'review';
+export type CommentMode = "single" | "review";
 
 export interface CommentTarget {
   readonly path: string;

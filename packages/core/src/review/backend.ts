@@ -1,6 +1,6 @@
-import type { CommentMode, CommentTarget, ReviewThread } from './types';
+import type { CommentMode, CommentTarget, ReviewThread } from "./types";
 
-export type FileChangeType = 'ADDED' | 'MODIFIED' | 'REMOVED' | 'RENAMED';
+export type FileChangeType = "ADDED" | "MODIFIED" | "REMOVED" | "RENAMED";
 
 export interface ChangedFile {
   readonly path: string;

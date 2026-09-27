@@ -1,13 +1,13 @@
-import { fileContainerId } from './file-anchor';
+import { fileContainerId } from "./file-anchor";
 
 /**
  * Minimal copy of one file block of GitHub's Files changed page, as observed on
  * github.com (the classes are hashed there; only structure and data attributes matter).
  */
 export async function appendFileBlock(document: Document, path: string): Promise<HTMLElement> {
-  const container = document.createElement('div');
+  const container = document.createElement("div");
   container.id = await fileContainerId(path);
-  container.setAttribute('role', 'region');
+  container.setAttribute("role", "region");
   container.innerHTML = `
     <div data-diff-header-wrapper="true">
       <div class="file-header">
