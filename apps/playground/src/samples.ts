@@ -87,9 +87,8 @@ export const sampleThreads: readonly ReviewThread[] = [
   {
     id: "sample-1",
     path: "docs/cache-design.md",
-    side: "RIGHT",
-    line: 11,
-    startLine: 10,
+    side: "head",
+    lines: { start: 10, end: 11 },
     isResolved: false,
     isOutdated: false,
     isPending: false,

@@ -2,7 +2,8 @@ import type { LineRange } from "@mihiraki/core";
 import type { ComponentChild } from "preact";
 import { createPortal } from "preact/compat";
 import { useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
-import { sanitizeHtml } from "../sanitize";
+import { SafeHtml } from "../safe-html/SafeHtml";
+import { type SanitizedHtml, sanitizeHtml } from "../safe-html/sanitize";
 import { insertSlotBelow, lineElementAt, markSelectedElements, readLines } from "./rendered-dom";
 
 interface HoveredElement {
@@ -19,6 +20,8 @@ interface RenderedBlockProps {
   readonly onSelectionStart: (lines: LineRange) => void;
   /** "+" activated from the keyboard: comment on this element only. */
   readonly onRequestComment: (lines: LineRange) => void;
+  /** Pointer moved over an element (or beside it, in the gutter); extends a drag selection. */
+  readonly onPointerOverLines: (lines: LineRange) => void;
   readonly highlightedLines: LineRange | null;
   /** Lines of the element the comment form should appear under, if it belongs to this block. */
   readonly formAfterLines: LineRange | null;
@@ -27,7 +30,7 @@ interface RenderedBlockProps {
 
 function useFormSlot(
   contentRef: { current: HTMLDivElement | null },
-  html: string,
+  html: SanitizedHtml,
   lines: LineRange | null,
 ) {
   const [slot, setSlot] = useState<HTMLElement | null>(null);
@@ -75,6 +78,7 @@ export function RenderedBlock(props: RenderedBlockProps) {
     onActivate,
     onSelectionStart,
     onRequestComment,
+    onPointerOverLines,
     highlightedLines,
     formAfterLines,
     form,
@@ -102,6 +106,7 @@ export function RenderedBlock(props: RenderedBlockProps) {
       hovered.lines.end === lines.end;
     if (!isSame) setHovered({ lines, top });
     onActivate();
+    onPointerOverLines(lines);
   };
 
   return (
@@ -115,7 +120,7 @@ export function RenderedBlock(props: RenderedBlockProps) {
       onMouseMove={handlePointer}
       onMouseLeave={() => setHovered(null)}
     >
-      <div class="markdown-body" ref={contentRef} dangerouslySetInnerHTML={{ __html: safeHtml }} />
+      <SafeHtml class="markdown-body" html={safeHtml} elementRef={contentRef} />
       {isActive && hovered && (
         <AddCommentButton
           hovered={hovered}

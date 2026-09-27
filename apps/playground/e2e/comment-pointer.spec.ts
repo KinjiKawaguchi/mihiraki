@@ -7,7 +7,7 @@ async function center(locator: Locator) {
 }
 
 async function hoverListItem(page: Page, index: number) {
-  const item = page.locator('[data-side="RIGHT"] ul > li').nth(index);
+  const item = page.locator('[data-side="head"] ul > li').nth(index);
   const point = await center(item);
   await page.mouse.move(point.x, point.y, { steps: 5 });
   return item;
@@ -15,7 +15,7 @@ async function hoverListItem(page: Page, index: number) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
-  await page.locator('[data-side="RIGHT"] ul > li').first().waitFor();
+  await page.locator('[data-side="head"] ul > li').first().waitFor();
 });
 
 test("the add button stays under the pointer when moving onto it", async ({ page }) => {
@@ -35,7 +35,7 @@ test("dragging straight down the gutter selects the following blocks", async ({ 
   const add = page.getByRole("button", { name: "コメントを追加" });
   const start = await center(add);
   await add.hover();
-  const third = await center(page.locator('[data-side="RIGHT"] ul > li').nth(2));
+  const third = await center(page.locator('[data-side="head"] ul > li').nth(2));
 
   await page.mouse.down();
   await page.mouse.move(start.x, third.y, { steps: 10 });

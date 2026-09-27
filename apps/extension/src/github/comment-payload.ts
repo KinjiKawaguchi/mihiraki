@@ -1,4 +1,6 @@
-import type { CommentMode, CommentTarget } from "@mihiraki/core";
+import type { CommentMode, CommentTarget, Side } from "@mihiraki/core";
+
+const PAYLOAD_SIDE: Readonly<Record<Side, "left" | "right">> = { base: "left", head: "right" };
 
 /**
  * Body for `POST /pull/:n/page_data/create_review_comment`, mirroring what GitHub's
@@ -8,18 +10,19 @@ import type { CommentMode, CommentTarget } from "@mihiraki/core";
  */
 export function buildCreateCommentPayload(target: CommentTarget, body: string, mode: CommentMode) {
   const { base: baseOid, head: headOid } = target.revision;
-  const side = target.side === "LEFT" ? "left" : "right";
-  const sideOid = target.side === "LEFT" ? baseOid : headOid;
+  const side = PAYLOAD_SIDE[target.side];
+  const sideOid = target.revision[target.side];
+  const { start, end } = target.lines;
   const common = {
     comparisonStartOid: baseOid,
     comparisonEndOid: headOid,
     path: target.path,
-    line: target.line,
+    line: end,
     side,
     submitBatch: mode === "single",
     text: body,
   };
-  if (target.startLine === null) {
+  if (start === end) {
     return {
       ...common,
       subjectType: "line",
@@ -28,14 +31,14 @@ export function buildCreateCommentPayload(target: CommentTarget, body: string, m
         baseCommitOid: baseOid,
         commitOid: sideOid,
         headCommitOid: headOid,
-        line: target.line,
+        line: end,
         path: target.path,
       },
     };
   }
   return {
     ...common,
-    startLine: target.startLine,
+    startLine: start,
     startSide: side,
     subjectType: "multiline",
     positioning: {
@@ -43,10 +46,10 @@ export function buildCreateCommentPayload(target: CommentTarget, body: string, m
       baseCommitOid: baseOid,
       headCommitOid: headOid,
       startPath: target.path,
-      startLine: target.startLine,
+      startLine: start,
       startCommitOid: sideOid,
       endPath: target.path,
-      endLine: target.line,
+      endLine: end,
       endCommitOid: sideOid,
     },
   };

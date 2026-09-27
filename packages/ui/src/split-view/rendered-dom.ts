@@ -1,13 +1,14 @@
-import type { LineRange } from "@mihiraki/core";
+import { type LineRange, parseLineRange } from "@mihiraki/core";
 
 /** Rendered elements carrying the source lines they came from (set by the core renderer). */
 export const LINE_ELEMENT_SELECTOR = "[data-line-start]";
 export const SELECTED_CLASS = "mhr-selected";
 
 export function readLines(element: Element): LineRange | null {
-  const start = Number(element.getAttribute("data-line-start"));
-  const end = Number(element.getAttribute("data-line-end"));
-  return Number.isInteger(start) && start > 0 ? { start, end: Math.max(start, end) } : null;
+  return parseLineRange(
+    Number(element.getAttribute("data-line-start")),
+    Number(element.getAttribute("data-line-end")),
+  );
 }
 
 function isWithin(inner: LineRange | null, outer: LineRange): boolean {

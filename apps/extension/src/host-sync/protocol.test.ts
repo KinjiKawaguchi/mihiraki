@@ -3,7 +3,7 @@ import { diffLineKeyOf, parseThreadCreatedMessage, threadSubjectOf } from "./pro
 
 describe("host sync protocol", () => {
   it("describes where a thread sits the way GitHub stores it", () => {
-    expect(threadSubjectOf({ path: "a.md", side: "RIGHT", line: 20, startLine: 18 })).toEqual({
+    expect(threadSubjectOf({ path: "a.md", side: "head", lines: { start: 18, end: 20 } })).toEqual({
       path: "a.md",
       startLine: 18,
       startDiffSide: "RIGHT",
@@ -14,13 +14,15 @@ describe("host sync protocol", () => {
   });
 
   it("keys a thread by its side and last line", () => {
-    expect(diffLineKeyOf({ path: "a.md", side: "LEFT", line: 5, startLine: null })).toBe("L5");
-    expect(diffLineKeyOf({ path: "a.md", side: "RIGHT", line: 20, startLine: 18 })).toBe("R20");
+    expect(diffLineKeyOf({ path: "a.md", side: "base", lines: { start: 5, end: 5 } })).toBe("L5");
+    expect(diffLineKeyOf({ path: "a.md", side: "head", lines: { start: 18, end: 20 } })).toBe(
+      "R20",
+    );
   });
 
   it("accepts a well-formed thread-created message", () => {
     const message = {
-      target: { path: "a.md", side: "RIGHT", line: 3, startLine: null },
+      target: { path: "a.md", side: "head", lines: { start: 3, end: 3 } },
       mode: "review",
       thread: { id: "42" },
     };
@@ -34,7 +36,16 @@ describe("host sync protocol", () => {
     expect(
       parseThreadCreatedMessage(
         JSON.stringify({
-          target: { path: "a.md", side: "UP", line: 3, startLine: null },
+          target: { path: "a.md", side: "UP", lines: { start: 3, end: 3 } },
+          mode: "review",
+          thread: { id: "1" },
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      parseThreadCreatedMessage(
+        JSON.stringify({
+          target: { path: "a.md", side: "head", lines: { start: 9, end: 3 } },
           mode: "review",
           thread: { id: "1" },
         }),

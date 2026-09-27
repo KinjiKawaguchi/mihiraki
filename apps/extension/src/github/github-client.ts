@@ -1,4 +1,4 @@
-import type { CommentTarget } from "@mihiraki/core";
+import type { CommentTarget, CommitId } from "@mihiraki/core";
 import { extractBlobSource } from "./blob-source";
 import { asRecord, asString, type JsonRecord, pick } from "./json";
 import { type PullRequestLocation, pullRequestUrl } from "./pr-location";
@@ -52,7 +52,7 @@ async function readErrorMessage(response: Response): Promise<string> {
 function describePostFailure(status: number, message: string, target: CommentTarget): Error {
   if (status === 422 && LINE_NOT_RESOLVED.test(message)) {
     return new Error(
-      `${target.path} の${target.line}行目をGitHubが解決できませんでした。ページを開いた後にPRが更新された可能性があるので、再読み込みしてください。`,
+      `${target.path} の${target.lines.end}行目をGitHubが解決できませんでした。ページを開いた後にPRが更新された可能性があるので、再読み込みしてください。`,
     );
   }
   return new Error(
@@ -78,7 +78,7 @@ export async function fetchRouteData(
 export async function fetchFileSource(
   fetchFn: FetchFn,
   pr: PullRequestLocation,
-  oid: string,
+  oid: CommitId,
   path: string,
 ): Promise<string> {
   const url = `https://github.com/${encodeURIComponent(pr.owner)}/${encodeURIComponent(pr.repo)}/blob/${oid}/${encodePath(path)}`;

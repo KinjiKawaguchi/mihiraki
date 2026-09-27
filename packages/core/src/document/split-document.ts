@@ -1,4 +1,4 @@
-import { type AlignedRow, alignBlocks, type RowKind } from "../diff/align";
+import { type AlignedRow, alignBlocks } from "../diff/align";
 import { diffBlockHtml } from "../diff/inline-diff";
 import { parseBlocks } from "../markdown/blocks";
 import type { SourceBlock } from "../markdown/types";
@@ -10,70 +10,86 @@ export interface SplitCell {
   readonly html: string;
 }
 
-export interface SplitRow {
-  readonly kind: RowKind;
-  readonly left: SplitCell | null;
-  readonly right: SplitCell | null;
+/** One aligned row, shown with base on the left and head on the right. */
+export type SplitRow =
+  | {
+      readonly kind: "unchanged" | "modified";
+      readonly base: SplitCell;
+      readonly head: SplitCell;
+    }
+  | { readonly kind: "removed"; readonly base: SplitCell; readonly head: null }
+  | { readonly kind: "added"; readonly base: null; readonly head: SplitCell };
+
+export type RowThreads = Readonly<Record<Side, readonly ReviewThread[]>>;
+
+export interface ThreadPlacement {
+  /** Threads to show next to each row, index for index with the rows. */
+  readonly byRow: readonly RowThreads[];
+  /** Threads whose side has no block at all to show them by, e.g. the base of an added file. */
+  readonly unplaced: readonly ReviewThread[];
 }
 
-export interface RowThreads {
-  readonly left: readonly ReviewThread[];
-  readonly right: readonly ReviewThread[];
+function plainCell(block: SourceBlock): SplitCell {
+  return { block, html: block.html };
 }
 
 function toSplitRow(row: AlignedRow): SplitRow {
-  const { base, head } = row;
-  if (row.kind === "modified" && base && head) {
-    const highlighted = diffBlockHtml(base.html, head.html);
-    return {
-      kind: row.kind,
-      left: { block: base, html: highlighted.base },
-      right: { block: head, html: highlighted.head },
-    };
+  switch (row.kind) {
+    case "modified": {
+      const highlighted = diffBlockHtml(row.base.html, row.head.html);
+      return {
+        kind: row.kind,
+        base: { block: row.base, html: highlighted.base },
+        head: { block: row.head, html: highlighted.head },
+      };
+    }
+    case "unchanged":
+      return { kind: row.kind, base: plainCell(row.base), head: plainCell(row.head) };
+    case "removed":
+      return { kind: row.kind, base: plainCell(row.base), head: null };
+    case "added":
+      return { kind: row.kind, base: null, head: plainCell(row.head) };
   }
-  return {
-    kind: row.kind,
-    left: base ? { block: base, html: base.html } : null,
-    right: head ? { block: head, html: head.html } : null,
-  };
 }
 
-/** Renders two versions of a Markdown document as aligned left (base) / right (head) rows. */
-export function buildSplitRows(baseSource: string, headSource: string): SplitRow[] {
-  return alignBlocks(parseBlocks(baseSource), parseBlocks(headSource)).map(toSplitRow);
-}
-
-function cellOn(row: SplitRow, side: Side): SplitCell | null {
-  return side === "LEFT" ? row.left : row.right;
+/**
+ * Renders two versions of a Markdown document as aligned base / head rows. A version
+ * that does not exist (`null`) has no blocks.
+ */
+export function buildSplitRows(baseSource: string | null, headSource: string | null): SplitRow[] {
+  const blocksOf = (source: string | null) => (source === null ? [] : parseBlocks(source));
+  return alignBlocks(blocksOf(baseSource), blocksOf(headSource)).map(toSplitRow);
 }
 
 /** Row whose block on `side` contains `line`, else the closest row above it, else the first row. */
-function findAnchorRow(rows: readonly SplitRow[], side: Side, line: number): number {
-  let anchor = -1;
-  rows.forEach((row, index) => {
-    const cell = cellOn(row, side);
-    if (cell && cell.block.lines.start <= line) anchor = index;
-  });
-  if (anchor >= 0) return anchor;
-  return rows.findIndex((row) => cellOn(row, side) !== null);
+function findAnchorRow(rows: readonly SplitRow[], side: Side, line: number): number | null {
+  const lastAbove = rows.reduce<number | null>((found, row, index) => {
+    const cell = row[side];
+    return cell !== null && cell.block.lines.start <= line ? index : found;
+  }, null);
+  if (lastAbove !== null) return lastAbove;
+  const first = rows.findIndex((row) => row[side] !== null);
+  return first >= 0 ? first : null;
 }
 
-/** Groups review threads by the row (and side) they should be displayed next to. */
-export function groupThreadsByRow(
+/** Decides which row (and side) each review thread is displayed next to. */
+export function placeThreads(
   rows: readonly SplitRow[],
   threads: readonly ReviewThread[],
-): RowThreads[] {
+): ThreadPlacement {
   const anchors = threads.map((thread) => ({
     thread,
-    rowIndex: findAnchorRow(rows, thread.side, thread.startLine ?? thread.line),
+    rowIndex: findAnchorRow(rows, thread.side, thread.lines.start),
   }));
-  return rows.map((_, index) => {
+  const byRow = rows.map((_, index) => {
     const here = anchors
       .filter((anchor) => anchor.rowIndex === index)
       .map((anchor) => anchor.thread);
     return {
-      left: here.filter((thread) => thread.side === "LEFT"),
-      right: here.filter((thread) => thread.side === "RIGHT"),
+      base: here.filter((thread) => thread.side === "base"),
+      head: here.filter((thread) => thread.side === "head"),
     };
   });
+  const unplaced = anchors.filter((anchor) => anchor.rowIndex === null).map((a) => a.thread);
+  return { byRow, unplaced };
 }

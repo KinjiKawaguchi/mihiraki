@@ -1,13 +1,17 @@
-import { createMemoryBackend, type ReviewBackend, type ReviewThread } from "@mihiraki/core";
+import {
+  commitId,
+  createMemoryBackend,
+  type ReviewBackend,
+  type ReviewThread,
+} from "@mihiraki/core";
 import { describe, expect, it, vi } from "vitest";
 import { createThreadStore } from "./thread-store";
 
 const thread: ReviewThread = {
   id: "1",
   path: "a.md",
-  side: "RIGHT",
-  line: 1,
-  startLine: null,
+  side: "head",
+  lines: { start: 1, end: 1 },
   isResolved: false,
   isOutdated: false,
   isPending: false,
@@ -55,7 +59,7 @@ describe("createThreadStore", () => {
   });
 
   it("exposes the revision the threads belong to", async () => {
-    const revision = { base: "b", head: "h2" };
+    const revision = { base: commitId("b1b1b1b"), head: commitId("c2c2c2c") };
     const store = createThreadStore(createMemoryBackend({}, [thread], { revision }));
 
     expect(store.getRevision()).toBeNull();
@@ -70,7 +74,12 @@ describe("createThreadStore", () => {
       ...createMemoryBackend({}),
       loadThreads: () =>
         new Promise((resolve) => {
-          pending.push((threads) => resolve({ revision: { base: "b", head: "h" }, threads }));
+          pending.push((threads) =>
+            resolve({
+              revision: { base: commitId("b1b1b1b"), head: commitId("c1c1c1c") },
+              threads,
+            }),
+          );
         }),
     };
     const store = createThreadStore(backend);

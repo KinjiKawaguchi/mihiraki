@@ -1,14 +1,14 @@
 import type { LineRange, Side } from "@mihiraki/core";
 
 export const SIDE_LABEL: Readonly<Record<Side, string>> = {
-  LEFT: "変更前",
-  RIGHT: "変更後",
+  base: "変更前",
+  head: "変更後",
 };
 
 /** GitHub's notation: L for lines of the base (left) file, R for the head (right) file. */
 const SIDE_PREFIX: Readonly<Record<Side, string>> = {
-  LEFT: "L",
-  RIGHT: "R",
+  base: "L",
+  head: "R",
 };
 
 export function formatLineRange(side: Side, lines: LineRange): string {

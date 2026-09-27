@@ -10,7 +10,7 @@ GitHub標準のrich diffは、変更前後を1つの文書に重ねたunified表
 
 | パス | 役割 |
 |---|---|
-| `packages/core` | プラットフォーム非依存の中核。Markdown→行範囲付きブロック、左右の整列、HTMLを壊さない差分、コメント可能行の計算、`ReviewBackend`（アダプタが実装する窓口） |
+| `packages/core` | プラットフォーム非依存の中核。Markdown→行範囲付きブロック、左右の整列、HTMLを壊さない差分、スレッドの配置、`ReviewBackend`（アダプタが実装する窓口） |
 | `packages/ui` | Preact製の分割ビュー（`ReviewApp` / `SplitReview`） |
 | `apps/extension` | Chrome拡張（WXT, MV3）。GitHubアダプタと、Files changed への組み込み |
 | `apps/playground` | メモリ上のバックエンドで動く開発用ページ |

@@ -1,9 +1,9 @@
-import type { CommentMode, CommentTarget } from "@mihiraki/core";
+import { type CommentMode, type CommentTarget, parseLineRange } from "@mihiraki/core";
+import { DIFF_SIDE, formatLineKey } from "../github/diff-side";
+import { asRecord, asString } from "../github/json";
 
 /** Where a thread sits; the bridge does not need to know which revision it was selected in. */
 export type ThreadPosition = Omit<CommentTarget, "revision">;
-
-import { asRecord, asString } from "../github/json";
 
 /**
  * Events exchanged between the extension's isolated world and the bridge running in the
@@ -27,30 +27,30 @@ export interface ThreadCreatedMessage {
 
 /** GitHub's description of a thread's position (its `subject` / `positioning`). */
 export function threadSubjectOf(target: ThreadPosition) {
+  const side = DIFF_SIDE[target.side];
   return {
     path: target.path,
-    startLine: target.startLine ?? target.line,
-    startDiffSide: target.side,
-    endLine: target.line,
-    endDiffSide: target.side,
+    startLine: target.lines.start,
+    startDiffSide: side,
+    endLine: target.lines.end,
+    endDiffSide: side,
     isOutdated: false,
   };
 }
 
 /** GitHub keys threads by side and last line, e.g. `R20` or `L5`. */
 export function diffLineKeyOf(target: ThreadPosition): string {
-  return `${target.side === "LEFT" ? "L" : "R"}${target.line}`;
+  return formatLineKey({ side: target.side, line: target.lines.end });
 }
 
 function parseTarget(value: unknown): ThreadPosition | null {
   const record = asRecord(value);
   const path = asString(record?.path);
   const side = record?.side;
-  const line = record?.line;
-  const startLine = record?.startLine;
-  if (!path || (side !== "LEFT" && side !== "RIGHT") || !Number.isInteger(line)) return null;
-  if (startLine !== null && !Number.isInteger(startLine)) return null;
-  return { path, side, line: line as number, startLine: startLine as number | null };
+  const lines = asRecord(record?.lines);
+  const range = parseLineRange(lines?.start, lines?.end);
+  if (!path || (side !== "base" && side !== "head") || !range) return null;
+  return { path, side, lines: range };
 }
 
 /** Parses an event payload; anything that is not JSON becomes null. */

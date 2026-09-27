@@ -1,39 +1,47 @@
 import { describe, expect, it } from "vitest";
+import { commitId } from "./commit-id";
 import { createMemoryBackend } from "./memory-backend";
+import type { CommentTarget } from "./types";
 
-const revision = { base: "base-1", head: "head-1" };
+const revision = { base: commitId("b1b1b1b"), head: commitId("c1c1c1c") };
 const files = {
   "docs/a.md": { base: "old a\n", head: "new a\n" },
-  "docs/b.md": { base: "", head: "b\n" },
+  "docs/b.md": { base: null, head: "b\n" },
+  "docs/c.md": { base: "c\n", head: null },
+};
+const target: CommentTarget = {
+  path: "docs/a.md",
+  side: "head",
+  lines: { start: 1, end: 1 },
+  revision,
 };
 
 describe("createMemoryBackend", () => {
-  it("lists the given files with a change type derived from their contents", async () => {
+  it("lists the given files with a change type derived from which versions exist", async () => {
     const backend = createMemoryBackend(files);
 
     expect(await backend.listChangedMarkdownFiles()).toEqual([
-      { path: "docs/a.md", previousPath: null, changeType: "MODIFIED" },
-      { path: "docs/b.md", previousPath: null, changeType: "ADDED" },
+      { path: "docs/a.md", changeType: "MODIFIED" },
+      { path: "docs/b.md", changeType: "ADDED" },
+      { path: "docs/c.md", changeType: "REMOVED" },
     ]);
   });
 
-  it("returns both versions of a file", async () => {
-    const backend = createMemoryBackend(files);
+  it("returns both versions of a file, null where the file does not exist", async () => {
+    const backend = createMemoryBackend(files, [], { revision });
 
-    expect(
-      await backend.loadFileVersions({
-        path: "docs/a.md",
-        previousPath: null,
-        changeType: "MODIFIED",
-      }),
-    ).toEqual({ ...files["docs/a.md"], revision: { base: "base", head: "head" } });
+    expect(await backend.loadFileVersions({ path: "docs/b.md", changeType: "ADDED" })).toEqual({
+      revision,
+      base: null,
+      head: "b\n",
+    });
   });
 
   it("stores posted comments as new threads with rendered bodies", async () => {
     const backend = createMemoryBackend(files);
 
     await backend.postComment(
-      { path: "docs/a.md", side: "RIGHT", line: 1, startLine: null, revision },
+      { ...target, lines: { start: 1, end: 2 } },
       "Looks **good**",
       "single",
     );
@@ -41,9 +49,8 @@ describe("createMemoryBackend", () => {
 
     expect(thread).toMatchObject({
       path: "docs/a.md",
-      side: "RIGHT",
-      line: 1,
-      startLine: null,
+      side: "head",
+      lines: { start: 1, end: 2 },
       isResolved: false,
       isPending: false,
     });
@@ -53,11 +60,7 @@ describe("createMemoryBackend", () => {
   it("keeps comments posted as part of a review pending", async () => {
     const backend = createMemoryBackend(files);
 
-    await backend.postComment(
-      { path: "docs/a.md", side: "RIGHT", line: 1, startLine: null, revision },
-      "later",
-      "review",
-    );
+    await backend.postComment(target, "later", "review");
 
     expect((await backend.loadThreads()).threads[0]?.isPending).toBe(true);
   });
@@ -67,13 +70,7 @@ describe("createMemoryBackend", () => {
 
     expect((await backend.loadThreads()).revision).toEqual(revision);
     expect(
-      (
-        await backend.loadFileVersions({
-          path: "docs/a.md",
-          previousPath: null,
-          changeType: "MODIFIED",
-        })
-      ).revision,
+      (await backend.loadFileVersions({ path: "docs/a.md", changeType: "MODIFIED" })).revision,
     ).toEqual(revision);
   });
 });

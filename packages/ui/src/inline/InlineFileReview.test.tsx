@@ -1,4 +1,9 @@
-import { createMemoryBackend, type ReviewBackend, type ReviewThread } from "@mihiraki/core";
+import {
+  commitId,
+  createMemoryBackend,
+  type ReviewBackend,
+  type ReviewThread,
+} from "@mihiraki/core";
 import { fireEvent, render, screen, waitFor } from "@testing-library/preact";
 import { describe, expect, it } from "vitest";
 import { createThreadStore } from "../threads/thread-store";
@@ -8,15 +13,14 @@ const files = {
   "docs/a.md": { base: "Alpha version one.\n", head: "Alpha version two.\n" },
   "docs/b.md": { base: "Bravo.\n", head: "Bravo changed.\n" },
 };
-const fileA = { path: "docs/a.md", previousPath: null, changeType: "MODIFIED" as const };
+const fileA = { path: "docs/a.md", changeType: "MODIFIED" as const };
 
 function threadOn(path: string, text: string): ReviewThread {
   return {
     id: path,
     path,
-    side: "RIGHT",
-    line: 1,
-    startLine: null,
+    side: "head",
+    lines: { start: 1, end: 1 },
     isResolved: false,
     isOutdated: false,
     isPending: false,
@@ -33,7 +37,7 @@ function threadOn(path: string, text: string): ReviewThread {
   };
 }
 
-function columnText(container: Element, side: "LEFT" | "RIGHT"): string {
+function columnText(container: Element, side: "base" | "head"): string {
   return Array.from(container.querySelectorAll(`[data-side="${side}"]`))
     .map((cell) => cell.textContent)
     .join("\n");
@@ -43,7 +47,7 @@ async function renderInline(backend: ReviewBackend) {
   const store = createThreadStore(backend);
   await store.refresh();
   const view = render(<InlineFileReview backend={backend} file={fileA} store={store} />);
-  await waitFor(() => expect(columnText(view.container, "RIGHT")).toContain("Alpha version two."));
+  await waitFor(() => expect(columnText(view.container, "head")).toContain("Alpha version two."));
   return view;
 }
 
@@ -51,7 +55,7 @@ describe("InlineFileReview", () => {
   it("renders one file side by side", async () => {
     const { container } = await renderInline(createMemoryBackend(files));
 
-    expect(columnText(container, "LEFT")).toContain("Alpha version one.");
+    expect(columnText(container, "base")).toContain("Alpha version one.");
   });
 
   it("shows only the threads of its own file", async () => {
@@ -69,7 +73,7 @@ describe("InlineFileReview", () => {
   it("refreshes the shared threads after posting so the new comment appears", async () => {
     const { container } = await renderInline(createMemoryBackend(files));
 
-    fireEvent.mouseOver(container.querySelector('[data-side="RIGHT"] p') as Element);
+    fireEvent.mouseOver(container.querySelector('[data-side="head"] p') as Element);
     fireEvent.click(screen.getByRole("button", { name: "コメントを追加" }));
     fireEvent.input(screen.getByRole("textbox"), { target: { value: "Posted inline" } });
     fireEvent.click(screen.getByRole("button", { name: "コメント" }));
@@ -81,7 +85,7 @@ describe("InlineFileReview", () => {
     const pending = { ...threadOn("docs/b.md", "pending elsewhere"), isPending: true };
     const { container } = await renderInline(createMemoryBackend(files, [pending]));
 
-    fireEvent.mouseOver(container.querySelector('[data-side="RIGHT"] p') as Element);
+    fireEvent.mouseOver(container.querySelector('[data-side="head"] p') as Element);
     fireEvent.click(screen.getByRole("button", { name: "コメントを追加" }));
 
     expect(screen.getByRole("button", { name: "レビューに追加" })).toBeTruthy();
@@ -125,8 +129,8 @@ describe("InlineFileReview", () => {
   });
 
   it("tells the reviewer when the pull request changed since the file was loaded", async () => {
-    const older = { base: "b", head: "h1" };
-    const newer = { base: "b", head: "h2" };
+    const older = { base: commitId("b1b1b1b"), head: commitId("c1c1c1c") };
+    const newer = { base: commitId("b1b1b1b"), head: commitId("c2c2c2c") };
     const base = createMemoryBackend(files, [], { revision: newer });
     let loads = 0;
     const backend: ReviewBackend = {

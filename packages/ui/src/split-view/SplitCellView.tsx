@@ -6,7 +6,6 @@ import { RenderedBlock } from "./RenderedBlock";
 export interface SplitCellViewProps {
   readonly side: Side;
   readonly row: SplitRow;
-  readonly rowIndex: number;
   readonly threads: readonly ReviewThread[];
   readonly isActive: boolean;
   readonly onActivate: () => void;
@@ -15,17 +14,14 @@ export interface SplitCellViewProps {
   readonly form: ComponentChild;
   readonly onSelectionStart: (lines: LineRange) => void;
   readonly onRequestComment: (lines: LineRange) => void;
+  readonly onPointerOverLines: (lines: LineRange) => void;
 }
 
 /** One side of one aligned row: the rendered block (if that side has one) and its threads. */
-export function SplitCellView({ side, row, rowIndex, threads, ...blockProps }: SplitCellViewProps) {
-  const cell = side === "LEFT" ? row.left : row.right;
+export function SplitCellView({ side, row, threads, ...blockProps }: SplitCellViewProps) {
+  const cell = row[side];
   return (
-    <div
-      class={`mhr-cell mhr-cell--${cell ? row.kind : "empty"}`}
-      data-side={side}
-      data-row-index={rowIndex}
-    >
+    <div class={`mhr-cell mhr-cell--${cell ? row.kind : "empty"}`} data-side={side}>
       {cell && <RenderedBlock html={cell.html} {...blockProps} />}
       <ThreadList threads={threads} />
     </div>

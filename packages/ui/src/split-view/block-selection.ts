@@ -7,14 +7,16 @@ export interface BlockRef {
   readonly lines: LineRange;
 }
 
+/** `dragging` while the pointer is held down on "+", then `composing` once the form is open. */
+export type SelectionPhase = "dragging" | "composing";
+
 export interface BlockSelection {
   /** Distinguishes selections, so work started for one never acts on the next. */
   readonly serial: number;
   readonly side: Side;
   readonly anchor: BlockRef;
   readonly focus: BlockRef;
-  /** True while the pointer is still held down on the add button. */
-  readonly isDragging: boolean;
+  readonly phase: SelectionPhase;
 }
 
 export function selectionRange(selection: BlockSelection): LineRange {
@@ -35,14 +37,16 @@ export function selectionEnd(selection: BlockSelection): BlockRef {
 export function useBlockSelection() {
   const [selection, setSelection] = useState<BlockSelection | null>(null);
   const serial = useRef(0);
-  const isDragging = selection?.isDragging === true;
-  const begin = (side: Side, ref: BlockRef, isDraggingNow: boolean): BlockSelection => {
+  const isDragging = selection?.phase === "dragging";
+  const begin = (side: Side, ref: BlockRef, phase: SelectionPhase): BlockSelection => {
     serial.current += 1;
-    return { serial: serial.current, side, anchor: ref, focus: ref, isDragging: isDraggingNow };
+    return { serial: serial.current, side, anchor: ref, focus: ref, phase };
   };
 
   const finish = () =>
-    setSelection((current) => (current?.isDragging ? { ...current, isDragging: false } : current));
+    setSelection((current) =>
+      current?.phase === "dragging" ? { ...current, phase: "composing" } : current,
+    );
 
   useEffect(() => {
     if (!isDragging) return undefined;
@@ -52,11 +56,14 @@ export function useBlockSelection() {
 
   return {
     selection,
-    start: (side: Side, ref: BlockRef) => setSelection(begin(side, ref, true)),
-    open: (side: Side, ref: BlockRef) => setSelection(begin(side, ref, false)),
+    start: (side: Side, ref: BlockRef) => setSelection(begin(side, ref, "dragging")),
+    open: (side: Side, ref: BlockRef) => setSelection(begin(side, ref, "composing")),
+    /** Moves the end of a selection being dragged; ignored otherwise or on the other side. */
     extend: (side: Side, ref: BlockRef) =>
       setSelection((current) =>
-        current?.isDragging && current.side === side ? { ...current, focus: ref } : current,
+        current?.phase === "dragging" && current.side === side
+          ? { ...current, focus: ref }
+          : current,
       ),
     finish,
     clear: () => setSelection(null),
