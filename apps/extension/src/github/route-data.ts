@@ -65,12 +65,14 @@ function toComment(raw: unknown): ReviewComment | null {
 function toThread(location: ThreadLocation, raw: unknown): ReviewThread | null {
   const thread = asRecord(raw);
   if (!thread || thread['subjectType'] === 'FILE') return null;
-  const comments = asArray(pick(thread, 'commentsData', 'comments')).flatMap((c) => toComment(c) ?? []);
+  const rawComments = asArray(pick(thread, 'commentsData', 'comments'));
   return {
     ...location,
     isResolved: thread['isResolved'] === true,
     isOutdated: thread['isOutdated'] === true,
-    comments,
+    // Comments of an unsubmitted review are returned with `state: "pending"`.
+    isPending: rawComments.some((comment) => pick(comment, 'state') === 'pending'),
+    comments: rawComments.flatMap((comment) => toComment(comment) ?? []),
   };
 }
 

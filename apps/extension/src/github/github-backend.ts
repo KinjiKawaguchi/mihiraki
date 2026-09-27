@@ -41,8 +41,8 @@ export function createGitHubBackend(
     // Always refetched so comments posted elsewhere (or just now) show up.
     loadThreads: async () => (await refreshRoute()).threads,
 
-    postComment: async (target, body) => {
-      const payload = buildCreateCommentPayload(target, body, await currentRoute());
+    postComment: async (target, body, mode) => {
+      const payload = buildCreateCommentPayload(target, body, await currentRoute(), mode);
       await postReviewComment(fetchFn, pr, target, payload);
     },
   };

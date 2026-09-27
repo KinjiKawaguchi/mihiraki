@@ -1,4 +1,4 @@
-import type { CommentTarget } from '@better-gh-md/core';
+import type { CommentMode, CommentTarget } from '@better-gh-md/core';
 
 export interface ComparedCommits {
   readonly baseOid: string;
@@ -8,8 +8,9 @@ export interface ComparedCommits {
 /**
  * Body for `POST /pull/:n/page_data/create_review_comment`, mirroring what GitHub's
  * own source-diff UI sends. Base-side comments are anchored to the base commit.
+ * `submitBatch` is true for "Comment" and false for "Start a review" / "Add review comment".
  */
-export function buildCreateCommentPayload(target: CommentTarget, body: string, commits: ComparedCommits) {
+export function buildCreateCommentPayload(target: CommentTarget, body: string, commits: ComparedCommits, mode: CommentMode) {
   const { baseOid, headOid } = commits;
   const side = target.side === 'LEFT' ? 'left' : 'right';
   const sideOid = target.side === 'LEFT' ? baseOid : headOid;
@@ -19,7 +20,7 @@ export function buildCreateCommentPayload(target: CommentTarget, body: string, c
     path: target.path,
     line: target.line,
     side,
-    submitBatch: true,
+    submitBatch: mode === 'single',
     text: body,
   };
   if (target.startLine === null) {

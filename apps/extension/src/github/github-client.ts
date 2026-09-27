@@ -13,7 +13,8 @@ const ROUTE_HEADERS = {
   'GitHub-Verified-Fetch': 'true',
 } as const;
 
-const LINE_NOT_IN_DIFF = /line could not be resolved/i;
+/** Seen when the compared commits are stale; GitHub itself accepts any line of a changed file. */
+const LINE_NOT_RESOLVED = /line could not be resolved/i;
 const RETRY_DELAY_MS = 400;
 
 function encodePath(path: string): string {
@@ -31,8 +32,10 @@ async function readErrorMessage(response: Response): Promise<string> {
 }
 
 function describePostFailure(status: number, message: string, target: CommentTarget): Error {
-  if (status === 422 && LINE_NOT_IN_DIFF.test(message)) {
-    return new Error(`L${target.line} は差分の外にあるため、GitHubがコメントを受け付けませんでした。差分に近い行を選んでください。`);
+  if (status === 422 && LINE_NOT_RESOLVED.test(message)) {
+    return new Error(
+      `${target.path} の${target.line}行目をGitHubが解決できませんでした。ページを開いた後にPRが更新された可能性があるので、再読み込みしてください。`,
+    );
   }
   return new Error(`コメントを投稿できませんでした (HTTP ${status}${message ? `: ${message}` : ''})`);
 }
@@ -73,7 +76,7 @@ export async function postReviewComment(
 ): Promise<void> {
   let result = await sendReviewComment(fetchFn, pr, payload);
   // GitHub's own UI occasionally gets a transient 422 and succeeds on a second attempt.
-  if (result.status === 422 && !LINE_NOT_IN_DIFF.test(result.message)) {
+  if (result.status === 422 && !LINE_NOT_RESOLVED.test(result.message)) {
     await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
     result = await sendReviewComment(fetchFn, pr, payload);
   }

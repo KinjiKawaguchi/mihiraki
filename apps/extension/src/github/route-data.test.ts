@@ -37,7 +37,13 @@ const response = {
             },
           },
           '102': { id: 102, subjectType: 'LINE', isResolved: true, commentsData: { comments: [] } },
-          '103': { id: 103, subjectType: 'LINE', isResolved: false, isOutdated: true, commentsData: { comments: [] } },
+          '103': {
+            id: 103,
+            subjectType: 'LINE',
+            isResolved: false,
+            isOutdated: true,
+            commentsData: { comments: [{ databaseId: 9003, state: 'pending', author: { login: 'me' }, bodyHTML: '<p>draft</p>' }] },
+          },
           '104': { id: 104, subjectType: 'FILE', isResolved: false, commentsData: { comments: [] } },
         },
       },
@@ -68,6 +74,16 @@ describe('parseRouteData', () => {
       ['101', 'docs/design.md', 'RIGHT', 12, null, false, false],
       ['102', 'docs/design.md', 'RIGHT', 68, 57, true, false],
       ['103', 'docs/design.md', 'LEFT', 4, null, false, true],
+    ]);
+  });
+
+  it('marks threads whose comments belong to an unsubmitted review as pending', () => {
+    const threads = parseRouteData(response).threads;
+
+    expect(threads.map((t) => [t.id, t.isPending])).toEqual([
+      ['101', false],
+      ['102', false],
+      ['103', true],
     ]);
   });
 

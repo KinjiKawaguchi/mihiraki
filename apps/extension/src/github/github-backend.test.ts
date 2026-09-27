@@ -106,30 +106,36 @@ describe('createGitHubBackend', () => {
   it('posts a review comment through the internal endpoint', async () => {
     const { fetchFn, requests } = fakeGitHub({ [changesUrl]: json(routeJson()), [postUrl]: json({ thread: {} }) });
 
-    await createGitHubBackend(pr, fetchFn).postComment({ path: 'docs/a.md', side: 'RIGHT', line: 3, startLine: null }, 'LGTM');
+    await createGitHubBackend(pr, fetchFn).postComment({ path: 'docs/a.md', side: 'RIGHT', line: 3, startLine: null }, 'LGTM', 'review');
 
     const post = requests.find((request) => request.url === postUrl);
     expect(post?.init?.method).toBe('POST');
     expect(post?.init?.credentials).toBe('include');
-    expect(JSON.parse(String(post?.init?.body))).toMatchObject({ path: 'docs/a.md', line: 3, comparisonStartOid: BASE, text: 'LGTM' });
+    expect(JSON.parse(String(post?.init?.body))).toMatchObject({
+      path: 'docs/a.md',
+      line: 3,
+      comparisonStartOid: BASE,
+      text: 'LGTM',
+      submitBatch: false,
+    });
   });
 
-  it('explains a rejection caused by commenting outside the diff', async () => {
+  it('suggests reloading when GitHub cannot place the comment on the compared commits', async () => {
     const { fetchFn } = fakeGitHub({
       [changesUrl]: json(routeJson()),
       [postUrl]: json({ error: 'Line could not be resolved.' }, 422),
     });
 
     await expect(
-      createGitHubBackend(pr, fetchFn).postComment({ path: 'docs/a.md', side: 'RIGHT', line: 90, startLine: null }, 'x'),
-    ).rejects.toThrow(/差分の外/);
+      createGitHubBackend(pr, fetchFn).postComment({ path: 'docs/a.md', side: 'RIGHT', line: 90, startLine: null }, 'x', 'single'),
+    ).rejects.toThrow(/再読み込み/);
   });
 
   it('reports other failures with the HTTP status', async () => {
     const { fetchFn } = fakeGitHub({ [changesUrl]: json(routeJson()), [postUrl]: json({ message: 'Forbidden' }, 403) });
 
     await expect(
-      createGitHubBackend(pr, fetchFn).postComment({ path: 'docs/a.md', side: 'RIGHT', line: 3, startLine: null }, 'x'),
+      createGitHubBackend(pr, fetchFn).postComment({ path: 'docs/a.md', side: 'RIGHT', line: 3, startLine: null }, 'x', 'single'),
     ).rejects.toThrow(/403/);
   });
 });
