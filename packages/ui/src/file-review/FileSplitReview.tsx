@@ -4,7 +4,7 @@ import type {
   CommentTarget,
   ReviewBackend,
   ReviewThread,
-} from "@better-gh-md/core";
+} from "@mihiraki/core";
 import { useMemo } from "preact/hooks";
 import { errorMessage } from "../format";
 import { useAsync } from "../review-app/use-async";
@@ -35,9 +35,9 @@ export function FileSplitReview({ backend, file, threads, onSubmitComment }: Fil
   const hasPendingReview = useMemo(() => threads.some((thread) => thread.isPending), [threads]);
 
   if (loaded.status === "error")
-    return <p class="bgm-message bgm-message--error">{errorMessage(loaded.error)}</p>;
+    return <p class="mhr-message mhr-message--error">{errorMessage(loaded.error)}</p>;
   if (!loaded.value || loaded.value.path !== file.path)
-    return <p class="bgm-message">読み込み中…</p>;
+    return <p class="mhr-message">読み込み中…</p>;
   return (
     <SplitReview
       path={file.path}

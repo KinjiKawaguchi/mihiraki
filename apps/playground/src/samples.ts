@@ -1,4 +1,4 @@
-import type { FileVersions, ReviewThread } from "@better-gh-md/core";
+import type { FileVersions, ReviewThread } from "@mihiraki/core";
 
 const designDocBase = `---
 title: キャッシュ設計

@@ -1,4 +1,4 @@
-import type { ReviewBackend, ReviewThread } from "@better-gh-md/core";
+import type { ReviewBackend, ReviewThread } from "@mihiraki/core";
 import { useEffect, useState } from "preact/hooks";
 
 /** Review threads of a whole pull request, shared by every file view showing part of it. */

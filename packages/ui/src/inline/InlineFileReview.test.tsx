@@ -1,4 +1,4 @@
-import { createMemoryBackend, type ReviewBackend, type ReviewThread } from "@better-gh-md/core";
+import { createMemoryBackend, type ReviewBackend, type ReviewThread } from "@mihiraki/core";
 import { fireEvent, render, screen, waitFor } from "@testing-library/preact";
 import { describe, expect, it } from "vitest";
 import { createThreadStore } from "../threads/thread-store";

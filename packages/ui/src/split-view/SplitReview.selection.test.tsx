@@ -54,10 +54,10 @@ describe("SplitReview block selection", () => {
     fireEvent.mouseDown(addButton());
     fireEvent.mouseMove(at("RIGHT", 'p[data-line-start="3"]'));
 
-    expect(at("RIGHT", 'p[data-line-start="1"]').classList.contains("bgm-selected")).toBe(true);
-    expect(at("RIGHT", 'p[data-line-start="3"]').classList.contains("bgm-selected")).toBe(true);
-    expect(at("RIGHT", 'p[data-line-start="5"]').classList.contains("bgm-selected")).toBe(false);
-    expect(at("LEFT", 'p[data-line-start="1"]').classList.contains("bgm-selected")).toBe(false);
+    expect(at("RIGHT", 'p[data-line-start="1"]').classList.contains("mhr-selected")).toBe(true);
+    expect(at("RIGHT", 'p[data-line-start="3"]').classList.contains("mhr-selected")).toBe(true);
+    expect(at("RIGHT", 'p[data-line-start="5"]').classList.contains("mhr-selected")).toBe(false);
+    expect(at("LEFT", 'p[data-line-start="1"]').classList.contains("mhr-selected")).toBe(false);
   });
 
   it("keeps the selection on the side where it started", () => {

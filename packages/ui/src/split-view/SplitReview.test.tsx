@@ -1,4 +1,4 @@
-import type { ReviewThread } from "@better-gh-md/core";
+import type { ReviewThread } from "@mihiraki/core";
 import { fireEvent, render, screen, waitFor } from "@testing-library/preact";
 import { describe, expect, it, vi } from "vitest";
 import { SplitReview } from "./SplitReview";
@@ -62,8 +62,8 @@ describe("SplitReview", () => {
   it("highlights changed words inside a modified block", () => {
     const { container } = renderReview();
 
-    expect(container.querySelector('[data-side="RIGHT"] ins.bgm-ins')?.textContent).toBe("five");
-    expect(container.querySelector('[data-side="LEFT"] del.bgm-del')?.textContent).toBe("ten");
+    expect(container.querySelector('[data-side="RIGHT"] ins.mhr-ins')?.textContent).toBe("five");
+    expect(container.querySelector('[data-side="LEFT"] del.mhr-del')?.textContent).toBe("ten");
   });
 
   it("strips scripts and event handlers from rendered markdown", () => {

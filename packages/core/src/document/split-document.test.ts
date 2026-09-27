@@ -44,8 +44,8 @@ describe("buildSplitRows", () => {
     const [row] = buildSplitRows("ten minutes timeout\n", "five minutes timeout\n");
 
     expect(row?.kind).toBe("modified");
-    expect(row?.left?.html).toContain('<del class="bgm-del">ten</del>');
-    expect(row?.right?.html).toContain('<ins class="bgm-ins">five</ins>');
+    expect(row?.left?.html).toContain('<del class="mhr-del">ten</del>');
+    expect(row?.right?.html).toContain('<ins class="mhr-ins">five</ins>');
   });
 });
 

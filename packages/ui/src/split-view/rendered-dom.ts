@@ -1,8 +1,8 @@
-import type { LineRange } from "@better-gh-md/core";
+import type { LineRange } from "@mihiraki/core";
 
 /** Rendered elements carrying the source lines they came from (set by the core renderer). */
 export const LINE_ELEMENT_SELECTOR = "[data-line-start]";
-export const SELECTED_CLASS = "bgm-selected";
+export const SELECTED_CLASS = "mhr-selected";
 
 export function readLines(element: Element): LineRange | null {
   const start = Number(element.getAttribute("data-line-start"));
@@ -47,7 +47,7 @@ export function insertSlotBelow(container: Element, lines: LineRange): HTMLEleme
   const target = findElement(container, lines);
   if (!target) return null;
   const slot = target.ownerDocument.createElement("div");
-  slot.className = "bgm-form-slot";
+  slot.className = "mhr-form-slot";
   const table = target.closest("table");
   if (target.matches("li")) target.append(slot);
   else if (table && container.contains(table)) table.after(slot);

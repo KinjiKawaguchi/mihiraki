@@ -1,5 +1,5 @@
 {
-  "name": "@better-gh-md/playground",
+  "name": "@mihiraki/playground",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,8 +10,8 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@better-gh-md/core": "workspace:^",
-    "@better-gh-md/ui": "workspace:^",
+    "@mihiraki/core": "workspace:^",
+    "@mihiraki/ui": "workspace:^",
     "preact": "^10.29.8"
   },
   "devDependencies": {

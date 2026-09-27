@@ -1,5 +1,5 @@
-import type { ChangedFile, ReviewBackend } from "@better-gh-md/core";
-import { InlineFileReview, type ThreadStore } from "@better-gh-md/ui";
+import type { ChangedFile, ReviewBackend } from "@mihiraki/core";
+import { InlineFileReview, type ThreadStore } from "@mihiraki/ui";
 import { render } from "preact";
 import {
   findHeader,

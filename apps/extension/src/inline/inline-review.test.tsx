@@ -1,4 +1,4 @@
-import { createMemoryBackend, type ReviewBackend, type ReviewThread } from "@better-gh-md/core";
+import { createMemoryBackend, type ReviewBackend, type ReviewThread } from "@mihiraki/core";
 import { waitFor } from "@testing-library/preact";
 import { afterEach, describe, expect, it } from "vitest";
 import type { HostSyncClient } from "../host-sync/client";

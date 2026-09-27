@@ -1,4 +1,4 @@
-import type { CommentMode, CommentTarget } from "@better-gh-md/core";
+import type { CommentMode, CommentTarget } from "@mihiraki/core";
 
 export interface ComparedCommits {
   readonly baseOid: string;

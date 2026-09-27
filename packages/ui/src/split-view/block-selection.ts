@@ -1,4 +1,4 @@
-import type { LineRange, Side } from "@better-gh-md/core";
+import type { LineRange, Side } from "@mihiraki/core";
 import { useEffect, useState } from "preact/hooks";
 
 /** A source-mapped element of one row, identified by the lines it covers. */

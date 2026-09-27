@@ -1,4 +1,4 @@
-import type { ChangedFile } from "@better-gh-md/core";
+import type { ChangedFile } from "@mihiraki/core";
 import { describe, expect, it, vi } from "vitest";
 import { createGitHubBackend } from "./github-backend";
 

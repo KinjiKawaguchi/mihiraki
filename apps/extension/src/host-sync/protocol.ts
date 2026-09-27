@@ -1,4 +1,4 @@
-import type { CommentMode, CommentTarget } from "@better-gh-md/core";
+import type { CommentMode, CommentTarget } from "@mihiraki/core";
 import { asRecord, asString } from "../github/json";
 
 /**
@@ -7,11 +7,11 @@ import { asRecord, asString } from "../github/json";
  * strings because objects do not cross the world boundary.
  */
 export const HOST_SYNC_EVENTS = {
-  ping: "bgm:host-ping",
-  pong: "bgm:host-pong",
-  threadCreated: "bgm:thread-created",
-  threadRegistered: "bgm:thread-registered",
-  hostThreadsChanged: "bgm:host-threads-changed",
+  ping: "mihiraki:host-ping",
+  pong: "mihiraki:host-pong",
+  threadCreated: "mihiraki:thread-created",
+  threadRegistered: "mihiraki:thread-registered",
+  hostThreadsChanged: "mihiraki:host-threads-changed",
 } as const;
 
 export interface ThreadCreatedMessage {

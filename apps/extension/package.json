@@ -1,6 +1,6 @@
 {
-  "name": "@better-gh-md/extension",
-  "version": "0.1.0",
+  "name": "@mihiraki/extension",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -23,8 +23,8 @@
     "wxt": "^0.21.4"
   },
   "dependencies": {
-    "@better-gh-md/core": "workspace:^",
-    "@better-gh-md/ui": "workspace:^",
+    "@mihiraki/core": "workspace:^",
+    "@mihiraki/ui": "workspace:^",
     "preact": "^10.29.8"
   }
 }

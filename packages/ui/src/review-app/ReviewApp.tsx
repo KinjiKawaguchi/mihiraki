@@ -1,4 +1,4 @@
-import type { CommentMode, CommentTarget, ReviewBackend } from "@better-gh-md/core";
+import type { CommentMode, CommentTarget, ReviewBackend } from "@mihiraki/core";
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { FileSplitReview } from "../file-review/FileSplitReview";
 import { errorMessage } from "../format";
@@ -32,15 +32,15 @@ export function ReviewApp({ backend, onClose }: ReviewAppProps) {
 
   const renderBody = () => {
     if (files.status === "error")
-      return <p class="bgm-message bgm-message--error">{errorMessage(files.error)}</p>;
-    if (files.status === "loading") return <p class="bgm-message">読み込み中…</p>;
-    if (!selected) return <p class="bgm-message">このPRにMarkdownファイルの変更はありません。</p>;
+      return <p class="mhr-message mhr-message--error">{errorMessage(files.error)}</p>;
+    if (files.status === "loading") return <p class="mhr-message">読み込み中…</p>;
+    if (!selected) return <p class="mhr-message">このPRにMarkdownファイルの変更はありません。</p>;
     return (
       <>
         {fileList.length > 1 && (
           <FileList files={fileList} selectedPath={selected.path} onSelect={setSelectedPath} />
         )}
-        <main class="bgm-app__main">
+        <main class="mhr-app__main">
           <FileSplitReview
             backend={backend}
             file={selected}
@@ -53,19 +53,19 @@ export function ReviewApp({ backend, onClose }: ReviewAppProps) {
   };
 
   return (
-    <div class="bgm-root bgm-app">
-      <header class="bgm-app__header">
-        <span class="bgm-app__title">Markdown 分割レビュー</span>
-        {selected && <code class="bgm-app__path">{selected.path}</code>}
+    <div class="mhr-root mhr-app">
+      <header class="mhr-app__header">
+        <span class="mhr-app__title">Markdown 分割レビュー</span>
+        {selected && <code class="mhr-app__path">{selected.path}</code>}
         {threads.error !== null && (
-          <span class="bgm-message--error">
+          <span class="mhr-message--error">
             コメントを取得できません: {errorMessage(threads.error)}
           </span>
         )}
         {onClose && (
           <button
             type="button"
-            class="bgm-button bgm-app__close"
+            class="mhr-button mhr-app__close"
             aria-label="閉じる"
             onClick={onClose}
           >
@@ -73,7 +73,7 @@ export function ReviewApp({ backend, onClose }: ReviewAppProps) {
           </button>
         )}
       </header>
-      <div class="bgm-app__body">{renderBody()}</div>
+      <div class="mhr-app__body">{renderBody()}</div>
     </div>
   );
 }

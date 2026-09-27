@@ -18,5 +18,5 @@ jobs:
       - run: pnpm zip
       - uses: softprops/action-gh-release@v3
         with:
-          files: apps/extension/.output/better-gh-md-*-chrome.zip
+          files: apps/extension/.output/mihiraki-*-chrome.zip
           fail_on_unmatched_files: true

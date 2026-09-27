@@ -1,9 +1,4 @@
-import {
-  type CommentMode,
-  type CommentTarget,
-  type Side,
-  toCommentTarget,
-} from "@better-gh-md/core";
+import { type CommentMode, type CommentTarget, type Side, toCommentTarget } from "@mihiraki/core";
 import { CommentForm } from "../comment-form/CommentForm";
 import { selectionEnd, selectionRange, useBlockSelection } from "./block-selection";
 import { lineElementAt, readLines } from "./rendered-dom";

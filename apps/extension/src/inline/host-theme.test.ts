@@ -35,7 +35,7 @@ describe("inheritHostThemeColors", () => {
 
   it("leaves other colour-scheme rules alone", () => {
     const own =
-      "@media (prefers-color-scheme:dark){.bgm-root{--bgm-bg:var(--bgColor-default,#0d1117)}}";
+      "@media (prefers-color-scheme:dark){.mhr-root{--mhr-bg:var(--bgColor-default,#0d1117)}}";
 
     expect(inheritHostThemeColors(own)).toBe(own);
   });

@@ -1,4 +1,4 @@
-import type { CommentTarget } from "@better-gh-md/core";
+import type { CommentTarget } from "@mihiraki/core";
 import { extractBlobSource } from "./blob-source";
 import { asRecord, asString, type JsonRecord, pick } from "./json";
 import { type PullRequestLocation, pullRequestUrl } from "./pr-location";
