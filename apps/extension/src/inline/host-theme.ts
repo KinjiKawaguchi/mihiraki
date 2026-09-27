@@ -8,5 +8,5 @@ const MARKDOWN_THEME_BLOCK =
   /@media\s*\(prefers-color-scheme:\s*(?:dark|light)\)\s*\{\s*\.markdown-body,\s*\[data-theme=["']?(?:dark|light)["']?\]\s*\{[^{}]*\}\s*\}/g;
 
 export function inheritHostThemeColors(css: string): string {
-  return css.replace(MARKDOWN_THEME_BLOCK, '');
+  return css.replace(MARKDOWN_THEME_BLOCK, "");
 }

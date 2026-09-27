@@ -1,4 +1,4 @@
-import type { FileVersions, ReviewThread } from '@better-gh-md/core';
+import type { FileVersions, ReviewThread } from "@better-gh-md/core";
 
 const designDocBase = `---
 title: キャッシュ設計
@@ -79,15 +79,15 @@ Run \`pnpm dev\`.
 `;
 
 export const sampleFiles: Readonly<Record<string, FileVersions>> = {
-  'docs/cache-design.md': { base: designDocBase, head: designDocHead },
-  'README.md': { base: readmeBase, head: readmeHead },
+  "docs/cache-design.md": { base: designDocBase, head: designDocHead },
+  "README.md": { base: readmeBase, head: readmeHead },
 };
 
 export const sampleThreads: readonly ReviewThread[] = [
   {
-    id: 'sample-1',
-    path: 'docs/cache-design.md',
-    side: 'RIGHT',
+    id: "sample-1",
+    path: "docs/cache-design.md",
+    side: "RIGHT",
     line: 11,
     startLine: 10,
     isResolved: false,
@@ -95,12 +95,12 @@ export const sampleThreads: readonly ReviewThread[] = [
     isPending: false,
     comments: [
       {
-        id: 'sample-1-1',
-        author: 'reviewer',
-        avatarUrl: '',
-        bodyHtml: '<p>5分にした根拠を書いておいてほしいです。</p>',
-        createdAt: '2026-09-26T10:00:00Z',
-        url: '',
+        id: "sample-1-1",
+        author: "reviewer",
+        avatarUrl: "",
+        bodyHtml: "<p>5分にした根拠を書いておいてほしいです。</p>",
+        createdAt: "2026-09-26T10:00:00Z",
+        url: "",
       },
     ],
   },

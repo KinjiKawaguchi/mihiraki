@@ -1,13 +1,13 @@
-import type { CommentMode } from '@better-gh-md/core';
-import { useState } from 'preact/hooks';
-import { errorMessage } from '../format';
+import type { CommentMode } from "@better-gh-md/core";
+import { useState } from "preact/hooks";
+import { errorMessage } from "../format";
 
 /** Text, submission state and error of a comment being written. */
 export function useCommentDraft(onSubmit: (body: string, mode: CommentMode) => Promise<void>) {
-  const [body, setBody] = useState('');
+  const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const canSubmit = body.trim() !== '' && !isSubmitting;
+  const canSubmit = body.trim() !== "" && !isSubmitting;
 
   const submit = async (mode: CommentMode) => {
     if (!canSubmit) return;

@@ -1,4 +1,4 @@
-import type { CommentMode, CommentTarget } from '@better-gh-md/core';
+import type { CommentMode, CommentTarget } from "@better-gh-md/core";
 
 export interface ComparedCommits {
   readonly baseOid: string;
@@ -10,33 +10,45 @@ export interface ComparedCommits {
  * own source-diff UI sends. Base-side comments are anchored to the base commit.
  * `submitBatch` is true for "Comment" and false for "Start a review" / "Add review comment".
  */
-export function buildCreateCommentPayload(target: CommentTarget, body: string, commits: ComparedCommits, mode: CommentMode) {
+export function buildCreateCommentPayload(
+  target: CommentTarget,
+  body: string,
+  commits: ComparedCommits,
+  mode: CommentMode,
+) {
   const { baseOid, headOid } = commits;
-  const side = target.side === 'LEFT' ? 'left' : 'right';
-  const sideOid = target.side === 'LEFT' ? baseOid : headOid;
+  const side = target.side === "LEFT" ? "left" : "right";
+  const sideOid = target.side === "LEFT" ? baseOid : headOid;
   const common = {
     comparisonStartOid: baseOid,
     comparisonEndOid: headOid,
     path: target.path,
     line: target.line,
     side,
-    submitBatch: mode === 'single',
+    submitBatch: mode === "single",
     text: body,
   };
   if (target.startLine === null) {
     return {
       ...common,
-      subjectType: 'line',
-      positioning: { type: 'line', baseCommitOid: baseOid, commitOid: sideOid, headCommitOid: headOid, line: target.line, path: target.path },
+      subjectType: "line",
+      positioning: {
+        type: "line",
+        baseCommitOid: baseOid,
+        commitOid: sideOid,
+        headCommitOid: headOid,
+        line: target.line,
+        path: target.path,
+      },
     };
   }
   return {
     ...common,
     startLine: target.startLine,
     startSide: side,
-    subjectType: 'multiline',
+    subjectType: "multiline",
     positioning: {
-      type: 'multiline',
+      type: "multiline",
       baseCommitOid: baseOid,
       headCommitOid: headOid,
       startPath: target.path,

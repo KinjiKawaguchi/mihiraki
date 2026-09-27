@@ -1,5 +1,11 @@
-import type { ChangedFile, FileChangeType, ReviewComment, ReviewThread, Side } from '@better-gh-md/core';
-import { asArray, asRecord, asRecords, asString, pick, type JsonRecord } from './json';
+import type {
+  ChangedFile,
+  FileChangeType,
+  ReviewComment,
+  ReviewThread,
+  Side,
+} from "@better-gh-md/core";
+import { asArray, asRecord, asRecords, asString, type JsonRecord, pick } from "./json";
 
 export interface RouteData {
   readonly baseOid: string;
@@ -18,15 +24,19 @@ interface ThreadLocation {
   readonly startLine: number | null;
 }
 
-const CHANGE_TYPES: readonly FileChangeType[] = ['ADDED', 'MODIFIED', 'REMOVED', 'RENAMED'];
+const CHANGE_TYPES: readonly FileChangeType[] = ["ADDED", "MODIFIED", "REMOVED", "RENAMED"];
 const MARKER_KEY = /^([RL])(\d+)$/;
 
 function toChangedFile(summary: JsonRecord): ChangedFile | null {
-  const path = asString(summary['path']);
+  const path = asString(summary.path);
   if (!path) return null;
-  const changeType = CHANGE_TYPES.find((type) => type === summary['changeType']) ?? 'MODIFIED';
-  const previousPath = asString(summary['previousPath']) ?? asString(summary['oldPath']);
-  return { path, previousPath: previousPath && previousPath !== path ? previousPath : null, changeType };
+  const changeType = CHANGE_TYPES.find((type) => type === summary.changeType) ?? "MODIFIED";
+  const previousPath = asString(summary.previousPath) ?? asString(summary.oldPath);
+  return {
+    path,
+    previousPath: previousPath && previousPath !== path ? previousPath : null,
+    changeType,
+  };
 }
 
 function markerLine(marker: string | null): number | null {
@@ -36,17 +46,25 @@ function markerLine(marker: string | null): number | null {
 
 /** Thread positions come only from `markersMap` keys (`R12` = right side, line 12). */
 function locateThreads(summary: JsonRecord): ThreadLocation[] {
-  const path = asString(summary['path']);
-  const markers = asRecord(summary['markersMap']);
+  const path = asString(summary.path);
+  const markers = asRecord(summary.markersMap);
   if (!path || !markers) return [];
   return Object.entries(markers).flatMap(([key, marker]) => {
     const match = MARKER_KEY.exec(key);
     if (!match) return [];
-    const side: Side = match[1] === 'L' ? 'LEFT' : 'RIGHT';
-    return asArray(pick(marker, 'threads')).flatMap((ref) => {
-      const id = asString(pick(ref, 'id'));
+    const side: Side = match[1] === "L" ? "LEFT" : "RIGHT";
+    return asArray(pick(marker, "threads")).flatMap((ref) => {
+      const id = asString(pick(ref, "id"));
       if (!id) return [];
-      return [{ id, path, side, line: Number(match[2]), startLine: markerLine(asString(pick(ref, 'start'))) }];
+      return [
+        {
+          id,
+          path,
+          side,
+          line: Number(match[2]),
+          startLine: markerLine(asString(pick(ref, "start"))),
+        },
+      ];
     });
   });
 }
@@ -55,39 +73,41 @@ function toComment(raw: unknown): ReviewComment | null {
   const comment = asRecord(raw);
   if (!comment) return null;
   return {
-    id: asString(comment['databaseId']) ?? asString(comment['id']) ?? '',
-    author: asString(pick(comment, 'author', 'login')) ?? 'unknown',
-    avatarUrl: asString(pick(comment, 'author', 'avatarUrl')) ?? '',
-    bodyHtml: asString(comment['bodyHTML']) ?? '',
-    createdAt: asString(comment['createdAt']) ?? '',
-    url: asString(comment['url']) ?? '',
+    id: asString(comment.databaseId) ?? asString(comment.id) ?? "",
+    author: asString(pick(comment, "author", "login")) ?? "unknown",
+    avatarUrl: asString(pick(comment, "author", "avatarUrl")) ?? "",
+    bodyHtml: asString(comment.bodyHTML) ?? "",
+    createdAt: asString(comment.createdAt) ?? "",
+    url: asString(comment.url) ?? "",
   };
 }
 
 function toThread(location: ThreadLocation, raw: unknown): ReviewThread | null {
   const thread = asRecord(raw);
-  if (!thread || thread['subjectType'] === 'FILE') return null;
-  const rawComments = asArray(pick(thread, 'commentsData', 'comments'));
+  if (!thread || thread.subjectType === "FILE") return null;
+  const rawComments = asArray(pick(thread, "commentsData", "comments"));
   return {
     ...location,
-    isResolved: thread['isResolved'] === true,
-    isOutdated: thread['isOutdated'] === true,
+    isResolved: thread.isResolved === true,
+    isOutdated: thread.isOutdated === true,
     // Comments of an unsubmitted review are returned with `state: "pending"`.
-    isPending: rawComments.some((comment) => pick(comment, 'state') === 'pending'),
+    isPending: rawComments.some((comment) => pick(comment, "state") === "pending"),
     comments: rawComments.flatMap((comment) => toComment(comment) ?? []),
   };
 }
 
 /** Parses the JSON of `GET /:owner/:repo/pull/:n/changes` (GitHub's internal route data). */
 export function parseRouteData(json: unknown): RouteData {
-  const route = asRecord(pick(json, 'payload', 'pullRequestsChangesRoute'));
-  const baseOid = asString(pick(route, 'comparison', 'fullDiff', 'baseOid'));
-  const headOid = asString(pick(route, 'comparison', 'fullDiff', 'headOid'));
+  const route = asRecord(pick(json, "payload", "pullRequestsChangesRoute"));
+  const baseOid = asString(pick(route, "comparison", "fullDiff", "baseOid"));
+  const headOid = asString(pick(route, "comparison", "fullDiff", "headOid"));
   if (!route || !baseOid || !headOid) {
-    throw new Error('GitHubのpull requestデータを解釈できませんでした（内部仕様が変わった可能性があります）');
+    throw new Error(
+      "GitHubのpull requestデータを解釈できませんでした（内部仕様が変わった可能性があります）",
+    );
   }
-  const summaries = asRecords(route['diffSummaries']);
-  const threadsById = asRecord(pick(route, 'markers', 'threads')) ?? {};
+  const summaries = asRecords(route.diffSummaries);
+  const threadsById = asRecord(pick(route, "markers", "threads")) ?? {};
   const seen = new Set<string>();
   const threads = summaries.flatMap(locateThreads).flatMap((location) => {
     if (seen.has(location.id)) return [];
@@ -97,7 +117,7 @@ export function parseRouteData(json: unknown): RouteData {
   return {
     baseOid,
     headOid,
-    hasPendingReview: asString(pick(route, 'viewerPendingReview', 'id')) !== null,
+    hasPendingReview: asString(pick(route, "viewerPendingReview", "id")) !== null,
     files: summaries.flatMap((s) => toChangedFile(s) ?? []),
     threads,
   };

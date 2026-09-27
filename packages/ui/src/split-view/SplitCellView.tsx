@@ -1,7 +1,7 @@
-import type { LineRange, ReviewThread, Side, SplitRow } from '@better-gh-md/core';
-import type { ComponentChild } from 'preact';
-import { ThreadList } from '../threads/ThreadList';
-import { RenderedBlock } from './RenderedBlock';
+import type { LineRange, ReviewThread, Side, SplitRow } from "@better-gh-md/core";
+import type { ComponentChild } from "preact";
+import { ThreadList } from "../threads/ThreadList";
+import { RenderedBlock } from "./RenderedBlock";
 
 export interface SplitCellViewProps {
   readonly side: Side;
@@ -19,9 +19,13 @@ export interface SplitCellViewProps {
 
 /** One side of one aligned row: the rendered block (if that side has one) and its threads. */
 export function SplitCellView({ side, row, rowIndex, threads, ...blockProps }: SplitCellViewProps) {
-  const cell = side === 'LEFT' ? row.left : row.right;
+  const cell = side === "LEFT" ? row.left : row.right;
   return (
-    <div class={`bgm-cell bgm-cell--${cell ? row.kind : 'empty'}`} data-side={side} data-row-index={rowIndex}>
+    <div
+      class={`bgm-cell bgm-cell--${cell ? row.kind : "empty"}`}
+      data-side={side}
+      data-row-index={rowIndex}
+    >
       {cell && <RenderedBlock html={cell.html} {...blockProps} />}
       <ThreadList threads={threads} />
     </div>

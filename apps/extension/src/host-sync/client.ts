@@ -2,8 +2,8 @@
  * The extension side (isolated world) of host sync. Every request resolves to false when
  * the bridge does not answer in time, so callers can fall back to a plain notice.
  */
-import { asRecord } from '../github/json';
-import { HOST_SYNC_EVENTS, parseJson, type ThreadCreatedMessage } from './protocol';
+import { asRecord } from "../github/json";
+import { HOST_SYNC_EVENTS, parseJson, type ThreadCreatedMessage } from "./protocol";
 
 export interface HostSyncClient {
   isHostAvailable(): Promise<boolean>;
@@ -22,7 +22,10 @@ interface Exchange {
 
 const DEFAULT_TIMEOUT_MS = 1000;
 
-export function createHostSyncClient(document: Document, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}): HostSyncClient {
+export function createHostSyncClient(
+  document: Document,
+  { timeoutMs = DEFAULT_TIMEOUT_MS } = {},
+): HostSyncClient {
   const exchange = ({ send, receive, payload, isAnswer, outcome }: Exchange) =>
     new Promise<boolean>((resolve) => {
       const finish = (result: boolean) => {
@@ -46,7 +49,7 @@ export function createHostSyncClient(document: Document, { timeoutMs = DEFAULT_T
         receive: HOST_SYNC_EVENTS.pong,
         payload: {},
         isAnswer: () => true,
-        outcome: (detail) => detail['isAvailable'] === true,
+        outcome: (detail) => detail.isAvailable === true,
       }),
     announceThreadCreated: (message) => {
       const requestId = crypto.randomUUID();
@@ -54,8 +57,8 @@ export function createHostSyncClient(document: Document, { timeoutMs = DEFAULT_T
         send: HOST_SYNC_EVENTS.threadCreated,
         receive: HOST_SYNC_EVENTS.threadRegistered,
         payload: { requestId, message },
-        isAnswer: (detail) => detail['requestId'] === requestId,
-        outcome: (detail) => detail['isRegistered'] === true,
+        isAnswer: (detail) => detail.requestId === requestId,
+        outcome: (detail) => detail.isRegistered === true,
       });
     },
     onHostThreadsChanged: (listener) => {

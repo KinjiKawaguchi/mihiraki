@@ -5,16 +5,16 @@ export interface LineRange {
 }
 
 export type BlockKind =
-  | 'heading'
-  | 'paragraph'
-  | 'list'
-  | 'table'
-  | 'blockquote'
-  | 'code'
-  | 'hr'
-  | 'html'
-  | 'frontmatter'
-  | 'other';
+  | "heading"
+  | "paragraph"
+  | "list"
+  | "table"
+  | "blockquote"
+  | "code"
+  | "hr"
+  | "html"
+  | "frontmatter"
+  | "other";
 
 /** A top-level Markdown block together with where it came from in the source. */
 export interface SourceBlock {

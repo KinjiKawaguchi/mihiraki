@@ -1,5 +1,5 @@
-import type { LineRange } from '../markdown/types';
-import type { CommentTarget, Side } from './types';
+import type { LineRange } from "../markdown/types";
+import type { CommentTarget, Side } from "./types";
 
 /** The review comment position for lines selected in the rendered view. */
 export function toCommentTarget(path: string, side: Side, lines: LineRange): CommentTarget {

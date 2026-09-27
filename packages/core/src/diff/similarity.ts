@@ -1,5 +1,5 @@
-import type { SourceBlock } from '../markdown/types';
-import { isWordUnit, splitTextUnits } from './text-units';
+import type { SourceBlock } from "../markdown/types";
+import { isWordUnit, splitTextUnits } from "./text-units";
 
 function countWords(text: string): ReadonlyMap<string, number> {
   const counts = new Map<string, number>();

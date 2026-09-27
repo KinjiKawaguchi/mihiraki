@@ -1,8 +1,8 @@
-import type { CommentMode, CommentTarget } from '@better-gh-md/core';
-import { useState } from 'preact/hooks';
-import { formatLineRange } from '../format';
-import { CommentPreview } from './CommentPreview';
-import { useCommentDraft } from './use-comment-draft';
+import type { CommentMode, CommentTarget } from "@better-gh-md/core";
+import { useState } from "preact/hooks";
+import { formatLineRange } from "../format";
+import { CommentPreview } from "./CommentPreview";
+import { useCommentDraft } from "./use-comment-draft";
 
 interface CommentFormProps {
   readonly target: CommentTarget;
@@ -16,16 +16,24 @@ interface CommentFormProps {
  * While a review is pending GitHub only offers "Add review comment": posting a single
  * comment then would publish the whole pending review along with it.
  */
-function submitModes(hasPendingReview: boolean): readonly { readonly mode: CommentMode; readonly label: string }[] {
+function submitModes(
+  hasPendingReview: boolean,
+): readonly { readonly mode: CommentMode; readonly label: string }[] {
   return hasPendingReview
-    ? [{ mode: 'review', label: 'レビューに追加' }]
+    ? [{ mode: "review", label: "レビューに追加" }]
     : [
-        { mode: 'single', label: 'コメント' },
-        { mode: 'review', label: 'レビューを開始' },
+        { mode: "single", label: "コメント" },
+        { mode: "review", label: "レビューを開始" },
       ];
 }
 
-function EditorTabs({ isPreview, onChange }: { readonly isPreview: boolean; readonly onChange: (isPreview: boolean) => void }) {
+function EditorTabs({
+  isPreview,
+  onChange,
+}: {
+  readonly isPreview: boolean;
+  readonly onChange: (isPreview: boolean) => void;
+}) {
   return (
     <div class="bgm-form__tabs" role="tablist">
       <button type="button" role="tab" aria-selected={!isPreview} onClick={() => onChange(false)}>
@@ -51,7 +59,7 @@ function SubmitButtons({ hasPendingReview, canSubmit, onSubmit }: SubmitButtonsP
         <button
           key={mode}
           type="button"
-          class={`bgm-button${mode === 'review' ? ' bgm-button--primary' : ''}`}
+          class={`bgm-button${mode === "review" ? " bgm-button--primary" : ""}`}
           disabled={!canSubmit}
           onClick={() => onSubmit(mode)}
         >
@@ -65,12 +73,12 @@ function SubmitButtons({ hasPendingReview, canSubmit, onSubmit }: SubmitButtonsP
 export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: CommentFormProps) {
   const draft = useCommentDraft(onSubmit);
   const [isPreview, setIsPreview] = useState(false);
-  const shortcutMode: CommentMode = hasPendingReview ? 'review' : 'single';
+  const shortcutMode: CommentMode = hasPendingReview ? "review" : "single";
   const lines = { start: target.startLine ?? target.line, end: target.line };
 
   const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.key === 'Escape') onCancel();
-    if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) void draft.submit(shortcutMode);
+    if (event.key === "Escape") onCancel();
+    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) void draft.submit(shortcutMode);
   };
 
   return (
@@ -86,6 +94,7 @@ export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: Co
           placeholder="コメントを書く（Markdown可、⌘/Ctrl+Enterで送信）"
           onInput={(event) => draft.setBody((event.target as HTMLTextAreaElement).value)}
           onKeyDown={handleKeyDown}
+          // biome-ignore lint/a11y/noAutofocus: the form opens because the reviewer asked to write, as on GitHub
           autoFocus
         />
       )}
@@ -94,7 +103,11 @@ export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: Co
         <button type="button" class="bgm-button" onClick={onCancel}>
           キャンセル
         </button>
-        <SubmitButtons hasPendingReview={hasPendingReview} canSubmit={draft.canSubmit} onSubmit={(mode) => void draft.submit(mode)} />
+        <SubmitButtons
+          hasPendingReview={hasPendingReview}
+          canSubmit={draft.canSubmit}
+          onSubmit={(mode) => void draft.submit(mode)}
+        />
       </div>
     </form>
   );

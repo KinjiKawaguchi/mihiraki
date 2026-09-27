@@ -1,4 +1,4 @@
-import type { ChangedFile } from '@better-gh-md/core';
+import type { ChangedFile } from "@better-gh-md/core";
 
 interface FileListProps {
   readonly files: readonly ChangedFile[];
@@ -6,11 +6,11 @@ interface FileListProps {
   readonly onSelect: (path: string) => void;
 }
 
-const CHANGE_MARK: Readonly<Record<ChangedFile['changeType'], string>> = {
-  ADDED: '追加',
-  MODIFIED: '変更',
-  REMOVED: '削除',
-  RENAMED: '移動',
+const CHANGE_MARK: Readonly<Record<ChangedFile["changeType"], string>> = {
+  ADDED: "追加",
+  MODIFIED: "変更",
+  REMOVED: "削除",
+  RENAMED: "移動",
 };
 
 export function FileList({ files, selectedPath, onSelect }: FileListProps) {
@@ -21,7 +21,7 @@ export function FileList({ files, selectedPath, onSelect }: FileListProps) {
           type="button"
           key={file.path}
           class="bgm-files__item"
-          aria-current={file.path === selectedPath ? 'true' : undefined}
+          aria-current={file.path === selectedPath ? "true" : undefined}
           aria-label={file.path}
           title={file.path}
           onClick={() => onSelect(file.path)}

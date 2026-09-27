@@ -3,7 +3,9 @@
 export type JsonRecord = Readonly<Record<string, unknown>>;
 
 export function asRecord(value: unknown): JsonRecord | null {
-  return typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as JsonRecord) : null;
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as JsonRecord)
+    : null;
 }
 
 export function asArray(value: unknown): readonly unknown[] {
@@ -18,8 +20,8 @@ export function asRecords(value: unknown): readonly JsonRecord[] {
 }
 
 export function asString(value: unknown): string | null {
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number') return String(value);
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
   return null;
 }
 
