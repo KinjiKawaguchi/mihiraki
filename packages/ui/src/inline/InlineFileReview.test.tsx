@@ -1,6 +1,8 @@
 import {
   commitId,
   createMemoryBackend,
+  err,
+  ok,
   type ReviewBackend,
   type ReviewThread,
 } from "@mihiraki/core";
@@ -96,7 +98,10 @@ describe("InlineFileReview", () => {
     const memory = createMemoryBackend(files);
     const backend: ReviewBackend = {
       ...memory,
-      loadThreads: async () => ({ ...(await memory.loadThreads()), hasPendingReview: true }),
+      loadThreads: async () => {
+        const loaded = await memory.loadThreads();
+        return loaded.ok ? ok({ ...loaded.value, hasPendingReview: true }) : loaded;
+      },
     };
     const { container } = await renderInline(backend);
 
@@ -154,7 +159,7 @@ describe("InlineFileReview", () => {
       loadFileVersions: async (file) => {
         loads += 1;
         const versions = await base.loadFileVersions(file);
-        return loads === 1 ? { ...versions, revision: older } : versions;
+        return loads === 1 && versions.ok ? ok({ ...versions.value, revision: older }) : versions;
       },
     };
     const store = createThreadStore(backend);
@@ -167,13 +172,29 @@ describe("InlineFileReview", () => {
     expect(loads).toBe(2);
   });
 
-  it("shows why the file could not be loaded", async () => {
+  it("shows which file could not be loaded and why", async () => {
     const backend: ReviewBackend = {
       ...createMemoryBackend(files),
-      loadFileVersions: () => Promise.reject(new Error("HTTP 404")),
+      loadFileVersions: async () => err({ kind: "timeout" }),
     };
     render(<InlineFileReview backend={backend} file={fileA} store={createThreadStore(backend)} />);
 
-    expect(await screen.findByText(/HTTP 404/)).toBeTruthy();
+    expect(
+      await screen.findByText(/docs\/a\.md を読み込めませんでした。応答がありませんでした/),
+    ).toBeTruthy();
+  });
+
+  it("shows why the comments could not be loaded", async () => {
+    const backend: ReviewBackend = {
+      ...createMemoryBackend(files),
+      loadThreads: async () => err({ kind: "unexpectedResponse" }),
+    };
+    const store = createThreadStore(backend);
+    await store.refresh();
+    render(<InlineFileReview backend={backend} file={fileA} store={store} />);
+
+    expect(
+      await screen.findByText(/コメントを取得できませんでした。応答を解釈できませんでした/),
+    ).toBeTruthy();
   });
 });

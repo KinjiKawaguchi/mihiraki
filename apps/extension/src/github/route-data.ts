@@ -103,9 +103,7 @@ export function parseRouteData(json: unknown): RouteData {
   const base = parseCommitId(pick(route, "comparison", "fullDiff", "baseOid"));
   const head = parseCommitId(pick(route, "comparison", "fullDiff", "headOid"));
   if (!route || !base || !head) {
-    throw new UnexpectedResponseError(
-      "GitHubのpull requestデータを解釈できませんでした（内部仕様が変わった可能性があります）",
-    );
+    throw new UnexpectedResponseError("pull request route data without the compared commits");
   }
   const summaries = asRecords(route.diffSummaries);
   const threadsById = asRecord(pick(route, "markers", "threads")) ?? {};

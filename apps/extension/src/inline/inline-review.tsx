@@ -1,4 +1,10 @@
-import type { ChangedFile, ReviewBackend } from "@mihiraki/core";
+import {
+  type ChangedFile,
+  type HostError,
+  ok,
+  type Result,
+  type ReviewBackend,
+} from "@mihiraki/core";
 import { createThreadStore } from "@mihiraki/ui";
 import type { HostSyncClient } from "../host-sync/client";
 import { watchDocument } from "./document-watch";
@@ -46,25 +52,32 @@ interface FileTarget {
 }
 
 /** Changed Markdown files paired with the id of their block on the Files changed page. */
-async function locateFiles(backend: ReviewBackend): Promise<readonly FileTarget[]> {
+async function locateFiles(
+  backend: ReviewBackend,
+): Promise<Result<readonly FileTarget[], HostError>> {
   const files = await backend.listChangedMarkdownFiles();
-  return Promise.all(
-    files.map(async (file) => ({ file, containerId: await fileContainerId(file.path) })),
+  if (!files.ok) return files;
+  return ok(
+    await Promise.all(
+      files.value.map(async (file) => ({ file, containerId: await fileContainerId(file.path) })),
+    ),
   );
 }
 
 /**
  * Adds a "split" toggle to every changed Markdown file on GitHub's Files changed page
  * and swaps the file's diff for the rendered split review while it is on.
- * Returns a function that removes everything again.
+ * Returns a function that removes everything again, or why the files could not be found.
  */
 export async function startInlineReview({
   document,
   backend,
   cssText,
   hostSync,
-}: InlineReviewOptions): Promise<() => void> {
-  const targets = await locateFiles(backend);
+}: InlineReviewOptions): Promise<Result<() => void, HostError>> {
+  const located = await locateFiles(backend);
+  if (!located.ok) return located;
+  const targets = located.value;
   const isHostSynced = hostSync ? await hostSync.isHostAvailable() : false;
   const store = createThreadStore(backend);
   let activePaths: ReadonlySet<string> = new Set();
@@ -103,7 +116,7 @@ export async function startInlineReview({
     if (hasRequestedThreads) void store.refresh();
   });
 
-  return () => {
+  return ok(() => {
     stopWatching();
     stopHostWatch();
     decorator.dispose();
@@ -112,5 +125,5 @@ export async function startInlineReview({
       if (container) setSplitActive(container, false);
     });
     removePageStyle(document);
-  };
+  });
 }

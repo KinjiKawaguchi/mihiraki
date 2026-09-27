@@ -1,13 +1,14 @@
 import {
   type ChangedFile,
   isSameRevision,
+  mapResult,
   type ReviewBackend,
   type ReviewThread,
   type Revision,
 } from "@mihiraki/core";
 import { useMemo, useState } from "preact/hooks";
 import type { SubmitComment } from "../comment-form/submit-comment";
-import { errorMessage } from "../format";
+import { describeLoadFailure } from "../host-errors/describe";
 import { useAsync } from "../review-app/use-async";
 import { SplitReview } from "../split-view/SplitReview";
 
@@ -45,7 +46,11 @@ export function FileSplitReview({
 }: FileSplitReviewProps) {
   const [reloads, setReloads] = useState(0);
   const loaded = useAsync(
-    async () => ({ path: file.path, versions: await backend.loadFileVersions(file) }),
+    async () =>
+      mapResult(await backend.loadFileVersions(file), (versions) => ({
+        path: file.path,
+        versions,
+      })),
     [backend, file.path, reloads],
   );
   const fileThreads = useMemo(
@@ -53,8 +58,12 @@ export function FileSplitReview({
     [threads, file.path],
   );
 
-  if (loaded.status === "error")
-    return <p class="mhr-message mhr-message--error">{errorMessage(loaded.error)}</p>;
+  if (loaded.status === "failure")
+    return (
+      <p class="mhr-message mhr-message--error">
+        {describeLoadFailure(`${file.path} を読み込めませんでした`, loaded.failure)}
+      </p>
+    );
   if (!loaded.value || loaded.value.path !== file.path)
     return <p class="mhr-message">読み込み中…</p>;
   const { versions } = loaded.value;

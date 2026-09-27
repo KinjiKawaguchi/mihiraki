@@ -1,31 +1,31 @@
+import type { HostError, Result } from "@mihiraki/core";
 import { useEffect, useState } from "preact/hooks";
+import { type LoadFailure, settleLoad } from "../host-errors/load-failure";
 
-export interface AsyncState<T> {
-  readonly status: "loading" | "success" | "error";
-  /** Last successfully loaded value; kept while reloading to avoid flicker. */
-  readonly value: T | undefined;
-  readonly error: unknown;
-}
+/** `value` is the last successfully loaded one, kept while reloading to avoid flicker. */
+export type AsyncState<T> =
+  | { readonly status: "loading"; readonly value: T | undefined }
+  | { readonly status: "success"; readonly value: T }
+  | { readonly status: "failure"; readonly value: T | undefined; readonly failure: LoadFailure };
 
 /** Runs `load` whenever `deps` change and ignores results that arrive after a newer run started. */
-export function useAsync<T>(load: () => Promise<T>, deps: readonly unknown[]): AsyncState<T> {
-  const [state, setState] = useState<AsyncState<T>>({
-    status: "loading",
-    value: undefined,
-    error: undefined,
-  });
+export function useAsync<T>(
+  load: () => Promise<Result<T, HostError>>,
+  deps: readonly unknown[],
+): AsyncState<T> {
+  const [state, setState] = useState<AsyncState<T>>({ status: "loading", value: undefined });
 
   useEffect(() => {
     let isCurrent = true;
-    setState((previous) => ({ status: "loading", value: previous.value, error: undefined }));
-    load().then(
-      (value) => {
-        if (isCurrent) setState({ status: "success", value, error: undefined });
-      },
-      (error: unknown) => {
-        if (isCurrent) setState((previous) => ({ status: "error", value: previous.value, error }));
-      },
-    );
+    setState((previous) => ({ status: "loading", value: previous.value }));
+    void settleLoad(load()).then((loaded) => {
+      if (!isCurrent) return;
+      setState((previous) =>
+        loaded.ok
+          ? { status: "success", value: loaded.value }
+          : { status: "failure", value: previous.value, failure: loaded.error },
+      );
+    });
     return () => {
       isCurrent = false;
     };

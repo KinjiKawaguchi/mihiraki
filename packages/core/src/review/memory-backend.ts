@@ -65,13 +65,14 @@ export function createMemoryBackend(
 
   return {
     listChangedMarkdownFiles: async () =>
-      Object.entries(files).map(([path, file]) => toChangedFile(path, file)),
+      ok(Object.entries(files).map(([path, file]) => toChangedFile(path, file))),
     loadFileVersions: async (file) => {
       const found = files[file.path];
+      // Only files it listed are ever asked for.
       if (!found) throw new Error(`Unknown file: ${file.path}`);
-      return { revision, base: found.base, head: found.head };
+      return ok({ revision, base: found.base, head: found.head });
     },
-    loadThreads: async () => ({ revision, threads, hasPendingReview: hasPendingReview() }),
+    loadThreads: async () => ok({ revision, threads, hasPendingReview: hasPendingReview() }),
     postComment: async (target, body, mode) => {
       if (!availableCommentModes(hasPendingReview()).includes(mode))
         return err({ kind: "pendingReviewConflict" });

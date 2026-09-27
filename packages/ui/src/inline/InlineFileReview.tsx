@@ -1,7 +1,7 @@
 import type { ChangedFile, ReviewBackend } from "@mihiraki/core";
 import type { SubmitComment } from "../comment-form/submit-comment";
 import { FileSplitReview } from "../file-review/FileSplitReview";
-import { errorMessage } from "../format";
+import { describeLoadFailure } from "../host-errors/describe";
 import { type ThreadStore, useThreadStore } from "../threads/thread-store";
 
 export interface InlineFileReviewProps {
@@ -32,7 +32,7 @@ export function InlineFileReview({
     <div class="mhr-root mhr-inline">
       {error !== null && (
         <p class="mhr-message mhr-message--error">
-          コメントを取得できません: {errorMessage(error)}
+          {describeLoadFailure("コメントを取得できませんでした", error)}
         </p>
       )}
       {hasPendingReview && pendingReviewNotice && <p class="mhr-notice">{pendingReviewNotice}</p>}

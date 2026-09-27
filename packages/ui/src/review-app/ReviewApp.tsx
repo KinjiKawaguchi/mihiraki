@@ -2,7 +2,7 @@ import type { ReviewBackend } from "@mihiraki/core";
 import { useEffect, useMemo, useState } from "preact/hooks";
 import type { SubmitComment } from "../comment-form/submit-comment";
 import { FileSplitReview } from "../file-review/FileSplitReview";
-import { errorMessage } from "../format";
+import { describeLoadFailure } from "../host-errors/describe";
 import { createThreadStore, useThreadStore } from "../threads/thread-store";
 import { FileList } from "./FileList";
 import { useAsync } from "./use-async";
@@ -34,8 +34,12 @@ export function ReviewApp({ backend, onClose }: ReviewAppProps) {
   };
 
   const renderBody = () => {
-    if (files.status === "error")
-      return <p class="mhr-message mhr-message--error">{errorMessage(files.error)}</p>;
+    if (files.status === "failure")
+      return (
+        <p class="mhr-message mhr-message--error">
+          {describeLoadFailure("変更されたファイルを読み込めませんでした", files.failure)}
+        </p>
+      );
     if (files.status === "loading") return <p class="mhr-message">読み込み中…</p>;
     if (!selected) return <p class="mhr-message">このPRにMarkdownファイルの変更はありません。</p>;
     return (
@@ -64,7 +68,7 @@ export function ReviewApp({ backend, onClose }: ReviewAppProps) {
         {selected && <code class="mhr-app__path">{selected.path}</code>}
         {threads.error !== null && (
           <span class="mhr-message--error">
-            コメントを取得できません: {errorMessage(threads.error)}
+            {describeLoadFailure("コメントを取得できませんでした", threads.error)}
           </span>
         )}
         {onClose && (
