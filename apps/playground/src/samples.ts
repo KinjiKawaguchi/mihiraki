@@ -1,4 +1,5 @@
-import type { MemoryFile, ReviewThread } from "@mihiraki/core";
+import type { ReviewThread } from "@mihiraki/core";
+import type { MemoryFile } from "@mihiraki/core/memory";
 
 const designDocBase = `---
 title: キャッシュ設計
@@ -91,10 +92,10 @@ export const sampleThreads: readonly ReviewThread[] = [
     lines: { start: 10, end: 11 },
     isResolved: false,
     isOutdated: false,
-    isPending: false,
     comments: [
       {
         id: "sample-1-1",
+        isPending: false,
         author: "reviewer",
         avatarUrl: "",
         bodyHtml: "<p>5分にした根拠を書いておいてほしいです。</p>",

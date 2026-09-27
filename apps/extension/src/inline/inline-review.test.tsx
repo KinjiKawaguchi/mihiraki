@@ -1,4 +1,5 @@
-import { createMemoryBackend, err, type ReviewBackend, type ReviewThread } from "@mihiraki/core";
+import { err, type ReviewBackend, type ReviewThread } from "@mihiraki/core";
+import { createMemoryBackend } from "@mihiraki/core/memory";
 import { waitFor } from "@testing-library/preact";
 import { afterEach, describe, expect, it } from "vitest";
 import type { HostSyncClient } from "../host-sync/client";
@@ -125,8 +126,17 @@ describe("startInlineReview", () => {
       lines: { start: 1, end: 1 },
       isResolved: false,
       isOutdated: false,
-      isPending: true,
-      comments: [],
+      comments: [
+        {
+          id: "p1-1",
+          isPending: true,
+          author: "me",
+          avatarUrl: "",
+          bodyHtml: "<p>draft</p>",
+          createdAt: "",
+          url: "",
+        },
+      ],
     };
 
     function fakeHostSync(isAvailable: boolean) {

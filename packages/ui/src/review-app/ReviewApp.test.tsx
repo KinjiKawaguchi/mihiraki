@@ -1,4 +1,5 @@
-import { createMemoryBackend, err, type ReviewBackend, type ReviewThread } from "@mihiraki/core";
+import { err, type ReviewBackend, type ReviewThread } from "@mihiraki/core";
+import { createMemoryBackend } from "@mihiraki/core/memory";
 import { fireEvent, render, screen, waitFor } from "@testing-library/preact";
 import { describe, expect, it, vi } from "vitest";
 import { ReviewApp } from "./ReviewApp";
@@ -16,10 +17,10 @@ function threadOn(path: string, text: string): ReviewThread {
     lines: { start: 1, end: 1 },
     isResolved: false,
     isOutdated: false,
-    isPending: false,
     comments: [
       {
         id: path,
+        isPending: false,
         author: "bob",
         avatarUrl: "",
         bodyHtml: `<p>${text}</p>`,

@@ -1,9 +1,9 @@
 import { createMarkdownRenderer } from "../markdown/renderer";
 import { err, ok } from "../result";
-import type { ChangedFile, ReviewBackend } from "./backend";
-import { availableCommentModes } from "./comment-modes";
-import { commitId } from "./commit-id";
-import type { CommentMode, CommentTarget, ReviewThread, Revision } from "./types";
+import type { ChangedFile, ReviewBackend } from "../review/backend";
+import { availableCommentModes } from "../review/comment-modes";
+import { commitId } from "../review/commit-id";
+import type { CommentMode, CommentTarget, ReviewThread, Revision } from "../review/types";
 
 export interface MemoryFile {
   /** null when the file does not exist in the base revision. */
@@ -38,10 +38,21 @@ export function createMemoryBackend(
 ): ReviewBackend {
   const md = createMarkdownRenderer();
   let threads = initialThreads;
-  const hasPendingReview = () => threads.some((thread) => thread.isPending);
+  let posted = 0;
+  const hasPendingReview = () =>
+    threads.some((thread) => thread.comments.some((comment) => comment.isPending));
+  /** An id no thread or comment has yet, so views can key by it. */
+  const nextId = (): string => {
+    posted += 1;
+    const id = `memory-${posted}`;
+    const isTaken = threads.some(
+      (thread) => thread.id === id || thread.comments.some((comment) => comment.id === id),
+    );
+    return isTaken ? nextId() : id;
+  };
 
   const toThread = (target: CommentTarget, body: string, mode: CommentMode): ReviewThread => {
-    const id = String(threads.length + 1);
+    const id = nextId();
     return {
       id,
       path: target.path,
@@ -49,10 +60,10 @@ export function createMemoryBackend(
       lines: target.lines,
       isResolved: false,
       isOutdated: false,
-      isPending: mode === "review",
       comments: [
         {
           id,
+          isPending: mode === "review",
           author: "you",
           avatarUrl: "",
           bodyHtml: md.render(body),

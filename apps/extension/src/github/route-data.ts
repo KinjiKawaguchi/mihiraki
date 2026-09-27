@@ -51,6 +51,8 @@ function toChangedFile(
 ): ChangedFile | null {
   const path = asString(summary.path);
   if (!path) return null;
+  // Values seen on github.com are these four. Any other is read like a modification: if
+  // either version is not at `path`, loading it fails visibly rather than showing wrong text.
   const changeType = CHANGE_TYPES.find((type) => type === summary.changeType) ?? "MODIFIED";
   if (changeType !== "RENAMED") return { path, changeType };
   const previousPath = previousPaths.get(path);
@@ -89,9 +91,13 @@ function locateThreads(summary: JsonRecord): ThreadLocation[] {
 
 function toComment(raw: unknown): ReviewComment | null {
   const comment = asRecord(raw);
-  if (!comment) return null;
+  const id = asString(comment?.databaseId) ?? asString(comment?.id);
+  // Without an id a view could not tell comments apart.
+  if (!comment || !id) return null;
   return {
-    id: asString(comment.databaseId) ?? asString(comment.id) ?? "",
+    id,
+    // Comments of an unsubmitted review are returned with `state: "pending"`.
+    isPending: comment.state === "pending",
     author: asString(pick(comment, "author", "login")) ?? "unknown",
     avatarUrl: asString(pick(comment, "author", "avatarUrl")) ?? "",
     bodyHtml: asString(comment.bodyHTML) ?? "",
@@ -108,8 +114,6 @@ function toThread(location: ThreadLocation, raw: unknown): ReviewThread | null {
     ...location,
     isResolved: thread.isResolved === true,
     isOutdated: thread.isOutdated === true,
-    // Comments of an unsubmitted review are returned with `state: "pending"`.
-    isPending: rawComments.some((comment) => pick(comment, "state") === "pending"),
     comments: rawComments.flatMap((comment) => toComment(comment) ?? []),
   };
 }
@@ -125,12 +129,11 @@ export function parseRouteData(json: unknown): RouteData {
   const summaries = asRecords(route.diffSummaries);
   const previousPaths = previousPathsOf(route);
   const threadsById = asRecord(pick(route, "markers", "threads")) ?? {};
-  const seen = new Set<string>();
-  const threads = summaries.flatMap(locateThreads).flatMap((location) => {
-    if (seen.has(location.id)) return [];
-    seen.add(location.id);
-    return toThread(location, threadsById[location.id]) ?? [];
-  });
+  const locations = summaries.flatMap(locateThreads);
+  // A thread can be listed under more than one line key; the first one places it.
+  const threads = locations
+    .filter((location, index) => locations.findIndex(({ id }) => id === location.id) === index)
+    .flatMap((location) => toThread(location, threadsById[location.id]) ?? []);
   return {
     revision: { base, head },
     hasPendingReview: asString(pick(route, "viewerPendingReview", "id")) !== null,

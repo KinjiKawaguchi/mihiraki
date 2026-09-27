@@ -5,7 +5,7 @@
  * github.com (2026-09) and fails closed: when something is missing nothing is changed.
  */
 import { asRecord } from "../github/json";
-import { diffLineKeyOf, type ThreadCreatedMessage, threadSubjectOf } from "./protocol";
+import { diffLineKeyOf, type ThreadRegistration, threadSubjectOf } from "./protocol";
 
 export interface ZustandStore {
   getState(): unknown;
@@ -86,10 +86,7 @@ function actionOf(state: unknown, slice: string, name: string): Action | null {
 }
 
 /** Replays the store updates GitHub performs after its own comment form posts a comment. */
-export function registerCreatedThread(
-  stores: ReviewStores,
-  message: ThreadCreatedMessage,
-): boolean {
+export function registerCreatedThread(stores: ReviewStores, message: ThreadRegistration): boolean {
   const layout = stores.layout.getState();
   const addPendingComment = actionOf(layout, "pendingReviewActions", "addPendingComment");
   const updateThread = actionOf(layout, "markersActions", "updateThread");
@@ -107,7 +104,7 @@ export function registerCreatedThread(
   if (!updateThread || !onCommentThreadAdded || (isReview && !addPendingComment)) return false;
 
   const { path } = message.target;
-  const threadId = Number(message.thread.id);
+  const { threadId } = message;
   const diffLineKey = diffLineKeyOf(message.target);
   const subject = threadSubjectOf(message.target);
   try {

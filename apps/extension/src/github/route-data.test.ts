@@ -149,14 +149,58 @@ describe("parseRouteData", () => {
     ]);
   });
 
-  it("marks threads whose comments belong to an unsubmitted review as pending", () => {
-    const threads = parseRouteData(response).threads;
+  it("marks the comments of an unsubmitted review as pending, not the whole thread", () => {
+    // A published thread can get a reply that is still part of the viewer's pending review.
+    const route = parseRouteData({
+      payload: {
+        pullRequestsChangesRoute: {
+          ...response.payload.pullRequestsChangesRoute,
+          diffSummaries: [
+            { path: "docs/design.md", markersMap: { R12: { threads: [{ id: 7 }] } } },
+          ],
+          markers: {
+            threads: {
+              "7": {
+                id: 7,
+                subjectType: "LINE",
+                commentsData: {
+                  comments: [
+                    { databaseId: 1, bodyHTML: "<p>published</p>" },
+                    { databaseId: 2, state: "pending", bodyHTML: "<p>reply</p>" },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+    });
 
-    expect(threads.map((t) => [t.id, t.isPending])).toEqual([
-      ["101", false],
-      ["102", false],
-      ["103", true],
-    ]);
+    expect(route.threads[0]?.comments.map((comment) => comment.isPending)).toEqual([false, true]);
+  });
+
+  it("leaves out comments without an id, which a view could not tell apart", () => {
+    const route = parseRouteData({
+      payload: {
+        pullRequestsChangesRoute: {
+          ...response.payload.pullRequestsChangesRoute,
+          diffSummaries: [
+            { path: "docs/design.md", markersMap: { R12: { threads: [{ id: 7 }] } } },
+          ],
+          markers: {
+            threads: {
+              "7": {
+                id: 7,
+                subjectType: "LINE",
+                commentsData: { comments: [{ bodyHTML: "<p>?</p>" }, { databaseId: 2 }] },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    expect(route.threads[0]?.comments.map((comment) => comment.id)).toEqual(["2"]);
   });
 
   it("maps comment authors and rendered bodies", () => {
@@ -165,6 +209,7 @@ describe("parseRouteData", () => {
     expect(first?.comments).toEqual([
       {
         id: "9001",
+        isPending: false,
         author: "alice",
         avatarUrl: "https://avatars.example/alice",
         bodyHtml: "<p>Why?</p>",

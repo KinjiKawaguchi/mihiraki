@@ -1,4 +1,4 @@
-import { createMemoryBackend } from "@mihiraki/core";
+import { createMemoryBackend } from "@mihiraki/core/memory";
 import { ReviewApp } from "@mihiraki/ui";
 import "@mihiraki/ui/styles.css";
 import { render } from "preact";

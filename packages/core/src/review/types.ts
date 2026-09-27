@@ -15,6 +15,8 @@ export type Side = "base" | "head";
 
 export interface ReviewComment {
   readonly id: string;
+  /** Part of the viewer's review that has not been submitted yet (only the viewer sees it). */
+  readonly isPending: boolean;
   readonly author: string;
   readonly avatarUrl: string;
   /** Already-rendered comment body. Must still be sanitised before insertion into the DOM. */
@@ -31,8 +33,6 @@ export interface ReviewThread {
   readonly lines: LineRange;
   readonly isResolved: boolean;
   readonly isOutdated: boolean;
-  /** Part of the viewer's review that has not been submitted yet (only the viewer sees it). */
-  readonly isPending: boolean;
   readonly comments: readonly ReviewComment[];
 }
 

@@ -40,10 +40,10 @@ const thread: ReviewThread = {
   lines: { start: 3, end: 3 },
   isResolved: false,
   isOutdated: false,
-  isPending: false,
   comments: [
     {
       id: "c1",
+      isPending: false,
       author: "alice",
       avatarUrl: "",
       bodyHtml: "<p>Why ten?</p>",
@@ -175,8 +175,12 @@ describe("SplitReview", () => {
     );
   });
 
-  it("marks threads that belong to an unsubmitted review", () => {
-    const { column } = renderReview({ threads: [{ ...thread, isPending: true }] });
+  it("marks comments that belong to an unsubmitted review", () => {
+    const pending = {
+      ...thread,
+      comments: thread.comments.map((c) => ({ ...c, isPending: true })),
+    };
+    const { column } = renderReview({ threads: [pending] });
 
     expect(column("base")).toContain("保留中");
   });

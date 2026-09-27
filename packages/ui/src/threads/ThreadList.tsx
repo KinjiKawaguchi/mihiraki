@@ -14,6 +14,7 @@ function CommentView({ comment }: { readonly comment: ReviewComment }) {
         )}
         <strong>{comment.author}</strong>
         <span class="mhr-comment__time">{formatDateTime(comment.createdAt)}</span>
+        {comment.isPending && <span class="mhr-badge mhr-badge--pending">保留中</span>}
         {comment.url && (
           <a class="mhr-comment__link" href={comment.url} target="_blank" rel="noreferrer">
             GitHubで開く
@@ -32,7 +33,6 @@ function ThreadView({ thread }: { readonly thread: ReviewThread }) {
       <button type="button" class="mhr-thread__header" onClick={() => setIsExpanded(!isExpanded)}>
         <span>{formatLineRange(thread.side, thread.lines)}</span>
         <span>{thread.comments.length}件</span>
-        {thread.isPending && <span class="mhr-badge mhr-badge--pending">保留中</span>}
         {thread.isResolved && <span class="mhr-badge">解決済み</span>}
         {thread.isOutdated && <span class="mhr-badge">古い差分</span>}
       </button>

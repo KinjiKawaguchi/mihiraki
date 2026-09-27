@@ -63,17 +63,29 @@ export function parseJson(json: unknown): unknown {
   }
 }
 
+/** A ThreadCreatedMessage checked by the bridge, with the id GitHub's stores key threads by. */
+export interface ThreadRegistration extends ThreadCreatedMessage {
+  readonly threadId: number;
+}
+
+/** GitHub's stores use numeric thread ids; anything else (e.g. a node id) cannot be registered. */
+function parseThreadId(value: unknown): number | null {
+  const id = Number(asString(value));
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
 /** Validates a message; page scripts can dispatch the same events, so nothing is trusted. */
-export function toThreadCreatedMessage(value: unknown): ThreadCreatedMessage | null {
+export function toThreadRegistration(value: unknown): ThreadRegistration | null {
   const record = asRecord(value);
   const target = parseTarget(record?.target);
   const mode = record?.mode;
   const thread = asRecord(record?.thread);
-  if (!target || (mode !== "single" && mode !== "review") || !thread || !asString(thread.id))
+  const threadId = parseThreadId(thread?.id);
+  if (!target || (mode !== "single" && mode !== "review") || !thread || threadId === null)
     return null;
-  return { target, mode, thread };
+  return { target, mode, thread, threadId };
 }
 
-export function parseThreadCreatedMessage(json: string): ThreadCreatedMessage | null {
-  return toThreadCreatedMessage(parseJson(json));
+export function parseThreadCreatedMessage(json: string): ThreadRegistration | null {
+  return toThreadRegistration(parseJson(json));
 }
