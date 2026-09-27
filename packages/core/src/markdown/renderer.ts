@@ -35,28 +35,43 @@ function annotateLines(state: StateCore): void {
   }
 }
 
-function parseFrontMatterEntries(meta: string, firstContentLine: number) {
-  return meta.split("\n").flatMap((line, index) => {
-    const match = /^([^\s:#][^:]*):\s*(.*)$/.exec(line);
-    if (!match) return [];
-    return [{ key: match[1] ?? "", value: match[2] ?? "", line: firstContentLine + index }];
+const FRONT_MATTER_ENTRY = /^([^\s:#][^:]*):\s*(.*)$/;
+
+interface FrontMatterEntry {
+  readonly key: string;
+  readonly value: string;
+  /** Source line, or null when the front matter's position is unknown. */
+  readonly line: number | null;
+}
+
+function parseFrontMatterEntries(meta: string, firstContentLine: number | null) {
+  return meta.split("\n").flatMap((line, index): FrontMatterEntry[] => {
+    const [, key, value] = FRONT_MATTER_ENTRY.exec(line) ?? [];
+    if (key === undefined || value === undefined) return [];
+    return [{ key, value, line: firstContentLine === null ? null : firstContentLine + index }];
   });
+}
+
+/** Source line attributes, left out when the lines are unknown so nothing points at wrong ones. */
+function lineAttrs(start: number | string | null, end: number | string | null): string {
+  return start === null || end === null
+    ? ""
+    : ` ${LINE_START_ATTR}="${start}" ${LINE_END_ATTR}="${end}"`;
 }
 
 function renderFrontMatter(md: MarkdownIt, token: Token): string {
   const escapeHtml = md.utils.escapeHtml;
-  const map = token.map ?? [0, 0];
-  const entries = parseFrontMatterEntries(String(token.meta ?? ""), map[0] + 2);
-  const rows = entries
+  // The entries start on the line after the opening `---`.
+  const firstContentLine = token.map ? token.map[0] + 2 : null;
+  const rows = parseFrontMatterEntries(String(token.meta ?? ""), firstContentLine)
     .map(
       (entry) =>
-        `<tr ${LINE_START_ATTR}="${entry.line}" ${LINE_END_ATTR}="${entry.line}">` +
+        `<tr${lineAttrs(entry.line, entry.line)}>` +
         `<td>${escapeHtml(entry.key)}</td><td>${escapeHtml(entry.value)}</td></tr>`,
     )
     .join("");
-  const start = token.attrGet(LINE_START_ATTR) ?? "";
-  const end = token.attrGet(LINE_END_ATTR) ?? "";
-  return `<table class="mhr-frontmatter" ${LINE_START_ATTR}="${start}" ${LINE_END_ATTR}="${end}"><tbody>${rows}</tbody></table>\n`;
+  const tableLines = lineAttrs(token.attrGet(LINE_START_ATTR), token.attrGet(LINE_END_ATTR));
+  return `<table class="mhr-frontmatter"${tableLines}><tbody>${rows}</tbody></table>\n`;
 }
 
 /** GitHub-flavoured markdown-it instance that annotates block elements with source lines. */

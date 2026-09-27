@@ -10,7 +10,8 @@ export interface HtmlToken {
   readonly key: string;
 }
 
-const TAG_PATTERN = /<!--[\s\S]*?-->|<[^>]*>/g;
+/** A comment, or a tag whose quoted attribute values may themselves contain `>`. */
+const TAG_PATTERN = /<!--[\s\S]*?-->|<(?:"[^"]*"|'[^']*'|[^'">])*>/g;
 const LINE_ATTR_PATTERN = / data-line-(?:start|end)="[^"]*"/g;
 
 function tokenizeText(text: string): HtmlToken[] {
