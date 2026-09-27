@@ -12,7 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # All writes go through RELEASE_PLEASE_TOKEN, so that the release PR and tag trigger the other workflows.
-    permissions: {}
+    # Read access is still needed to fetch this repository's own setup action ($/.github/actions/setup).
+    permissions:
+      contents: read
     steps:
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         id: release
