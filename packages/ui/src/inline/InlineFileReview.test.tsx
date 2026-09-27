@@ -124,6 +124,29 @@ describe("InlineFileReview", () => {
     expect(screen.queryByText("Submit from the host")).toBeNull();
   });
 
+  it("tells the reviewer when the pull request changed since the file was loaded", async () => {
+    const older = { base: "b", head: "h1" };
+    const newer = { base: "b", head: "h2" };
+    const base = createMemoryBackend(files, [], { revision: newer });
+    let loads = 0;
+    const backend: ReviewBackend = {
+      ...base,
+      loadFileVersions: async (file) => {
+        loads += 1;
+        const versions = await base.loadFileVersions(file);
+        return loads === 1 ? { ...versions, revision: older } : versions;
+      },
+    };
+    const store = createThreadStore(backend);
+    await store.refresh();
+    render(<InlineFileReview backend={backend} file={fileA} store={store} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "最新の版を読み込む" }));
+
+    await waitFor(() => expect(screen.queryByText(/更新されています/)).toBeNull());
+    expect(loads).toBe(2);
+  });
+
   it("shows why the file could not be loaded", async () => {
     const backend: ReviewBackend = {
       ...createMemoryBackend(files),

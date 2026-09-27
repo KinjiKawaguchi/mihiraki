@@ -1,14 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { buildCreateCommentPayload } from "./comment-payload";
 
-const oids = { baseOid: "base", headOid: "head" };
+const revision = { base: "base", head: "head" };
 
 describe("buildCreateCommentPayload", () => {
   it("builds a single-line comment on the head side", () => {
     const payload = buildCreateCommentPayload(
-      { path: "a.md", side: "RIGHT", line: 9, startLine: null },
+      { path: "a.md", side: "RIGHT", line: 9, startLine: null, revision },
       "hi",
-      oids,
       "single",
     );
 
@@ -34,9 +33,8 @@ describe("buildCreateCommentPayload", () => {
 
   it("anchors a base-side comment to the base commit", () => {
     const payload = buildCreateCommentPayload(
-      { path: "a.md", side: "LEFT", line: 4, startLine: null },
+      { path: "a.md", side: "LEFT", line: 4, startLine: null, revision },
       "hi",
-      oids,
       "single",
     );
 
@@ -49,9 +47,8 @@ describe("buildCreateCommentPayload", () => {
 
   it("builds a multi-line comment with start and end positions", () => {
     const payload = buildCreateCommentPayload(
-      { path: "a.md", side: "RIGHT", line: 68, startLine: 57 },
+      { path: "a.md", side: "RIGHT", line: 68, startLine: 57, revision },
       "hi",
-      oids,
       "single",
     );
 
@@ -82,9 +79,8 @@ describe("buildCreateCommentPayload", () => {
 
   it("adds the comment to the pending review instead of publishing it", () => {
     const payload = buildCreateCommentPayload(
-      { path: "a.md", side: "RIGHT", line: 9, startLine: null },
+      { path: "a.md", side: "RIGHT", line: 9, startLine: null, revision },
       "hi",
-      oids,
       "review",
     );
 

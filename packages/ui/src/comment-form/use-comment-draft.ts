@@ -21,5 +21,5 @@ export function useCommentDraft(onSubmit: (body: string, mode: CommentMode) => P
     }
   };
 
-  return { body, setBody, error, canSubmit, submit };
+  return { body, setBody, error, isSubmitting, canSubmit, submit };
 }

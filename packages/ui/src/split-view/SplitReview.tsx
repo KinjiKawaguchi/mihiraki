@@ -4,6 +4,7 @@ import {
   type CommentTarget,
   groupThreadsByRow,
   type ReviewThread,
+  type Revision,
   type Side,
 } from "@mihiraki/core";
 import { useMemo, useState } from "preact/hooks";
@@ -16,6 +17,8 @@ export interface SplitReviewProps {
   readonly base: string;
   readonly head: string;
   readonly threads: readonly ReviewThread[];
+  /** Revision of `base` / `head`; comments are anchored to it. */
+  readonly revision: Revision;
   /** Whether the viewer already has an unsubmitted review on this pull request. */
   readonly hasPendingReview?: boolean;
   readonly onSubmitComment: (
@@ -33,13 +36,14 @@ export function SplitReview({
   base,
   head,
   threads,
+  revision,
   hasPendingReview = false,
   onSubmitComment,
 }: SplitReviewProps) {
   const rows = useMemo(() => buildSplitRows(base, head), [base, head]);
   const threadsByRow = useMemo(() => groupThreadsByRow(rows, threads), [rows, threads]);
   const [activeCell, setActiveCell] = useState<string | null>(null);
-  const comment = useCommentSelection({ path, hasPendingReview, onSubmitComment });
+  const comment = useCommentSelection({ path, revision, hasPendingReview, onSubmitComment });
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: tracks the pointer while dragging a selection from "+"

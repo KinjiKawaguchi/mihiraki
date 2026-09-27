@@ -77,7 +77,7 @@ export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: Co
   const lines = { start: target.startLine ?? target.line, end: target.line };
 
   const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.key === "Escape") onCancel();
+    if (event.key === "Escape" && !draft.isSubmitting) onCancel();
     if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) void draft.submit(shortcutMode);
   };
 
@@ -100,7 +100,7 @@ export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: Co
       )}
       {draft.error && <p class="mhr-form__error">{draft.error}</p>}
       <div class="mhr-form__actions">
-        <button type="button" class="mhr-button" onClick={onCancel}>
+        <button type="button" class="mhr-button" disabled={draft.isSubmitting} onClick={onCancel}>
           キャンセル
         </button>
         <SubmitButtons

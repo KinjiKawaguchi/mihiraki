@@ -6,6 +6,24 @@ import { parseRouteData, type RouteData } from "./route-data";
 
 export type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
 
+function isTimeout(error: unknown): boolean {
+  return error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
+}
+
+/** Adds a deadline to every request, so an unanswered request cannot leave the UI waiting forever. */
+export function withTimeout(fetchFn: FetchFn, timeoutMs: number): FetchFn {
+  return async (input, init) => {
+    try {
+      return await fetchFn(input, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+    } catch (error) {
+      if (!isTimeout(error)) throw error;
+      throw new Error(
+        `GitHubから${Math.round(timeoutMs / 1000)}秒以内に応答がありませんでした。時間をおいて再度お試しください。`,
+      );
+    }
+  };
+}
+
 /** Headers GitHub's own UI sends to receive JSON from its page routes. */
 const ROUTE_HEADERS = {
   Accept: "application/json",

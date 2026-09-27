@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/preact";
 import { describe, expect, it, vi } from "vitest";
 import { SplitReview } from "./SplitReview";
 
+const revision = { base: "b1", head: "h1" };
+
 const common = "First paragraph.\n\nSecond paragraph.\n\n";
 const base = `${common}Third paragraph.\n\n- item one\n- item two\n- item three\n`;
 const head = `${common}Third paragraph changed.\n\n- item one\n- item two\n- item three\n`;
@@ -14,6 +16,7 @@ function setup() {
       base={base}
       head={head}
       threads={[]}
+      revision={revision}
       onSubmitComment={onSubmitComment}
     />,
   );
@@ -40,7 +43,7 @@ describe("SplitReview block selection", () => {
     fireEvent.click(screen.getByRole("button", { name: "コメント" }));
     await waitFor(() =>
       expect(onSubmitComment).toHaveBeenCalledWith(
-        { path: "doc.md", side: "RIGHT", line: 5, startLine: 1 },
+        { path: "doc.md", side: "RIGHT", line: 5, startLine: 1, revision },
         "range",
         "single",
       ),
@@ -91,6 +94,53 @@ describe("SplitReview block selection", () => {
 
     const form = container.querySelector("form");
     expect(form?.parentElement?.previousElementSibling).toBe(at("RIGHT", 'p[data-line-start="3"]'));
+  });
+
+  it("keeps a form opened while an earlier comment was still being posted", async () => {
+    let finishFirstPost: () => void = () => undefined;
+    const onSubmitComment = vi.fn().mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishFirstPost = resolve;
+      }),
+    );
+    const view = render(
+      <SplitReview
+        path="doc.md"
+        base={base}
+        head={head}
+        threads={[]}
+        revision={revision}
+        onSubmitComment={onSubmitComment}
+      />,
+    );
+    const paragraph = (line: number) =>
+      view.container.querySelector(`[data-side="RIGHT"] p[data-line-start="${line}"]`) as Element;
+    fireEvent.mouseOver(paragraph(1));
+    fireEvent.click(addButton());
+    fireEvent.input(screen.getByRole("textbox"), { target: { value: "first" } });
+    fireEvent.click(screen.getByRole("button", { name: "コメント" }));
+
+    fireEvent.mouseOver(paragraph(3));
+    fireEvent.click(addButton());
+    fireEvent.input(screen.getByRole("textbox"), { target: { value: "second draft" } });
+    finishFirstPost();
+
+    await waitFor(() => expect(onSubmitComment).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe("second draft");
+  });
+
+  it("does not offer cancelling while the comment is being posted", () => {
+    const { at } = setup();
+    fireEvent.mouseOver(at("RIGHT", 'p[data-line-start="1"]'));
+    fireEvent.click(addButton());
+    fireEvent.input(screen.getByRole("textbox"), { target: { value: "x" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "コメント" }));
+
+    expect((screen.getByRole("button", { name: "キャンセル" }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
   });
 
   it("previews the comment as rendered Markdown", () => {

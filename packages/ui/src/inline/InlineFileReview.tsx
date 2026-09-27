@@ -18,7 +18,7 @@ export function InlineFileReview({
   store,
   pendingReviewNotice,
 }: InlineFileReviewProps) {
-  const { threads, error } = useThreadStore(store);
+  const { threads, revision, error } = useThreadStore(store);
   const hasPendingReview = threads.some((thread) => thread.isPending);
 
   const submitComment = async (target: CommentTarget, body: string, mode: CommentMode) => {
@@ -38,6 +38,7 @@ export function InlineFileReview({
         backend={backend}
         file={file}
         threads={threads}
+        threadsRevision={revision}
         onSubmitComment={submitComment}
       />
     </div>

@@ -1,10 +1,21 @@
 import { createMarkdownRenderer } from "../markdown/renderer";
-import type { ChangedFile, FileChangeType, FileVersions, ReviewBackend } from "./backend";
-import type { CommentMode, CommentTarget, ReviewThread } from "./types";
+import type { ChangedFile, FileChangeType, ReviewBackend } from "./backend";
+import type { CommentMode, CommentTarget, ReviewThread, Revision } from "./types";
 
-function changeTypeOf(versions: FileVersions): FileChangeType {
-  if (versions.base === "") return "ADDED";
-  if (versions.head === "") return "REMOVED";
+export interface MemoryFile {
+  readonly base: string;
+  readonly head: string;
+}
+
+export interface MemoryBackendOptions {
+  readonly revision?: Revision;
+}
+
+const DEFAULT_REVISION: Revision = { base: "base", head: "head" };
+
+function changeTypeOf(file: MemoryFile): FileChangeType {
+  if (file.base === "") return "ADDED";
+  if (file.head === "") return "REMOVED";
   return "MODIFIED";
 }
 
@@ -13,8 +24,9 @@ function changeTypeOf(versions: FileVersions): FileChangeType {
  * the reference behaviour for real adapters.
  */
 export function createMemoryBackend(
-  files: Readonly<Record<string, FileVersions>>,
+  files: Readonly<Record<string, MemoryFile>>,
   initialThreads: readonly ReviewThread[] = [],
+  { revision = DEFAULT_REVISION }: MemoryBackendOptions = {},
 ): ReviewBackend {
   const md = createMarkdownRenderer();
   let threads = initialThreads;
@@ -23,7 +35,10 @@ export function createMemoryBackend(
     const id = String(threads.length + 1);
     return {
       id,
-      ...target,
+      path: target.path,
+      side: target.side,
+      line: target.line,
+      startLine: target.startLine,
       isResolved: false,
       isOutdated: false,
       isPending: mode === "review",
@@ -42,17 +57,17 @@ export function createMemoryBackend(
 
   return {
     listChangedMarkdownFiles: async (): Promise<ChangedFile[]> =>
-      Object.entries(files).map(([path, versions]) => ({
+      Object.entries(files).map(([path, file]) => ({
         path,
         previousPath: null,
-        changeType: changeTypeOf(versions),
+        changeType: changeTypeOf(file),
       })),
     loadFileVersions: async (file) => {
-      const versions = files[file.path];
-      if (!versions) throw new Error(`Unknown file: ${file.path}`);
-      return versions;
+      const found = files[file.path];
+      if (!found) throw new Error(`Unknown file: ${file.path}`);
+      return { revision, base: found.base, head: found.head };
     },
-    loadThreads: async () => threads,
+    loadThreads: async () => ({ revision, threads }),
     postComment: async (target, body, mode) => {
       threads = [...threads, toThread(target, body, mode)];
     },

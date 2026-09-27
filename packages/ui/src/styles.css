@@ -236,6 +236,13 @@
   color: var(--mhr-attention);
   font-size: 12px;
 }
+.mhr-notice--stale {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--mhr-fg);
+  background: var(--mhr-selection);
+}
 
 /* ---- Threads ---- */
 .mhr-threads {

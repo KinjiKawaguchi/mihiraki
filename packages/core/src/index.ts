@@ -6,7 +6,25 @@ export { buildSplitRows, groupThreadsByRow } from "./document/split-document";
 export { parseBlocks } from "./markdown/blocks";
 export { renderMarkdown } from "./markdown/render";
 export type { BlockKind, LineRange, SourceBlock } from "./markdown/types";
-export type { ChangedFile, FileChangeType, FileVersions, ReviewBackend } from "./review/backend";
+export type {
+  ChangedFile,
+  FileChangeType,
+  FileVersions,
+  ReviewBackend,
+  ThreadSnapshot,
+} from "./review/backend";
 export { toCommentTarget } from "./review/comment-target";
-export { createMemoryBackend } from "./review/memory-backend";
-export type { CommentMode, CommentTarget, ReviewComment, ReviewThread, Side } from "./review/types";
+export {
+  createMemoryBackend,
+  type MemoryBackendOptions,
+  type MemoryFile,
+} from "./review/memory-backend";
+export { isSameRevision } from "./review/revision";
+export type {
+  CommentMode,
+  CommentTarget,
+  ReviewComment,
+  ReviewThread,
+  Revision,
+  Side,
+} from "./review/types";
