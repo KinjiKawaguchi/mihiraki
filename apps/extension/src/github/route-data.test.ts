@@ -17,7 +17,16 @@ const response = {
         },
         { path: "src/app.ts", changeType: "MODIFIED", markersMap: {} },
         { path: "docs/new.markdown", changeType: "ADDED" },
-        { path: "docs/moved.md", previousPath: "old/moved.md", changeType: "RENAMED" },
+        { path: "docs/moved.md", changeType: "RENAMED" },
+      ],
+      // Summaries carry no previous path; the diff entries do (observed on github.com, 2026-09).
+      diffContents: [
+        {
+          path: "docs/moved.md",
+          status: "RENAMED",
+          oldTreeEntry: { mode: 100644, path: "old/moved.md", lineCount: 3 },
+          newTreeEntry: { mode: 100644, path: "docs/moved.md", lineCount: 3, isGenerated: false },
+        },
       ],
       markers: {
         threads: {
@@ -89,12 +98,14 @@ describe("parseRouteData", () => {
     ]);
   });
 
-  it("shows a rename without the previous path as an added file, since its base cannot be found", () => {
+  it("shows a rename without a diff entry as an added file, since its base cannot be found", () => {
+    // Large pull requests load the diff entries of later files only as they are scrolled to.
     const route = parseRouteData({
       payload: {
         pullRequestsChangesRoute: {
           ...response.payload.pullRequestsChangesRoute,
           diffSummaries: [{ path: "docs/moved.md", changeType: "RENAMED" }],
+          diffContents: [],
         },
       },
     });

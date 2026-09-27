@@ -31,12 +31,29 @@ interface ThreadLocation {
 
 const CHANGE_TYPES: readonly FileChangeType[] = ["ADDED", "MODIFIED", "REMOVED", "RENAMED"];
 
-function toChangedFile(summary: JsonRecord): ChangedFile | null {
+/**
+ * Previous paths of renamed files. Only the diff entries carry them (as `oldTreeEntry`),
+ * and a large pull request may not have loaded the entries of every file yet.
+ */
+function previousPathsOf(route: JsonRecord): ReadonlyMap<string, string> {
+  return new Map(
+    asRecords(route.diffContents).flatMap((entry) => {
+      const path = asString(entry.path);
+      const previousPath = asString(pick(entry, "oldTreeEntry", "path"));
+      return path && previousPath ? [[path, previousPath] as const] : [];
+    }),
+  );
+}
+
+function toChangedFile(
+  summary: JsonRecord,
+  previousPaths: ReadonlyMap<string, string>,
+): ChangedFile | null {
   const path = asString(summary.path);
   if (!path) return null;
   const changeType = CHANGE_TYPES.find((type) => type === summary.changeType) ?? "MODIFIED";
   if (changeType !== "RENAMED") return { path, changeType };
-  const previousPath = asString(summary.previousPath) ?? asString(summary.oldPath);
+  const previousPath = previousPaths.get(path);
   // Without the previous path there is no base version to load; show the file as new.
   if (!previousPath) return { path, changeType: "ADDED" };
   return previousPath === path
@@ -106,6 +123,7 @@ export function parseRouteData(json: unknown): RouteData {
     throw new UnexpectedResponseError("pull request route data without the compared commits");
   }
   const summaries = asRecords(route.diffSummaries);
+  const previousPaths = previousPathsOf(route);
   const threadsById = asRecord(pick(route, "markers", "threads")) ?? {};
   const seen = new Set<string>();
   const threads = summaries.flatMap(locateThreads).flatMap((location) => {
@@ -116,7 +134,7 @@ export function parseRouteData(json: unknown): RouteData {
   return {
     revision: { base, head },
     hasPendingReview: asString(pick(route, "viewerPendingReview", "id")) !== null,
-    files: summaries.flatMap((s) => toChangedFile(s) ?? []),
+    files: summaries.flatMap((summary) => toChangedFile(summary, previousPaths) ?? []),
     threads,
   };
 }
