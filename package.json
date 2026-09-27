@@ -1,5 +1,6 @@
 {
   "name": "better-gh-md",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,7 +12,8 @@
     "test:e2e": "pnpm --filter @better-gh-md/playground test:e2e",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "zip": "pnpm --filter @better-gh-md/extension zip"
   },
   "packageManager": "pnpm@9.15.0",
   "devDependencies": {

@@ -1,0 +1,35 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      # A PAT, so that the release PR and tag it creates trigger the other workflows.
+      - uses: googleapis/release-please-action@v5
+        id: release
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - uses: actions/checkout@v7
+        if: steps.release.outputs.pr
+        with:
+          ref: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+
+      - uses: ./.github/actions/setup
+        if: steps.release.outputs.pr
+
+      - run: pnpm lint:fix
+        if: steps.release.outputs.pr
+
+      - uses: stefanzweifel/git-auto-commit-action@v7
+        if: steps.release.outputs.pr
+        with:
+          commit_message: "chore: format"

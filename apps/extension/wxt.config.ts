@@ -5,6 +5,9 @@ export default defineConfig({
   vite: () => ({
     plugins: [preact()],
   }),
+  zip: {
+    artifactTemplate: "better-gh-md-{{version}}-{{browser}}.zip",
+  },
   manifest: {
     name: "better-gh-md",
     description:

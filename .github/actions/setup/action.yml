@@ -1,0 +1,13 @@
+name: Setup
+description: Install pnpm (version from packageManager), Node and the workspace dependencies
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v6
+    - uses: actions/setup-node@v7
+      with:
+        node-version-file: .node-version
+        cache: pnpm
+    - run: pnpm install --frozen-lockfile
+      shell: bash
