@@ -16,8 +16,8 @@ export interface FileDecoratorContext {
   readonly backend: ReviewBackend;
   readonly store: ThreadStore;
   readonly cssText: string;
-  /** Shown in split views while a review is pending; omitted when GitHub's UI is kept in sync. */
-  readonly pendingReviewNotice: string | undefined;
+  /** Shown in split views while a review is pending; none while GitHub's UI is kept in sync. */
+  readonly pendingReviewNotice: () => string | undefined;
   readonly isActive: (path: string) => boolean;
   readonly setActive: (path: string, isActive: boolean) => void;
 }
@@ -29,6 +29,13 @@ function unmount(shadow: ShadowHost | undefined): void {
 }
 
 type HostsByPath = Map<string, ShadowHost>;
+
+interface SplitView extends ShadowHost {
+  /** The notice it was rendered with, so it is rendered again only when that changes. */
+  readonly notice: string | undefined;
+}
+
+type ViewsByPath = Map<string, SplitView>;
 
 function syncToggle(
   context: FileDecoratorContext,
@@ -54,9 +61,23 @@ function syncToggle(
   );
 }
 
+function renderView(context: FileDecoratorContext, host: ShadowHost, file: ChangedFile) {
+  const notice = context.pendingReviewNotice();
+  render(
+    <InlineFileReview
+      backend={context.backend}
+      file={file}
+      store={context.store}
+      pendingReviewNotice={notice}
+    />,
+    host.mount,
+  );
+  return { ...host, notice };
+}
+
 function syncView(
   context: FileDecoratorContext,
-  views: HostsByPath,
+  views: ViewsByPath,
   container: HTMLElement,
   file: ChangedFile,
 ) {
@@ -68,26 +89,22 @@ function syncView(
     views.delete(file.path);
     return;
   }
-  if (view && container.contains(view.host)) return;
+  if (view && container.contains(view.host)) {
+    // Rendering again keeps the view's state; only needed when the notice changed.
+    if (view.notice !== context.pendingReviewNotice())
+      views.set(file.path, renderView(context, view, file));
+    return;
+  }
   unmount(view);
   const created = createShadowHost(context.document, SPLIT_VIEW_TAG, context.cssText);
   container.append(created.host);
-  render(
-    <InlineFileReview
-      backend={context.backend}
-      file={file}
-      store={context.store}
-      pendingReviewNotice={context.pendingReviewNotice}
-    />,
-    created.mount,
-  );
-  views.set(file.path, created);
+  views.set(file.path, renderView(context, created, file));
 }
 
 /** Keeps the split toggle and (when on) the split view attached to GitHub's file blocks. */
 export function createFileDecorator(context: FileDecoratorContext) {
   const toggles: HostsByPath = new Map();
-  const views: HostsByPath = new Map();
+  const views: ViewsByPath = new Map();
   return {
     sync: (container: HTMLElement, file: ChangedFile) => {
       syncToggle(context, toggles, container, file);

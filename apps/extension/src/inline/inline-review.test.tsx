@@ -131,6 +131,7 @@ describe("startInlineReview", () => {
 
     function fakeHostSync(isAvailable: boolean) {
       let notify: (() => void) | null = null;
+      let notifyLost: (() => void) | null = null;
       const client: HostSyncClient = {
         isHostAvailable: async () => isAvailable,
         announceThreadCreated: async () => isAvailable,
@@ -140,8 +141,14 @@ describe("startInlineReview", () => {
             notify = null;
           };
         },
+        onSyncLost: (listener) => {
+          notifyLost = listener;
+          return () => {
+            notifyLost = null;
+          };
+        },
       };
-      return { client, changeHostThreads: () => notify?.() };
+      return { client, changeHostThreads: () => notify?.(), loseSync: () => notifyLost?.() };
     }
 
     function backendWithPendingReview(): ReviewBackend & { loadThreadsCalls: () => number } {
@@ -180,6 +187,16 @@ describe("startInlineReview", () => {
       const container = await startWith(fakeHostSync(false).client, backendWithPendingReview());
 
       await waitFor(() => expect(splitViewText(container)).toContain("Submit review"));
+    });
+
+    it("shows the reload notice once a comment could not be shown in GitHub own UI", async () => {
+      const host = fakeHostSync(true);
+      const container = await startWith(host.client, backendWithPendingReview());
+
+      host.loseSync();
+
+      await waitFor(() => expect(splitViewText(container)).toContain("Submit review"));
+      expect(splitViewText(container)).toContain("Alpha version two.");
     });
 
     it("reloads threads when they change in GitHub own UI", async () => {
