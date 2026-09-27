@@ -3,6 +3,7 @@
  * github.com DOM from Playwright (see harness/README.md).
  */
 import type { HostError, Result } from "@mihiraki/core";
+import { resolveLocale } from "@mihiraki/ui";
 import cssText from "../entrypoints/github.content/style.css?inline";
 import { createGitHubBackend } from "../src/github/github-backend";
 import { parsePullRequestLocation } from "../src/github/pr-location";
@@ -30,5 +31,6 @@ if (pr) {
     backend,
     cssText: inheritHostThemeColors(cssText),
     hostSync,
+    locale: resolveLocale(navigator.languages),
   });
 }

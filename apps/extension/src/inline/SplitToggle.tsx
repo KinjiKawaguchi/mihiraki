@@ -22,18 +22,20 @@ export const SPLIT_TOGGLE_CSS = `
 interface SplitToggleProps {
   readonly isActive: boolean;
   readonly onToggle: () => void;
+  readonly label: string;
+  readonly title: string;
 }
 
-export function SplitToggle({ isActive, onToggle }: SplitToggleProps) {
+export function SplitToggle({ isActive, onToggle, label, title }: SplitToggleProps) {
   return (
     <button
       type="button"
       class="mhr-toggle"
       aria-pressed={isActive ? "true" : "false"}
-      title="Markdownをレンダリングしたまま左右分割で表示"
+      title={title}
       onClick={onToggle}
     >
-      分割
+      {label}
     </button>
   );
 }

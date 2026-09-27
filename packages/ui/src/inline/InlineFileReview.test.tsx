@@ -47,7 +47,9 @@ function columnText(container: Element, side: "base" | "head"): string {
 async function renderInline(backend: ReviewBackend) {
   const store = createThreadStore(backend);
   await store.refresh();
-  const view = render(<InlineFileReview backend={backend} file={fileA} store={store} />);
+  const view = render(
+    <InlineFileReview locale="ja" backend={backend} file={fileA} store={store} />,
+  );
   await waitFor(() => expect(columnText(view.container, "head")).toContain("Alpha version two."));
   return view;
 }
@@ -118,6 +120,7 @@ describe("InlineFileReview", () => {
 
     render(
       <InlineFileReview
+        locale="ja"
         backend={backend}
         file={fileA}
         store={store}
@@ -135,6 +138,7 @@ describe("InlineFileReview", () => {
 
     render(
       <InlineFileReview
+        locale="ja"
         backend={backend}
         file={fileA}
         store={store}
@@ -161,7 +165,7 @@ describe("InlineFileReview", () => {
     };
     const store = createThreadStore(backend);
     await store.refresh();
-    render(<InlineFileReview backend={backend} file={fileA} store={store} />);
+    render(<InlineFileReview locale="ja" backend={backend} file={fileA} store={store} />);
 
     fireEvent.click(await screen.findByRole("button", { name: "最新の版を読み込む" }));
 
@@ -174,7 +178,14 @@ describe("InlineFileReview", () => {
       ...createMemoryBackend(files),
       loadFileVersions: async () => err({ kind: "timeout" }),
     };
-    render(<InlineFileReview backend={backend} file={fileA} store={createThreadStore(backend)} />);
+    render(
+      <InlineFileReview
+        locale="ja"
+        backend={backend}
+        file={fileA}
+        store={createThreadStore(backend)}
+      />,
+    );
 
     expect(
       await screen.findByText(/docs\/a\.md を読み込めませんでした。応答がありませんでした/),
@@ -188,10 +199,31 @@ describe("InlineFileReview", () => {
     };
     const store = createThreadStore(backend);
     await store.refresh();
-    render(<InlineFileReview backend={backend} file={fileA} store={store} />);
+    render(<InlineFileReview locale="ja" backend={backend} file={fileA} store={store} />);
 
     expect(
       await screen.findByText(/コメントを取得できませんでした。応答を解釈できませんでした/),
+    ).toBeTruthy();
+  });
+
+  it("speaks the language it is given", async () => {
+    const backend: ReviewBackend = {
+      ...createMemoryBackend(files),
+      loadFileVersions: async () => err({ kind: "timeout" }),
+    };
+    render(
+      <InlineFileReview
+        locale="en"
+        backend={backend}
+        file={fileA}
+        store={createThreadStore(backend)}
+      />,
+    );
+
+    expect(
+      await screen.findByText(
+        "Could not load docs/a.md. There was no response. Try again in a moment.",
+      ),
     ).toBeTruthy();
   });
 });

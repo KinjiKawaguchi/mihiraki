@@ -1,0 +1,46 @@
+import type { Messages } from "./messages";
+
+export const en: Messages = {
+  locale: "en",
+  sideLabel: { base: "Before", head: "After" },
+  addComment: "Add a comment",
+  addCommentHint: "Click to comment, drag to select a range",
+  commentOn: (lines) => `Comment on ${lines}`,
+  singleComment: "Comment",
+  startReview: "Start a review",
+  addToReview: "Add review comment",
+  write: "Write",
+  preview: "Preview",
+  nothingToPreview: "Nothing to preview",
+  bodyPlaceholder: "Leave a comment (Markdown supported, ⌘/Ctrl+Enter to send)",
+  cancel: "Cancel",
+  loading: "Loading…",
+  staleRevision:
+    "This pull request has changed since this version was loaded. Comments are placed on the version shown.",
+  loadLatest: "Load the latest version",
+  couldNotLoadFile: (path) => `Could not load ${path}`,
+  couldNotLoadFiles: "Could not load the changed files",
+  couldNotLoadComments: "Could not load the comments",
+  couldNotPostComment: "Could not post the comment",
+  pendingReviewConflict:
+    "You have a pending review. Posting a single comment now would publish every pending comment with it, so use “Add review comment” instead.",
+  lineNotResolved:
+    "The lines to comment on could not be found. The pull request may have changed since this version was loaded. Load the latest version and comment again.",
+  timeout: "There was no response. Try again in a moment.",
+  network: "Could not connect. Check your network connection.",
+  unexpectedResponse:
+    "The response could not be understood. You may have been signed out, or the site changed in a way this extension does not support yet.",
+  failure: (what, why) => (why === null ? `${what}.` : `${what}. ${why}`),
+  failureWithDetail: (what, detail) => `${what} (${detail}).`,
+  noMarkdownChanges: "No Markdown files changed in this pull request.",
+  appTitle: "Markdown split review",
+  close: "Close",
+  markdownFiles: "Markdown files",
+  changeType: { ADDED: "Added", MODIFIED: "Modified", REMOVED: "Removed", RENAMED: "Renamed" },
+  pending: "Pending",
+  resolved: "Resolved",
+  outdated: "Outdated",
+  openOnGitHub: "Open on GitHub",
+  commentCount: (count) => (count === 1 ? "1 comment" : `${count} comments`),
+  unplacedThreads: "Comments that cannot be shown beside the text",
+};

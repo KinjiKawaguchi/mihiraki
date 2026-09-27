@@ -43,14 +43,14 @@ async function waitForColumn(container: Element, side: "base" | "head", text: st
 
 describe("ReviewApp", () => {
   it("opens the first changed Markdown file side by side", async () => {
-    const { container } = render(<ReviewApp backend={createMemoryBackend(files)} />);
+    const { container } = render(<ReviewApp locale="ja" backend={createMemoryBackend(files)} />);
 
     await waitForColumn(container, "base", "Alpha version one.");
     await waitForColumn(container, "head", "Alpha version two.");
   });
 
   it("switches to another file from the file list", async () => {
-    const { container } = render(<ReviewApp backend={createMemoryBackend(files)} />);
+    const { container } = render(<ReviewApp locale="ja" backend={createMemoryBackend(files)} />);
 
     fireEvent.click(await screen.findByRole("button", { name: "docs/b.md" }));
 
@@ -64,7 +64,7 @@ describe("ReviewApp", () => {
       loadFileVersions: (file) =>
         file.path === "docs/b.md" ? new Promise(() => undefined) : memory.loadFileVersions(file),
     };
-    const { container } = render(<ReviewApp backend={backend} />);
+    const { container } = render(<ReviewApp locale="ja" backend={backend} />);
     await waitForColumn(container, "head", "Alpha version two.");
 
     fireEvent.click(screen.getByRole("button", { name: "docs/b.md" }));
@@ -78,14 +78,14 @@ describe("ReviewApp", () => {
       threadOn("docs/a.md", "about A"),
       threadOn("docs/b.md", "about B"),
     ]);
-    render(<ReviewApp backend={backend} />);
+    render(<ReviewApp locale="ja" backend={backend} />);
 
     expect(await screen.findByText("about A")).toBeTruthy();
     expect(screen.queryByText("about B")).toBeNull();
   });
 
   it("shows a newly posted comment after submitting", async () => {
-    const { container } = render(<ReviewApp backend={createMemoryBackend(files)} />);
+    const { container } = render(<ReviewApp locale="ja" backend={createMemoryBackend(files)} />);
     await waitForColumn(container, "head", "Alpha version two.");
 
     fireEvent.mouseOver(container.querySelector('[data-side="head"] p') as Element);
@@ -97,7 +97,7 @@ describe("ReviewApp", () => {
   });
 
   it("tells the reviewer when the pull request has no Markdown changes", async () => {
-    render(<ReviewApp backend={createMemoryBackend({})} />);
+    render(<ReviewApp locale="ja" backend={createMemoryBackend({})} />);
 
     expect(await screen.findByText(/Markdownファイルの変更はありません/)).toBeTruthy();
   });
@@ -107,7 +107,7 @@ describe("ReviewApp", () => {
       ...createMemoryBackend(files),
       listChangedMarkdownFiles: async () => err({ kind: "rejected", detail: "HTTP 404" }),
     };
-    render(<ReviewApp backend={backend} />);
+    render(<ReviewApp locale="ja" backend={backend} />);
 
     expect(
       await screen.findByText(/変更されたファイルを読み込めませんでした（HTTP 404）/),
@@ -119,17 +119,23 @@ describe("ReviewApp", () => {
       ...createMemoryBackend(files),
       listChangedMarkdownFiles: () => Promise.reject(new Error("boom")),
     };
-    render(<ReviewApp backend={backend} />);
+    render(<ReviewApp locale="ja" backend={backend} />);
 
     expect(await screen.findByText(/boom/)).toBeTruthy();
   });
 
   it("calls onClose from the close button", async () => {
     const onClose = vi.fn();
-    render(<ReviewApp backend={createMemoryBackend(files)} onClose={onClose} />);
+    render(<ReviewApp locale="ja" backend={createMemoryBackend(files)} onClose={onClose} />);
 
     fireEvent.click(await screen.findByRole("button", { name: "閉じる" }));
 
     await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it("speaks the language it is given", async () => {
+    render(<ReviewApp locale="en" backend={createMemoryBackend({})} />);
+
+    expect(await screen.findByText("No Markdown files changed in this pull request.")).toBeTruthy();
   });
 });

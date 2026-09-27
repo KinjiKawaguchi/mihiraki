@@ -1,6 +1,8 @@
 import { commitId, ok } from "@mihiraki/core";
 import { fireEvent, render, screen, waitFor } from "@testing-library/preact";
+import type { ComponentChildren } from "preact";
 import { describe, expect, it, vi } from "vitest";
+import { I18nProvider } from "../i18n/i18n";
 import { SplitReview } from "./SplitReview";
 
 const revision = { base: commitId("b1b1b1b"), head: commitId("c1c1c1c") };
@@ -8,6 +10,10 @@ const revision = { base: commitId("b1b1b1b"), head: commitId("c1c1c1c") };
 const common = "First paragraph.\n\nSecond paragraph.\n\n";
 const base = `${common}Third paragraph.\n\n- item one\n- item two\n- item three\n`;
 const head = `${common}Third paragraph changed.\n\n- item one\n- item two\n- item three\n`;
+
+function Japanese({ children }: { readonly children: ComponentChildren }) {
+  return <I18nProvider locale="ja">{children}</I18nProvider>;
+}
 
 function setup() {
   const onSubmitComment = vi.fn().mockResolvedValue(ok(undefined));
@@ -20,6 +26,7 @@ function setup() {
       revision={revision}
       onSubmitComment={onSubmitComment}
     />,
+    { wrapper: Japanese },
   );
   const at = (side: "base" | "head", selector: string) =>
     view.container.querySelector(`[data-side="${side}"] ${selector}`) as Element;
@@ -113,6 +120,7 @@ describe("SplitReview block selection", () => {
         revision={revision}
         onSubmitComment={onSubmitComment}
       />,
+      { wrapper: Japanese },
     );
     const paragraph = (line: number) =>
       view.container.querySelector(`[data-side="head"] p[data-line-start="${line}"]`) as Element;

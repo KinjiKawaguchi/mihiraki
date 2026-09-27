@@ -9,9 +9,10 @@ export default defineConfig({
     artifactTemplate: "mihiraki-{{version}}-{{browser}}.zip",
   },
   manifest: {
-    name: "Mihiraki for GitHub",
-    description:
-      "Review Markdown changes in GitHub pull requests rendered side by side, and comment on them inline.",
+    // Localized in public/_locales; English is used for any other browser language.
+    name: "__MSG_extName__",
+    description: "__MSG_extDescription__",
+    default_locale: "en",
     homepage_url: "https://github.com/KinjiKawaguchi/mihiraki",
     permissions: [],
   },

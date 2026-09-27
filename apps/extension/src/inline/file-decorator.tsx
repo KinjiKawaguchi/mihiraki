@@ -1,5 +1,5 @@
 import type { ChangedFile, ReviewBackend } from "@mihiraki/core";
-import { InlineFileReview, type ThreadStore } from "@mihiraki/ui";
+import { InlineFileReview, type Locale, type ThreadStore } from "@mihiraki/ui";
 import { render } from "preact";
 import {
   findHeader,
@@ -8,6 +8,7 @@ import {
   SPLIT_VIEW_TAG,
   setSplitActive,
 } from "./github-file-dom";
+import { INLINE_MESSAGES } from "./messages";
 import { SPLIT_TOGGLE_CSS, SplitToggle } from "./SplitToggle";
 import { createShadowHost, type ShadowHost } from "./shadow-host";
 
@@ -18,6 +19,7 @@ export interface FileDecoratorContext {
   readonly cssText: string;
   /** Shown in split views while a review is pending; none while GitHub's UI is kept in sync. */
   readonly pendingReviewNotice: () => string | undefined;
+  readonly locale: Locale;
   readonly isActive: (path: string) => boolean;
   readonly setActive: (path: string, isActive: boolean) => void;
 }
@@ -56,7 +58,12 @@ function syncToggle(
   }
   const isOn = context.isActive(file.path);
   render(
-    <SplitToggle isActive={isOn} onToggle={() => context.setActive(file.path, !isOn)} />,
+    <SplitToggle
+      isActive={isOn}
+      onToggle={() => context.setActive(file.path, !isOn)}
+      label={INLINE_MESSAGES[context.locale].toggle}
+      title={INLINE_MESSAGES[context.locale].toggleTitle}
+    />,
     toggle.mount,
   );
 }
@@ -69,6 +76,7 @@ function renderView(context: FileDecoratorContext, host: ShadowHost, file: Chang
       file={file}
       store={context.store}
       pendingReviewNotice={notice}
+      locale={context.locale}
     />,
     host.mount,
   );
