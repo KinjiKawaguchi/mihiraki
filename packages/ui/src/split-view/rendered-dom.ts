@@ -45,3 +45,28 @@ export function insertSlotBelow(container: Element, lines: LineRange): HTMLEleme
   else target.after(slot);
   return slot;
 }
+
+function elementAtHeight(root: Element, clientY: number): Element | null {
+  let innermost: Element | null = null;
+  let innermostHeight = Number.POSITIVE_INFINITY;
+  for (const element of Array.from(root.querySelectorAll(LINE_ELEMENT_SELECTOR))) {
+    const rect = element.getBoundingClientRect();
+    if (clientY >= rect.top && clientY < rect.bottom && rect.height < innermostHeight) {
+      innermost = element;
+      innermostHeight = rect.height;
+    }
+  }
+  return innermost;
+}
+
+/**
+ * The source-mapped element the pointer is on. When the pointer is beside the content
+ * (in the gutter holding the "+" button, as when dragging straight down from it), the
+ * innermost element at the pointer's height is used instead.
+ */
+export function lineElementAt(root: Element, target: EventTarget | null, clientY: number): Element | null {
+  const targetElement = target instanceof Element ? target : target instanceof Node ? target.parentElement : null;
+  const direct = targetElement?.closest(LINE_ELEMENT_SELECTOR);
+  if (direct && root.contains(direct)) return direct;
+  return elementAtHeight(root, clientY);
+}

@@ -128,14 +128,15 @@
   background: repeating-linear-gradient(135deg, transparent 0 6px, var(--bgm-bg-muted) 6px 12px);
 }
 
-.bgm-block { position: relative; padding: 8px 0; }
+/* The block also covers the cell's gutter, so moving onto the "+" there never leaves it. */
+.bgm-block { position: relative; margin-left: -36px; padding: 8px 0 8px 36px; }
 .bgm-cell .markdown-body { background: transparent; color: inherit; font-size: 14px; }
 .bgm-cell ins.bgm-ins { background: var(--bgm-added-word); text-decoration: none; border-radius: 2px; }
 .bgm-cell del.bgm-del { background: var(--bgm-removed-word); text-decoration: line-through; border-radius: 2px; }
 
 .bgm-add {
   position: absolute;
-  left: -32px;
+  left: 6px;
   width: 24px;
   height: 24px;
   padding: 0;

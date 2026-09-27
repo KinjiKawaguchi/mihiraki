@@ -3,7 +3,7 @@ import type { ComponentChild } from 'preact';
 import { createPortal } from 'preact/compat';
 import { useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { sanitizeHtml } from '../sanitize';
-import { insertSlotBelow, LINE_ELEMENT_SELECTOR, markSelectedElements, readLines } from './rendered-dom';
+import { insertSlotBelow, lineElementAt, markSelectedElements, readLines } from './rendered-dom';
 
 interface HoveredElement {
   readonly lines: LineRange;
@@ -48,17 +48,26 @@ export function RenderedBlock(props: RenderedBlockProps) {
     if (contentRef.current) markSelectedElements(contentRef.current, highlightedLines);
   }, [safeHtml, highlightedLines?.start, highlightedLines?.end]);
 
-  const handleMouseOver = (event: MouseEvent) => {
+  const handlePointer = (event: MouseEvent) => {
     const container = containerRef.current;
-    const element = (event.target as Element | null)?.closest(LINE_ELEMENT_SELECTOR);
+    const content = contentRef.current;
+    const element = content ? lineElementAt(content, event.target, event.clientY) : null;
     const lines = element ? readLines(element) : null;
-    if (!container || !element || !lines || !contentRef.current?.contains(element)) return;
-    setHovered({ lines, top: element.getBoundingClientRect().top - container.getBoundingClientRect().top });
+    if (!container || !element || !lines) return;
+    const top = element.getBoundingClientRect().top - container.getBoundingClientRect().top;
+    const isSame = hovered?.top === top && hovered.lines.start === lines.start && hovered.lines.end === lines.end;
+    if (!isSame) setHovered({ lines, top });
     onActivate();
   };
 
   return (
-    <div class="bgm-block" ref={containerRef} onMouseOver={handleMouseOver} onMouseLeave={() => setHovered(null)}>
+    <div
+      class="bgm-block"
+      ref={containerRef}
+      onMouseOver={handlePointer}
+      onMouseMove={handlePointer}
+      onMouseLeave={() => setHovered(null)}
+    >
       <div class="markdown-body" ref={contentRef} dangerouslySetInnerHTML={{ __html: safeHtml }} />
       {isActive && hovered && (
         <button

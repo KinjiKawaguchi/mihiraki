@@ -1,7 +1,7 @@
 import { toCommentTarget, type CommentMode, type CommentTarget, type Side } from '@better-gh-md/core';
 import { CommentForm } from '../comment-form/CommentForm';
 import { selectionEnd, selectionRange, useBlockSelection } from './block-selection';
-import { LINE_ELEMENT_SELECTOR, readLines } from './rendered-dom';
+import { lineElementAt, readLines } from './rendered-dom';
 
 interface CommentSelectionOptions {
   readonly path: string;
@@ -34,8 +34,9 @@ export function useCommentSelection({ path, hasPendingReview, onSubmitComment }:
 
   const handleMouseMove = (event: MouseEvent) => {
     if (!current?.isDragging) return;
-    const element = (event.target as Element | null)?.closest(LINE_ELEMENT_SELECTOR);
-    const cell = element?.closest('[data-row-index]');
+    const cell = (event.target as Element | null)?.closest?.('[data-row-index]');
+    const content = cell?.querySelector('.markdown-body');
+    const element = content ? lineElementAt(content, event.target, event.clientY) : null;
     const lines = element ? readLines(element) : null;
     const side = cell?.getAttribute('data-side') ?? null;
     if (!cell || !lines || !isSide(side)) return;
