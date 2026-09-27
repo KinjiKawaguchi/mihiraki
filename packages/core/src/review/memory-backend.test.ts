@@ -27,10 +27,18 @@ describe('createMemoryBackend', () => {
   it('stores posted comments as new threads with rendered bodies', async () => {
     const backend = createMemoryBackend(files);
 
-    await backend.postComment({ path: 'docs/a.md', side: 'RIGHT', line: 1, startLine: null }, 'Looks **good**');
+    await backend.postComment({ path: 'docs/a.md', side: 'RIGHT', line: 1, startLine: null }, 'Looks **good**', 'single');
     const [thread] = await backend.loadThreads();
 
-    expect(thread).toMatchObject({ path: 'docs/a.md', side: 'RIGHT', line: 1, startLine: null, isResolved: false });
+    expect(thread).toMatchObject({ path: 'docs/a.md', side: 'RIGHT', line: 1, startLine: null, isResolved: false, isPending: false });
     expect(thread?.comments[0]?.bodyHtml).toContain('<strong>good</strong>');
+  });
+
+  it('keeps comments posted as part of a review pending', async () => {
+    const backend = createMemoryBackend(files);
+
+    await backend.postComment({ path: 'docs/a.md', side: 'RIGHT', line: 1, startLine: null }, 'later', 'review');
+
+    expect((await backend.loadThreads())[0]?.isPending).toBe(true);
   });
 });

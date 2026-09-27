@@ -11,6 +11,7 @@ function thread(side: 'LEFT' | 'RIGHT', line: number, startLine: number | null =
     startLine,
     isResolved: false,
     isOutdated: false,
+    isPending: false,
     comments: [],
   };
 }

@@ -1,9 +1,5 @@
-import type { LineRange } from '../markdown/types';
-
 /** GitHub's naming: LEFT is the base (old) file, RIGHT the head (new) file. */
 export type Side = 'LEFT' | 'RIGHT';
-
-export type CommentableLines = Readonly<Record<Side, readonly LineRange[]>>;
 
 export interface ReviewComment {
   readonly id: string;
@@ -25,8 +21,16 @@ export interface ReviewThread {
   readonly startLine: number | null;
   readonly isResolved: boolean;
   readonly isOutdated: boolean;
+  /** Part of the viewer's review that has not been submitted yet (only the viewer sees it). */
+  readonly isPending: boolean;
   readonly comments: readonly ReviewComment[];
 }
+
+/**
+ * `single` publishes the comment immediately ("Comment" on GitHub); `review` adds it to
+ * the viewer's pending review ("Start a review" / "Add review comment").
+ */
+export type CommentMode = 'single' | 'review';
 
 export interface CommentTarget {
   readonly path: string;
