@@ -1,15 +1,20 @@
-import type {
-  ChangedFile,
-  FileChangeType,
-  ReviewComment,
-  ReviewThread,
-  Side,
+import {
+  type ChangedFile,
+  type FileChangeType,
+  type LineRange,
+  parseCommitId,
+  parseLineRange,
+  type ReviewComment,
+  type ReviewThread,
+  type Revision,
+  type Side,
 } from "@mihiraki/core";
+import { type LineKey, parseLineKey } from "./diff-side";
 import { asArray, asRecord, asRecords, asString, type JsonRecord, pick } from "./json";
 
 export interface RouteData {
-  readonly baseOid: string;
-  readonly headOid: string;
+  /** The commits compared on the page. */
+  readonly revision: Revision;
   /** Whether the viewer has started a review that is not submitted yet. */
   readonly hasPendingReview: boolean;
   readonly files: readonly ChangedFile[];
@@ -20,51 +25,46 @@ interface ThreadLocation {
   readonly id: string;
   readonly path: string;
   readonly side: Side;
-  readonly line: number;
-  readonly startLine: number | null;
+  readonly lines: LineRange;
 }
 
 const CHANGE_TYPES: readonly FileChangeType[] = ["ADDED", "MODIFIED", "REMOVED", "RENAMED"];
-const MARKER_KEY = /^([RL])(\d+)$/;
 
 function toChangedFile(summary: JsonRecord): ChangedFile | null {
   const path = asString(summary.path);
   if (!path) return null;
   const changeType = CHANGE_TYPES.find((type) => type === summary.changeType) ?? "MODIFIED";
+  if (changeType !== "RENAMED") return { path, changeType };
   const previousPath = asString(summary.previousPath) ?? asString(summary.oldPath);
-  return {
-    path,
-    previousPath: previousPath && previousPath !== path ? previousPath : null,
-    changeType,
-  };
+  // Without the previous path there is no base version to load; show the file as new.
+  if (!previousPath) return { path, changeType: "ADDED" };
+  return previousPath === path
+    ? { path, changeType: "MODIFIED" }
+    : { path, previousPath, changeType };
 }
 
-function markerLine(marker: string | null): number | null {
-  const match = marker ? MARKER_KEY.exec(marker) : null;
-  return match ? Number(match[2]) : null;
+/**
+ * Lines from the range's `start` key to its last line. Only the last line is kept when
+ * the start is missing or does not fit: on the other side, or after the end.
+ */
+function threadLines(end: LineKey, startKey: string | null): LineRange | null {
+  const start = parseLineKey(startKey);
+  const range = start?.side === end.side ? parseLineRange(start.line, end.line) : null;
+  return range ?? parseLineRange(end.line, end.line);
 }
 
-/** Thread positions come only from `markersMap` keys (`R12` = right side, line 12). */
+/** Thread positions come only from `markersMap` keys (`R12` = head side, line 12). */
 function locateThreads(summary: JsonRecord): ThreadLocation[] {
   const path = asString(summary.path);
   const markers = asRecord(summary.markersMap);
   if (!path || !markers) return [];
   return Object.entries(markers).flatMap(([key, marker]) => {
-    const match = MARKER_KEY.exec(key);
-    if (!match) return [];
-    const side: Side = match[1] === "L" ? "LEFT" : "RIGHT";
+    const end = parseLineKey(key);
+    if (!end) return [];
     return asArray(pick(marker, "threads")).flatMap((ref) => {
       const id = asString(pick(ref, "id"));
-      if (!id) return [];
-      return [
-        {
-          id,
-          path,
-          side,
-          line: Number(match[2]),
-          startLine: markerLine(asString(pick(ref, "start"))),
-        },
-      ];
+      const lines = id ? threadLines(end, asString(pick(ref, "start"))) : null;
+      return id && lines ? [{ id, path, side: end.side, lines }] : [];
     });
   });
 }
@@ -99,9 +99,9 @@ function toThread(location: ThreadLocation, raw: unknown): ReviewThread | null {
 /** Parses the JSON of `GET /:owner/:repo/pull/:n/changes` (GitHub's internal route data). */
 export function parseRouteData(json: unknown): RouteData {
   const route = asRecord(pick(json, "payload", "pullRequestsChangesRoute"));
-  const baseOid = asString(pick(route, "comparison", "fullDiff", "baseOid"));
-  const headOid = asString(pick(route, "comparison", "fullDiff", "headOid"));
-  if (!route || !baseOid || !headOid) {
+  const base = parseCommitId(pick(route, "comparison", "fullDiff", "baseOid"));
+  const head = parseCommitId(pick(route, "comparison", "fullDiff", "headOid"));
+  if (!route || !base || !head) {
     throw new Error(
       "GitHubのpull requestデータを解釈できませんでした（内部仕様が変わった可能性があります）",
     );
@@ -115,8 +115,7 @@ export function parseRouteData(json: unknown): RouteData {
     return toThread(location, threadsById[location.id]) ?? [];
   });
   return {
-    baseOid,
-    headOid,
+    revision: { base, head },
     hasPendingReview: asString(pick(route, "viewerPendingReview", "id")) !== null,
     files: summaries.flatMap((s) => toChangedFile(s) ?? []),
     threads,

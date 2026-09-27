@@ -12,9 +12,8 @@ function threadOn(path: string, text: string): ReviewThread {
   return {
     id: path,
     path,
-    side: "RIGHT",
-    line: 1,
-    startLine: null,
+    side: "head",
+    lines: { start: 1, end: 1 },
     isResolved: false,
     isOutdated: false,
     isPending: false,
@@ -31,13 +30,13 @@ function threadOn(path: string, text: string): ReviewThread {
   };
 }
 
-function columnText(container: Element, side: "LEFT" | "RIGHT"): string {
+function columnText(container: Element, side: "base" | "head"): string {
   return Array.from(container.querySelectorAll(`[data-side="${side}"]`))
     .map((cell) => cell.textContent)
     .join("\n");
 }
 
-async function waitForColumn(container: Element, side: "LEFT" | "RIGHT", text: string) {
+async function waitForColumn(container: Element, side: "base" | "head", text: string) {
   await waitFor(() => expect(columnText(container, side)).toContain(text));
 }
 
@@ -45,8 +44,8 @@ describe("ReviewApp", () => {
   it("opens the first changed Markdown file side by side", async () => {
     const { container } = render(<ReviewApp backend={createMemoryBackend(files)} />);
 
-    await waitForColumn(container, "LEFT", "Alpha version one.");
-    await waitForColumn(container, "RIGHT", "Alpha version two.");
+    await waitForColumn(container, "base", "Alpha version one.");
+    await waitForColumn(container, "head", "Alpha version two.");
   });
 
   it("switches to another file from the file list", async () => {
@@ -54,7 +53,7 @@ describe("ReviewApp", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "docs/b.md" }));
 
-    await waitForColumn(container, "RIGHT", "Bravo text changed.");
+    await waitForColumn(container, "head", "Bravo text changed.");
   });
 
   it("shows only the threads of the selected file", async () => {
@@ -70,9 +69,9 @@ describe("ReviewApp", () => {
 
   it("shows a newly posted comment after submitting", async () => {
     const { container } = render(<ReviewApp backend={createMemoryBackend(files)} />);
-    await waitForColumn(container, "RIGHT", "Alpha version two.");
+    await waitForColumn(container, "head", "Alpha version two.");
 
-    fireEvent.mouseOver(container.querySelector('[data-side="RIGHT"] p') as Element);
+    fireEvent.mouseOver(container.querySelector('[data-side="head"] p') as Element);
     fireEvent.click(screen.getByRole("button", { name: "コメントを追加" }));
     fireEvent.input(screen.getByRole("textbox"), { target: { value: "Nice change" } });
     fireEvent.click(screen.getByRole("button", { name: "コメント" }));

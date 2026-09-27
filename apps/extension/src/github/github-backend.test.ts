@@ -1,12 +1,18 @@
-import type { ChangedFile } from "@mihiraki/core";
+import { type ChangedFile, type CommentTarget, commitId } from "@mihiraki/core";
 import { describe, expect, it, vi } from "vitest";
 import { createGitHubBackend } from "./github-backend";
 
 const pr = { owner: "acme", repo: "docs", number: 7 };
 const BASE = "b".repeat(40);
-const HEAD = "h".repeat(40);
-const NEWER_HEAD = "n".repeat(40);
-const revision = { base: BASE, head: HEAD };
+const HEAD = "c".repeat(40);
+const NEWER_HEAD = "d".repeat(40);
+const revision = { base: commitId(BASE), head: commitId(HEAD) };
+const target: CommentTarget = {
+  path: "docs/a.md",
+  side: "head",
+  lines: { start: 3, end: 3 },
+  revision,
+};
 
 function routeJson(
   threads: Record<string, unknown> = {},
@@ -21,6 +27,7 @@ function routeJson(
           { path: "docs/a.md", changeType: "MODIFIED", markersMap },
           { path: "src/main.ts", changeType: "MODIFIED" },
           { path: "docs/new.md", changeType: "ADDED" },
+          { path: "docs/moved.md", previousPath: "old/moved.md", changeType: "RENAMED" },
         ],
         markers: { threads },
       },
@@ -61,7 +68,7 @@ describe("createGitHubBackend", () => {
 
     const files = await createGitHubBackend(pr, fetchFn).listChangedMarkdownFiles();
 
-    expect(files.map((file) => file.path)).toEqual(["docs/a.md", "docs/new.md"]);
+    expect(files.map((file) => file.path)).toEqual(["docs/a.md", "docs/new.md", "docs/moved.md"]);
     expect(requests[0]?.init).toMatchObject({
       credentials: "include",
       headers: { Accept: "application/json" },
@@ -76,7 +83,7 @@ describe("createGitHubBackend", () => {
       [`https://github.com/acme/docs/blob/${HEAD}/docs/a.md`]: () =>
         new Response(blobPage(["new"])),
     });
-    const file: ChangedFile = { path: "docs/a.md", previousPath: null, changeType: "MODIFIED" };
+    const file: ChangedFile = { path: "docs/a.md", changeType: "MODIFIED" };
 
     expect(await createGitHubBackend(pr, fetchFn).loadFileVersions(file)).toEqual({
       revision,
@@ -91,14 +98,34 @@ describe("createGitHubBackend", () => {
       [`https://github.com/acme/docs/blob/${HEAD}/docs/new.md`]: () =>
         new Response(blobPage(["fresh"])),
     });
-    const file: ChangedFile = { path: "docs/new.md", previousPath: null, changeType: "ADDED" };
+    const file: ChangedFile = { path: "docs/new.md", changeType: "ADDED" };
 
     expect(await createGitHubBackend(pr, fetchFn).loadFileVersions(file)).toEqual({
       revision,
-      base: "",
+      base: null,
       head: "fresh",
     });
     expect(requests.some((request) => request.url.includes(BASE))).toBe(false);
+  });
+
+  it("loads the base version of a renamed file from its previous path", async () => {
+    const { fetchFn } = fakeGitHub({
+      [changesUrl]: json(routeJson()),
+      [`https://github.com/acme/docs/blob/${BASE}/old/moved.md`]: () =>
+        new Response(blobPage(["before"])),
+      [`https://github.com/acme/docs/blob/${HEAD}/docs/moved.md`]: () =>
+        new Response(blobPage(["after"])),
+    });
+    const file: ChangedFile = {
+      path: "docs/moved.md",
+      previousPath: "old/moved.md",
+      changeType: "RENAMED",
+    };
+
+    expect(await createGitHubBackend(pr, fetchFn).loadFileVersions(file)).toMatchObject({
+      base: "before",
+      head: "after",
+    });
   });
 
   it("fails clearly when a blob page carries no source", async () => {
@@ -107,7 +134,7 @@ describe("createGitHubBackend", () => {
       [`https://github.com/acme/docs/blob/${HEAD}/docs/new.md`]: () =>
         new Response("<html></html>"),
     });
-    const file: ChangedFile = { path: "docs/new.md", previousPath: null, changeType: "ADDED" };
+    const file: ChangedFile = { path: "docs/new.md", changeType: "ADDED" };
 
     await expect(createGitHubBackend(pr, fetchFn).loadFileVersions(file)).rejects.toThrow(
       /docs\/new\.md/,
@@ -136,11 +163,7 @@ describe("createGitHubBackend", () => {
       [postUrl]: json({ thread: {} }),
     });
 
-    await createGitHubBackend(pr, fetchFn).postComment(
-      { path: "docs/a.md", side: "RIGHT", line: 3, startLine: null, revision },
-      "LGTM",
-      "review",
-    );
+    await createGitHubBackend(pr, fetchFn).postComment(target, "LGTM", "review");
 
     const post = requests.find((request) => request.url === postUrl);
     expect(post?.init?.method).toBe("POST");
@@ -162,7 +185,7 @@ describe("createGitHubBackend", () => {
 
     await expect(
       createGitHubBackend(pr, fetchFn).postComment(
-        { path: "docs/a.md", side: "RIGHT", line: 90, startLine: null, revision },
+        { ...target, lines: { start: 90, end: 90 } },
         "x",
         "single",
       ),
@@ -179,11 +202,7 @@ describe("createGitHubBackend", () => {
     });
 
     await expect(
-      createGitHubBackend(pr, fetchFn).postComment(
-        { path: "docs/a.md", side: "RIGHT", line: 3, startLine: null, revision },
-        "x",
-        "single",
-      ),
+      createGitHubBackend(pr, fetchFn).postComment(target, "x", "single"),
     ).rejects.toThrow(/保留中のレビュー/);
     expect(requests.some((request) => request.url === postUrl)).toBe(false);
   });
@@ -195,14 +214,6 @@ describe("createGitHubBackend", () => {
       [postUrl]: json({ thread }),
     });
     const onThreadCreated = vi.fn();
-    const target = {
-      path: "docs/a.md",
-      side: "RIGHT" as const,
-      line: 3,
-      startLine: null,
-      revision,
-    };
-
     await createGitHubBackend(pr, fetchFn, { onThreadCreated }).postComment(target, "x", "review");
 
     expect(onThreadCreated).toHaveBeenCalledWith({ target, mode: "review", thread });
@@ -216,11 +227,7 @@ describe("createGitHubBackend", () => {
     const onThreadCreated = vi.fn().mockRejectedValue(new Error("bridge gone"));
 
     await expect(
-      createGitHubBackend(pr, fetchFn, { onThreadCreated }).postComment(
-        { path: "docs/a.md", side: "RIGHT", line: 3, startLine: null, revision },
-        "x",
-        "single",
-      ),
+      createGitHubBackend(pr, fetchFn, { onThreadCreated }).postComment(target, "x", "single"),
     ).resolves.toBeUndefined();
   });
 
@@ -240,11 +247,7 @@ describe("createGitHubBackend", () => {
       [postUrl]: json({ thread: {} }),
     });
 
-    await createGitHubBackend(pr, fetchFn).postComment(
-      { path: "docs/a.md", side: "RIGHT", line: 3, startLine: null, revision },
-      "x",
-      "single",
-    );
+    await createGitHubBackend(pr, fetchFn).postComment(target, "x", "single");
 
     const body = JSON.parse(
       String(requests.find((request) => request.url === postUrl)?.init?.body),
@@ -274,11 +277,7 @@ describe("createGitHubBackend", () => {
     });
 
     await expect(
-      createGitHubBackend(pr, fetchFn).postComment(
-        { path: "docs/a.md", side: "RIGHT", line: 3, startLine: null, revision },
-        "x",
-        "single",
-      ),
+      createGitHubBackend(pr, fetchFn).postComment(target, "x", "single"),
     ).rejects.toThrow(/403/);
   });
 });

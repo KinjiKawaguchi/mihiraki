@@ -1,13 +1,6 @@
-import {
-  type CommentMode,
-  type CommentTarget,
-  type Revision,
-  type Side,
-  toCommentTarget,
-} from "@mihiraki/core";
+import type { CommentMode, CommentTarget, Revision } from "@mihiraki/core";
 import { CommentForm } from "../comment-form/CommentForm";
 import { selectionEnd, selectionRange, useBlockSelection } from "./block-selection";
-import { lineElementAt, readLines } from "./rendered-dom";
 
 interface CommentSelectionOptions {
   readonly path: string;
@@ -21,11 +14,7 @@ interface CommentSelectionOptions {
   ) => Promise<void>;
 }
 
-function isSide(value: string | null): value is Side {
-  return value === "LEFT" || value === "RIGHT";
-}
-
-/** Selection of blocks to comment on, the form for it, and the drag handling that extends it. */
+/** Selection of blocks to comment on and the form for it. */
 export function useCommentSelection({
   path,
   revision,
@@ -35,7 +24,8 @@ export function useCommentSelection({
   const selection = useBlockSelection();
   const current = selection.selection;
   const range = current ? selectionRange(current) : null;
-  const target = current && range ? toCommentTarget(path, current.side, range, revision) : null;
+  const target: CommentTarget | null =
+    current && range ? { path, side: current.side, lines: range, revision } : null;
 
   const form = current && target && (
     <CommentForm
@@ -50,24 +40,12 @@ export function useCommentSelection({
     />
   );
 
-  const handleMouseMove = (event: MouseEvent) => {
-    if (!current?.isDragging) return;
-    const cell = (event.target as Element | null)?.closest?.("[data-row-index]");
-    const content = cell?.querySelector(".markdown-body");
-    const element = content ? lineElementAt(content, event.target, event.clientY) : null;
-    const lines = element ? readLines(element) : null;
-    const side = cell?.getAttribute("data-side") ?? null;
-    if (!cell || !lines || !isSide(side)) return;
-    selection.extend(side, { rowIndex: Number(cell.getAttribute("data-row-index")), lines });
-  };
-
   return {
     selection,
-    isDragging: current?.isDragging === true,
+    isDragging: current?.phase === "dragging",
     selectedSide: current?.side ?? null,
     range,
-    formAt: current && !current.isDragging ? selectionEnd(current) : null,
+    formAt: current?.phase === "composing" ? selectionEnd(current) : null,
     form,
-    handleMouseMove,
   };
 }

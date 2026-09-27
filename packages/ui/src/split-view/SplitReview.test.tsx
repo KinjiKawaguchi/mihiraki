@@ -1,9 +1,9 @@
-import type { ReviewThread } from "@mihiraki/core";
-import { fireEvent, render, screen, waitFor } from "@testing-library/preact";
+import { commitId, type ReviewThread } from "@mihiraki/core";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/preact";
 import { describe, expect, it, vi } from "vitest";
 import { SplitReview } from "./SplitReview";
 
-const revision = { base: "b1", head: "h1" };
+const revision = { base: commitId("b1b1b1b"), head: commitId("c1c1c1c") };
 
 const base = "# Title\n\nThe cache expires after ten minutes.\n";
 const head = "# Title\n\nThe cache expires after five minutes.\n";
@@ -21,7 +21,7 @@ function renderReview(overrides: Partial<Parameters<typeof SplitReview>[0]> = {}
       {...overrides}
     />,
   );
-  const column = (side: "LEFT" | "RIGHT") =>
+  const column = (side: "base" | "head") =>
     Array.from(view.container.querySelectorAll(`[data-side="${side}"]`))
       .map((cell) => cell.textContent)
       .join("\n");
@@ -36,9 +36,8 @@ function openCommentForm(element: Element) {
 const thread: ReviewThread = {
   id: "t1",
   path: "doc.md",
-  side: "LEFT",
-  line: 3,
-  startLine: null,
+  side: "base",
+  lines: { start: 3, end: 3 },
   isResolved: false,
   isOutdated: false,
   isPending: false,
@@ -58,15 +57,15 @@ describe("SplitReview", () => {
   it("renders the base version on the left and the head version on the right", () => {
     const { column } = renderReview();
 
-    expect(column("LEFT")).toContain("ten minutes");
-    expect(column("RIGHT")).toContain("five minutes");
+    expect(column("base")).toContain("ten minutes");
+    expect(column("head")).toContain("five minutes");
   });
 
   it("highlights changed words inside a modified block", () => {
     const { container } = renderReview();
 
-    expect(container.querySelector('[data-side="RIGHT"] ins.mhr-ins')?.textContent).toBe("five");
-    expect(container.querySelector('[data-side="LEFT"] del.mhr-del')?.textContent).toBe("ten");
+    expect(container.querySelector('[data-side="head"] ins.mhr-ins')?.textContent).toBe("five");
+    expect(container.querySelector('[data-side="base"] del.mhr-del')?.textContent).toBe("ten");
   });
 
   it("strips scripts and event handlers from rendered markdown", () => {
@@ -80,7 +79,7 @@ describe("SplitReview", () => {
 
   it("posts a comment on the hovered block with its source lines and side", async () => {
     const { container, onSubmitComment } = renderReview();
-    const paragraph = container.querySelector('[data-side="RIGHT"] p[data-line-start="3"]');
+    const paragraph = container.querySelector('[data-side="head"] p[data-line-start="3"]');
 
     openCommentForm(paragraph as Element);
     fireEvent.input(screen.getByRole("textbox"), { target: { value: "Why five?" } });
@@ -88,7 +87,7 @@ describe("SplitReview", () => {
 
     await waitFor(() =>
       expect(onSubmitComment).toHaveBeenCalledWith(
-        { path: "doc.md", side: "RIGHT", line: 3, startLine: null, revision },
+        { path: "doc.md", side: "head", lines: { start: 3, end: 3 }, revision },
         "Why five?",
         "single",
       ),
@@ -98,7 +97,7 @@ describe("SplitReview", () => {
   it("closes the form after the comment is posted", async () => {
     const { container } = renderReview();
 
-    openCommentForm(container.querySelector('[data-side="RIGHT"] p') as Element);
+    openCommentForm(container.querySelector('[data-side="head"] p') as Element);
     fireEvent.input(screen.getByRole("textbox"), { target: { value: "ok" } });
     fireEvent.click(screen.getByRole("button", { name: "コメント" }));
 
@@ -109,7 +108,7 @@ describe("SplitReview", () => {
     const onSubmitComment = vi.fn().mockRejectedValue(new Error("Line could not be resolved."));
     const { container } = renderReview({ onSubmitComment });
 
-    openCommentForm(container.querySelector('[data-side="RIGHT"] p') as Element);
+    openCommentForm(container.querySelector('[data-side="head"] p') as Element);
     fireEvent.input(screen.getByRole("textbox"), { target: { value: "ok" } });
     fireEvent.click(screen.getByRole("button", { name: "コメント" }));
 
@@ -120,8 +119,8 @@ describe("SplitReview", () => {
   it("shows a single add button even when the pointer leaves a block without a mouseleave", () => {
     const { container } = renderReview();
 
-    fireEvent.mouseOver(container.querySelector('[data-side="RIGHT"] p') as Element);
-    fireEvent.mouseOver(container.querySelector('[data-side="LEFT"] h1') as Element);
+    fireEvent.mouseOver(container.querySelector('[data-side="head"] p') as Element);
+    fireEvent.mouseOver(container.querySelector('[data-side="base"] h1') as Element);
 
     expect(screen.getAllByRole("button", { name: "コメントを追加" })).toHaveLength(1);
   });
@@ -129,7 +128,7 @@ describe("SplitReview", () => {
   it("starts a pending review from the form", async () => {
     const { container, onSubmitComment } = renderReview();
 
-    openCommentForm(container.querySelector('[data-side="RIGHT"] p') as Element);
+    openCommentForm(container.querySelector('[data-side="head"] p') as Element);
     fireEvent.input(screen.getByRole("textbox"), { target: { value: "later" } });
     fireEvent.click(screen.getByRole("button", { name: "レビューを開始" }));
 
@@ -142,7 +141,7 @@ describe("SplitReview", () => {
     // GitHub publishes the whole pending review when a single comment is posted meanwhile.
     const { container, onSubmitComment } = renderReview({ hasPendingReview: true });
 
-    openCommentForm(container.querySelector('[data-side="RIGHT"] p') as Element);
+    openCommentForm(container.querySelector('[data-side="head"] p') as Element);
     fireEvent.input(screen.getByRole("textbox"), { target: { value: "more" } });
 
     expect(screen.queryByRole("button", { name: "単発でコメント" })).toBeNull();
@@ -156,13 +155,21 @@ describe("SplitReview", () => {
   it("marks threads that belong to an unsubmitted review", () => {
     const { column } = renderReview({ threads: [{ ...thread, isPending: true }] });
 
-    expect(column("LEFT")).toContain("保留中");
+    expect(column("base")).toContain("保留中");
   });
 
   it("shows existing threads beside the block on their own side", () => {
     const { column } = renderReview({ threads: [thread] });
 
-    expect(column("LEFT")).toContain("Why ten?");
-    expect(column("RIGHT")).not.toContain("Why ten?");
+    expect(column("base")).toContain("Why ten?");
+    expect(column("head")).not.toContain("Why ten?");
+  });
+
+  it("shows threads that no block can hold above the rows, instead of dropping them", () => {
+    // A base-side thread on a file that has no base version.
+    renderReview({ base: null, threads: [thread] });
+
+    const unplaced = screen.getByRole("region", { name: "本文の横に表示できないコメント" });
+    expect(within(unplaced).getByText("Why ten?")).toBeTruthy();
   });
 });

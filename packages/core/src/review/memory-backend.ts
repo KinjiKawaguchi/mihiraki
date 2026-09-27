@@ -1,22 +1,28 @@
 import { createMarkdownRenderer } from "../markdown/renderer";
-import type { ChangedFile, FileChangeType, ReviewBackend } from "./backend";
+import type { ChangedFile, ReviewBackend } from "./backend";
+import { commitId } from "./commit-id";
 import type { CommentMode, CommentTarget, ReviewThread, Revision } from "./types";
 
 export interface MemoryFile {
-  readonly base: string;
-  readonly head: string;
+  /** null when the file does not exist in the base revision. */
+  readonly base: string | null;
+  /** null when the file does not exist in the head revision. */
+  readonly head: string | null;
 }
 
 export interface MemoryBackendOptions {
   readonly revision?: Revision;
 }
 
-const DEFAULT_REVISION: Revision = { base: "base", head: "head" };
+const DEFAULT_REVISION: Revision = {
+  base: commitId("0".repeat(40)),
+  head: commitId("1".repeat(40)),
+};
 
-function changeTypeOf(file: MemoryFile): FileChangeType {
-  if (file.base === "") return "ADDED";
-  if (file.head === "") return "REMOVED";
-  return "MODIFIED";
+function toChangedFile(path: string, file: MemoryFile): ChangedFile {
+  if (file.base === null) return { path, changeType: "ADDED" };
+  if (file.head === null) return { path, changeType: "REMOVED" };
+  return { path, changeType: "MODIFIED" };
 }
 
 /**
@@ -37,8 +43,7 @@ export function createMemoryBackend(
       id,
       path: target.path,
       side: target.side,
-      line: target.line,
-      startLine: target.startLine,
+      lines: target.lines,
       isResolved: false,
       isOutdated: false,
       isPending: mode === "review",
@@ -56,12 +61,8 @@ export function createMemoryBackend(
   };
 
   return {
-    listChangedMarkdownFiles: async (): Promise<ChangedFile[]> =>
-      Object.entries(files).map(([path, file]) => ({
-        path,
-        previousPath: null,
-        changeType: changeTypeOf(file),
-      })),
+    listChangedMarkdownFiles: async () =>
+      Object.entries(files).map(([path, file]) => toChangedFile(path, file)),
     loadFileVersions: async (file) => {
       const found = files[file.path];
       if (!found) throw new Error(`Unknown file: ${file.path}`);

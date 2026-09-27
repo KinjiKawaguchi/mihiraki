@@ -74,7 +74,6 @@ export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: Co
   const draft = useCommentDraft(onSubmit);
   const [isPreview, setIsPreview] = useState(false);
   const shortcutMode: CommentMode = hasPendingReview ? "review" : "single";
-  const lines = { start: target.startLine ?? target.line, end: target.line };
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key === "Escape" && !draft.isSubmitting) onCancel();
@@ -83,7 +82,7 @@ export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: Co
 
   return (
     <form class="mhr-form" onSubmit={(event) => event.preventDefault()}>
-      <div class="mhr-form__target">{formatLineRange(target.side, lines)} にコメント</div>
+      <div class="mhr-form__target">{formatLineRange(target.side, target.lines)} にコメント</div>
       <EditorTabs isPreview={isPreview} onChange={setIsPreview} />
       {isPreview ? (
         <CommentPreview body={draft.body} />

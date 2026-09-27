@@ -2,20 +2,23 @@ import {
   buildSplitRows,
   type CommentMode,
   type CommentTarget,
-  groupThreadsByRow,
+  placeThreads,
   type ReviewThread,
   type Revision,
   type Side,
 } from "@mihiraki/core";
 import { useMemo, useState } from "preact/hooks";
 import { SIDE_LABEL } from "../format";
+import { UnplacedThreads } from "../threads/ThreadList";
 import { SplitCellView } from "./SplitCellView";
 import { useCommentSelection } from "./use-comment-selection";
 
 export interface SplitReviewProps {
   readonly path: string;
-  readonly base: string;
-  readonly head: string;
+  /** Text of the base version; null when the file does not exist there. */
+  readonly base: string | null;
+  /** Text of the head version; null when the file does not exist there. */
+  readonly head: string | null;
   readonly threads: readonly ReviewThread[];
   /** Revision of `base` / `head`; comments are anchored to it. */
   readonly revision: Revision;
@@ -28,7 +31,8 @@ export interface SplitReviewProps {
   ) => Promise<void>;
 }
 
-const SIDES: readonly Side[] = ["LEFT", "RIGHT"];
+/** Base on the left, head on the right, as in GitHub's split diff. */
+const SIDES: readonly Side[] = ["base", "head"];
 
 /** Side-by-side rendered diff of one Markdown file with inline review comments. */
 export function SplitReview({
@@ -41,34 +45,33 @@ export function SplitReview({
   onSubmitComment,
 }: SplitReviewProps) {
   const rows = useMemo(() => buildSplitRows(base, head), [base, head]);
-  const threadsByRow = useMemo(() => groupThreadsByRow(rows, threads), [rows, threads]);
+  const placement = useMemo(() => placeThreads(rows, threads), [rows, threads]);
   const [activeCell, setActiveCell] = useState<string | null>(null);
   const comment = useCommentSelection({ path, revision, hasPendingReview, onSubmitComment });
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: tracks the pointer while dragging a selection from "+"
+    // biome-ignore lint/a11y/noStaticElementInteractions: ends a selection dragged from "+" (the window listener starts only after rendering)
     <div
       class={`mhr-split${comment.isDragging ? " mhr-split--selecting" : ""}`}
-      onMouseMove={comment.handleMouseMove}
       onMouseUp={comment.selection.finish}
     >
+      <UnplacedThreads threads={placement.unplaced} />
       <div class="mhr-split__header">
-        <div>{SIDE_LABEL.LEFT}</div>
-        <div>{SIDE_LABEL.RIGHT}</div>
+        {SIDES.map((side) => (
+          <div key={side}>{SIDE_LABEL[side]}</div>
+        ))}
       </div>
       {rows.map((row, rowIndex) => (
         <div class="mhr-row" key={rowIndex}>
           {SIDES.map((side) => {
             const cellKey = `${rowIndex}:${side}`;
             const isSelectionSide = comment.selectedSide === side;
-            const rowThreads = threadsByRow[rowIndex];
             return (
               <SplitCellView
                 key={side}
                 side={side}
                 row={row}
-                rowIndex={rowIndex}
-                threads={(side === "LEFT" ? rowThreads?.left : rowThreads?.right) ?? []}
+                threads={placement.byRow[rowIndex]?.[side] ?? []}
                 isActive={activeCell === cellKey}
                 onActivate={() => setActiveCell(cellKey)}
                 highlightedLines={isSelectionSide ? comment.range : null}
@@ -80,6 +83,7 @@ export function SplitReview({
                 form={comment.form}
                 onSelectionStart={(lines) => comment.selection.start(side, { rowIndex, lines })}
                 onRequestComment={(lines) => comment.selection.open(side, { rowIndex, lines })}
+                onPointerOverLines={(lines) => comment.selection.extend(side, { rowIndex, lines })}
               />
             );
           })}

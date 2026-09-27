@@ -4,7 +4,7 @@ import { parseRouteData } from "./route-data";
 const response = {
   payload: {
     pullRequestsChangesRoute: {
-      comparison: { fullDiff: { baseOid: "b".repeat(40), headOid: "h".repeat(40) } },
+      comparison: { fullDiff: { baseOid: "b".repeat(40), headOid: "c".repeat(40) } },
       diffSummaries: [
         {
           path: "docs/design.md",
@@ -17,6 +17,7 @@ const response = {
         },
         { path: "src/app.ts", changeType: "MODIFIED", markersMap: {} },
         { path: "docs/new.markdown", changeType: "ADDED" },
+        { path: "docs/moved.md", previousPath: "old/moved.md", changeType: "RENAMED" },
       ],
       markers: {
         threads: {
@@ -69,27 +70,71 @@ describe("parseRouteData", () => {
   it("reads the commits being compared", () => {
     const route = parseRouteData(response);
 
-    expect(route.baseOid).toBe("b".repeat(40));
-    expect(route.headOid).toBe("h".repeat(40));
+    expect(route.revision).toEqual({ base: "b".repeat(40), head: "c".repeat(40) });
+  });
+
+  it("rejects commits that are not commit hashes", () => {
+    const broken = structuredClone(response);
+    broken.payload.pullRequestsChangesRoute.comparison.fullDiff.headOid = "main";
+
+    expect(() => parseRouteData(broken)).toThrow(/pull request/);
   });
 
   it("lists changed files with their change type", () => {
     expect(parseRouteData(response).files).toEqual([
-      { path: "docs/design.md", previousPath: null, changeType: "MODIFIED" },
-      { path: "src/app.ts", previousPath: null, changeType: "MODIFIED" },
-      { path: "docs/new.markdown", previousPath: null, changeType: "ADDED" },
+      { path: "docs/design.md", changeType: "MODIFIED" },
+      { path: "src/app.ts", changeType: "MODIFIED" },
+      { path: "docs/new.markdown", changeType: "ADDED" },
+      { path: "docs/moved.md", previousPath: "old/moved.md", changeType: "RENAMED" },
     ]);
+  });
+
+  it("shows a rename without the previous path as an added file, since its base cannot be found", () => {
+    const route = parseRouteData({
+      payload: {
+        pullRequestsChangesRoute: {
+          ...response.payload.pullRequestsChangesRoute,
+          diffSummaries: [{ path: "docs/moved.md", changeType: "RENAMED" }],
+        },
+      },
+    });
+
+    expect(route.files).toEqual([{ path: "docs/moved.md", changeType: "ADDED" }]);
   });
 
   it("locates line threads through the markers map", () => {
     const threads = parseRouteData(response).threads;
 
-    expect(
-      threads.map((t) => [t.id, t.path, t.side, t.line, t.startLine, t.isResolved, t.isOutdated]),
-    ).toEqual([
-      ["101", "docs/design.md", "RIGHT", 12, null, false, false],
-      ["102", "docs/design.md", "RIGHT", 68, 57, true, false],
-      ["103", "docs/design.md", "LEFT", 4, null, false, true],
+    expect(threads.map((t) => [t.id, t.path, t.side, t.lines, t.isResolved, t.isOutdated])).toEqual(
+      [
+        ["101", "docs/design.md", "head", { start: 12, end: 12 }, false, false],
+        ["102", "docs/design.md", "head", { start: 57, end: 68 }, true, false],
+        ["103", "docs/design.md", "base", { start: 4, end: 4 }, false, true],
+      ],
+    );
+  });
+
+  it("keeps only the last line when a range start does not fit the same side before it", () => {
+    const route = parseRouteData({
+      payload: {
+        pullRequestsChangesRoute: {
+          ...response.payload.pullRequestsChangesRoute,
+          diffSummaries: [
+            {
+              path: "docs/design.md",
+              markersMap: {
+                R12: { threads: [{ id: 101, start: "L3" }] },
+                R68: { threads: [{ id: 102, start: "R90" }] },
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    expect(route.threads.map((t) => t.lines)).toEqual([
+      { start: 12, end: 12 },
+      { start: 68, end: 68 },
     ]);
   });
 

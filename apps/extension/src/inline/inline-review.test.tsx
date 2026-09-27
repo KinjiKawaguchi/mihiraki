@@ -105,9 +105,8 @@ describe("startInlineReview", () => {
     const pending: ReviewThread = {
       id: "p1",
       path: "docs/a.md",
-      side: "RIGHT",
-      line: 1,
-      startLine: null,
+      side: "head",
+      lines: { start: 1, end: 1 },
       isResolved: false,
       isOutdated: false,
       isPending: true,

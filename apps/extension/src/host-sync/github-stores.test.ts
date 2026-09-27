@@ -76,7 +76,7 @@ function storesWith(actions: ReturnType<typeof createActions>) {
 }
 
 const message = {
-  target: { path: "docs/a.md", side: "RIGHT" as const, line: 20, startLine: 18 },
+  target: { path: "docs/a.md", side: "head" as const, lines: { start: 18, end: 20 } },
   mode: "review" as const,
   thread: { id: "2791962937", subjectType: "line" },
 };

@@ -1,9 +1,10 @@
 export type { AlignedRow, RowKind } from "./diff/align";
 export { alignBlocks } from "./diff/align";
 export { diffBlockHtml } from "./diff/inline-diff";
-export type { RowThreads, SplitCell, SplitRow } from "./document/split-document";
-export { buildSplitRows, groupThreadsByRow } from "./document/split-document";
+export type { RowThreads, SplitCell, SplitRow, ThreadPlacement } from "./document/split-document";
+export { buildSplitRows, placeThreads } from "./document/split-document";
 export { parseBlocks } from "./markdown/blocks";
+export { parseLineRange } from "./markdown/line-range";
 export { renderMarkdown } from "./markdown/render";
 export type { BlockKind, LineRange, SourceBlock } from "./markdown/types";
 export type {
@@ -13,7 +14,8 @@ export type {
   ReviewBackend,
   ThreadSnapshot,
 } from "./review/backend";
-export { toCommentTarget } from "./review/comment-target";
+export { basePathOf, headPathOf } from "./review/changed-file";
+export { type CommitId, commitId, parseCommitId } from "./review/commit-id";
 export {
   createMemoryBackend,
   type MemoryBackendOptions,

@@ -1,7 +1,8 @@
 import type { ReviewComment, ReviewThread } from "@mihiraki/core";
 import { useMemo, useState } from "preact/hooks";
 import { formatDateTime, formatLineRange } from "../format";
-import { sanitizeHtml } from "../sanitize";
+import { SafeHtml } from "../safe-html/SafeHtml";
+import { sanitizeHtml } from "../safe-html/sanitize";
 
 function CommentView({ comment }: { readonly comment: ReviewComment }) {
   const safeBody = useMemo(() => sanitizeHtml(comment.bodyHtml), [comment.bodyHtml]);
@@ -19,18 +20,17 @@ function CommentView({ comment }: { readonly comment: ReviewComment }) {
           </a>
         )}
       </div>
-      <div class="mhr-comment__body markdown-body" dangerouslySetInnerHTML={{ __html: safeBody }} />
+      <SafeHtml class="mhr-comment__body markdown-body" html={safeBody} />
     </div>
   );
 }
 
 function ThreadView({ thread }: { readonly thread: ReviewThread }) {
   const [isExpanded, setIsExpanded] = useState(!thread.isResolved);
-  const lines = { start: thread.startLine ?? thread.line, end: thread.line };
   return (
     <div class={`mhr-thread${thread.isResolved ? " mhr-thread--resolved" : ""}`}>
       <button type="button" class="mhr-thread__header" onClick={() => setIsExpanded(!isExpanded)}>
-        <span>{formatLineRange(thread.side, lines)}</span>
+        <span>{formatLineRange(thread.side, thread.lines)}</span>
         <span>{thread.comments.length}件</span>
         {thread.isPending && <span class="mhr-badge mhr-badge--pending">保留中</span>}
         {thread.isResolved && <span class="mhr-badge">解決済み</span>}
@@ -39,6 +39,19 @@ function ThreadView({ thread }: { readonly thread: ReviewThread }) {
       {isExpanded &&
         thread.comments.map((comment) => <CommentView key={comment.id} comment={comment} />)}
     </div>
+  );
+}
+
+const UNPLACED_LABEL = "本文の横に表示できないコメント";
+
+/** Threads that no rendered block can hold, e.g. base-side threads of an added file. */
+export function UnplacedThreads({ threads }: { readonly threads: readonly ReviewThread[] }) {
+  if (threads.length === 0) return null;
+  return (
+    <section class="mhr-unplaced" aria-label={UNPLACED_LABEL}>
+      <p class="mhr-unplaced__title">{UNPLACED_LABEL}</p>
+      <ThreadList threads={threads} />
+    </section>
   );
 }
 

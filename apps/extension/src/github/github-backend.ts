@@ -1,4 +1,4 @@
-import type { ChangedFile, ReviewBackend } from "@mihiraki/core";
+import { basePathOf, type ChangedFile, headPathOf, type ReviewBackend } from "@mihiraki/core";
 import type { ThreadCreatedMessage } from "../host-sync/protocol";
 import { buildCreateCommentPayload } from "./comment-payload";
 import {
@@ -22,10 +22,6 @@ export interface GitHubBackendOptions {
   /** Called after a comment is stored, e.g. to show the new thread in GitHub's own UI too. */
   readonly onThreadCreated?: (created: ThreadCreatedMessage) => unknown;
   readonly timeoutMs?: number;
-}
-
-function revisionOf(route: RouteData) {
-  return { base: route.baseOid, head: route.headOid };
 }
 
 /**
@@ -55,20 +51,20 @@ export function createGitHubBackend(
       (await currentRoute()).files.filter((file) => MARKDOWN_PATH.test(file.path)),
 
     loadFileVersions: async (file: ChangedFile) => {
-      const route = await currentRoute();
+      const { revision } = await currentRoute();
+      const basePath = basePathOf(file);
+      const headPath = headPathOf(file);
       const [base, head] = await Promise.all([
-        file.changeType === "ADDED"
-          ? ""
-          : fetchFileSource(request, pr, route.baseOid, file.previousPath ?? file.path),
-        file.changeType === "REMOVED" ? "" : fetchFileSource(request, pr, route.headOid, file.path),
+        basePath === null ? null : fetchFileSource(request, pr, revision.base, basePath),
+        headPath === null ? null : fetchFileSource(request, pr, revision.head, headPath),
       ]);
-      return { revision: revisionOf(route), base, head };
+      return { revision, base, head };
     },
 
     // Always refetched so comments posted elsewhere (or just now) show up.
     loadThreads: async () => {
-      const route = await refreshRoute();
-      return { revision: revisionOf(route), threads: route.threads };
+      const { revision, threads } = await refreshRoute();
+      return { revision, threads };
     },
 
     postComment: async (target, body, mode) => {

@@ -5,7 +5,7 @@ import type { ReviewStores } from "./github-stores";
 import type { ThreadCreatedMessage } from "./protocol";
 
 const message: ThreadCreatedMessage = {
-  target: { path: "docs/a.md", side: "RIGHT", line: 3, startLine: null },
+  target: { path: "docs/a.md", side: "head", lines: { start: 3, end: 3 } },
   mode: "review",
   thread: { id: "42" },
 };

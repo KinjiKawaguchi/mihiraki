@@ -70,6 +70,14 @@ describe("alignBlocks", () => {
     ]);
   });
 
+  it("marks the side a block is missing from as null", () => {
+    const [added] = align("", "# New\n");
+    const [removed] = align("# Gone\n", "");
+
+    expect(added).toMatchObject({ kind: "added", base: null });
+    expect(removed).toMatchObject({ kind: "removed", head: null });
+  });
+
   it("treats every block of a new file as added", () => {
     expect(align("", "# New\n\nbody\n").map((row) => row.kind)).toEqual(["added", "added"]);
   });

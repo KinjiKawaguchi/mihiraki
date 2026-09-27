@@ -2,13 +2,17 @@ import { diffArrays } from "diff";
 import type { SourceBlock } from "../markdown/types";
 import { blockSimilarity } from "./similarity";
 
-export type RowKind = "unchanged" | "modified" | "added" | "removed";
+/** A block of one version lined up with its counterpart in the other, if it has one. */
+export type AlignedRow =
+  | {
+      readonly kind: "unchanged" | "modified";
+      readonly base: SourceBlock;
+      readonly head: SourceBlock;
+    }
+  | { readonly kind: "removed"; readonly base: SourceBlock; readonly head: null }
+  | { readonly kind: "added"; readonly base: null; readonly head: SourceBlock };
 
-export interface AlignedRow {
-  readonly kind: RowKind;
-  readonly base?: SourceBlock;
-  readonly head?: SourceBlock;
-}
+export type RowKind = AlignedRow["kind"];
 
 /** Minimum similarity for a removed and an added block to be shown as one edited block. */
 const PAIRING_THRESHOLD = 0.5;
@@ -81,10 +85,12 @@ function alignChangedRegion(
     rows.push(
       ...removed
         .slice(nextBase, pair.baseIndex)
-        .map((base) => ({ kind: "removed" as const, base })),
+        .map((base) => ({ kind: "removed" as const, base, head: null })),
     );
     rows.push(
-      ...added.slice(nextHead, pair.headIndex).map((head) => ({ kind: "added" as const, head })),
+      ...added
+        .slice(nextHead, pair.headIndex)
+        .map((head) => ({ kind: "added" as const, base: null, head })),
     );
     const base = removed[pair.baseIndex];
     const head = added[pair.headIndex];
@@ -93,6 +99,14 @@ function alignChangedRegion(
     nextHead = pair.headIndex + 1;
   }
   return rows;
+}
+
+/** Runs of identical blocks, paired one for one. */
+function pairUnchanged(base: readonly SourceBlock[], head: readonly SourceBlock[]): AlignedRow[] {
+  return base.flatMap((block, index) => {
+    const counterpart = head[index];
+    return counterpart ? [{ kind: "unchanged" as const, base: block, head: counterpart }] : [];
+  });
 }
 
 /**
@@ -125,9 +139,12 @@ export function alignBlocks(
     rows.push(...alignChangedRegion(pendingRemoved, pendingAdded));
     pendingRemoved = [];
     pendingAdded = [];
-    for (let k = 0; k < count; k += 1) {
-      rows.push({ kind: "unchanged", base: base[baseIndex + k], head: head[headIndex + k] });
-    }
+    rows.push(
+      ...pairUnchanged(
+        base.slice(baseIndex, baseIndex + count),
+        head.slice(headIndex, headIndex + count),
+      ),
+    );
     baseIndex += count;
     headIndex += count;
   }
