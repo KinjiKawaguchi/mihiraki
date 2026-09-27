@@ -1,41 +1,30 @@
 import { createGitHubBackend } from "../../src/github/github-backend";
-import { isFilesTab, parsePullRequestLocation } from "../../src/github/pr-location";
+import {
+  isFilesTab,
+  type PullRequestLocation,
+  parsePullRequestLocation,
+} from "../../src/github/pr-location";
 import { createHostSyncClient } from "../../src/host-sync/client";
 import { inheritHostThemeColors } from "../../src/inline/host-theme";
 import { startInlineReview } from "../../src/inline/inline-review";
+import { createSessionManager } from "../../src/session/session-manager";
 import cssText from "./style.css?inline";
 
-interface Session {
-  readonly pullRequestKey: string;
-  readonly stopped: Promise<() => void>;
+function keyOf(pr: PullRequestLocation): string {
+  return `${pr.owner}/${pr.repo}#${pr.number}`;
 }
 
-function pullRequestKeyOf(href: string): string | null {
-  const pr = isFilesTab(href) ? parsePullRequestLocation(href) : null;
-  return pr ? `${pr.owner}/${pr.repo}#${pr.number}` : null;
-}
-
-function startSession(href: string, pullRequestKey: string): Session | null {
-  const pr = parsePullRequestLocation(href);
-  if (!pr) return null;
+function startReview(pr: PullRequestLocation): Promise<() => void> {
   const hostSync = createHostSyncClient(document);
   const backend = createGitHubBackend(pr, undefined, {
     onThreadCreated: (created) => hostSync.announceThreadCreated(created),
   });
-  const stopped = startInlineReview({
+  return startInlineReview({
     document,
     backend,
     cssText: inheritHostThemeColors(cssText),
     hostSync,
-  }).catch((error: unknown) => {
-    console.warn("[mihiraki] 分割表示を準備できませんでした:", error);
-    return () => undefined;
   });
-  return { pullRequestKey, stopped };
-}
-
-function endSession(session: Session | null): void {
-  void session?.stopped.then((stop) => stop());
 }
 
 export default defineContentScript({
@@ -45,18 +34,24 @@ export default defineContentScript({
   cssInjectionMode: "manual",
 
   main(ctx) {
-    let session: Session | null = null;
+    const pullRequests = new Map<string, PullRequestLocation>();
+    const sessions = createSessionManager({
+      start: (key) => {
+        const pr = pullRequests.get(key);
+        return pr ? startReview(pr) : Promise.reject(new Error(`Unknown pull request: ${key}`));
+      },
+      onGiveUp: (error) => console.warn("[mihiraki] 分割表示を準備できませんでした:", error),
+    });
 
     const sync = () => {
       const href = window.location.href;
-      const pullRequestKey = pullRequestKeyOf(href);
-      if (session?.pullRequestKey === pullRequestKey) return;
-      endSession(session);
-      session = pullRequestKey ? startSession(href, pullRequestKey) : null;
+      const pr = isFilesTab(href) ? parsePullRequestLocation(href) : null;
+      if (pr) pullRequests.set(keyOf(pr), pr);
+      sessions.sync(pr ? keyOf(pr) : null);
     };
 
     sync();
     ctx.addEventListener(window, "wxt:locationchange", sync);
-    ctx.onInvalidated(() => endSession(session));
+    ctx.onInvalidated(() => sessions.stop());
   },
 });

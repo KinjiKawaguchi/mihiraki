@@ -5,15 +5,18 @@ import { createGitHubBackend } from "./github-backend";
 const pr = { owner: "acme", repo: "docs", number: 7 };
 const BASE = "b".repeat(40);
 const HEAD = "h".repeat(40);
+const NEWER_HEAD = "n".repeat(40);
+const revision = { base: BASE, head: HEAD };
 
 function routeJson(
   threads: Record<string, unknown> = {},
   markersMap: Record<string, unknown> = {},
+  headOid = HEAD,
 ) {
   return {
     payload: {
       pullRequestsChangesRoute: {
-        comparison: { fullDiff: { baseOid: BASE, headOid: HEAD } },
+        comparison: { fullDiff: { baseOid: BASE, headOid } },
         diffSummaries: [
           { path: "docs/a.md", changeType: "MODIFIED", markersMap },
           { path: "src/main.ts", changeType: "MODIFIED" },
@@ -76,6 +79,7 @@ describe("createGitHubBackend", () => {
     const file: ChangedFile = { path: "docs/a.md", previousPath: null, changeType: "MODIFIED" };
 
     expect(await createGitHubBackend(pr, fetchFn).loadFileVersions(file)).toEqual({
+      revision,
       base: "old",
       head: "new",
     });
@@ -90,6 +94,7 @@ describe("createGitHubBackend", () => {
     const file: ChangedFile = { path: "docs/new.md", previousPath: null, changeType: "ADDED" };
 
     expect(await createGitHubBackend(pr, fetchFn).loadFileVersions(file)).toEqual({
+      revision,
       base: "",
       head: "fresh",
     });
@@ -121,8 +126,8 @@ describe("createGitHubBackend", () => {
     });
     const backend = createGitHubBackend(pr, fetchFn);
 
-    expect(await backend.loadThreads()).toHaveLength(0);
-    expect(await backend.loadThreads()).toHaveLength(1);
+    expect((await backend.loadThreads()).threads).toHaveLength(0);
+    expect((await backend.loadThreads()).threads).toHaveLength(1);
   });
 
   it("posts a review comment through the internal endpoint", async () => {
@@ -132,7 +137,7 @@ describe("createGitHubBackend", () => {
     });
 
     await createGitHubBackend(pr, fetchFn).postComment(
-      { path: "docs/a.md", side: "RIGHT", line: 3, startLine: null },
+      { path: "docs/a.md", side: "RIGHT", line: 3, startLine: null, revision },
       "LGTM",
       "review",
     );
@@ -157,7 +162,7 @@ describe("createGitHubBackend", () => {
 
     await expect(
       createGitHubBackend(pr, fetchFn).postComment(
-        { path: "docs/a.md", side: "RIGHT", line: 90, startLine: null },
+        { path: "docs/a.md", side: "RIGHT", line: 90, startLine: null, revision },
         "x",
         "single",
       ),
@@ -175,7 +180,7 @@ describe("createGitHubBackend", () => {
 
     await expect(
       createGitHubBackend(pr, fetchFn).postComment(
-        { path: "docs/a.md", side: "RIGHT", line: 3, startLine: null },
+        { path: "docs/a.md", side: "RIGHT", line: 3, startLine: null, revision },
         "x",
         "single",
       ),
@@ -190,7 +195,13 @@ describe("createGitHubBackend", () => {
       [postUrl]: json({ thread }),
     });
     const onThreadCreated = vi.fn();
-    const target = { path: "docs/a.md", side: "RIGHT" as const, line: 3, startLine: null };
+    const target = {
+      path: "docs/a.md",
+      side: "RIGHT" as const,
+      line: 3,
+      startLine: null,
+      revision,
+    };
 
     await createGitHubBackend(pr, fetchFn, { onThreadCreated }).postComment(target, "x", "review");
 
@@ -206,11 +217,54 @@ describe("createGitHubBackend", () => {
 
     await expect(
       createGitHubBackend(pr, fetchFn, { onThreadCreated }).postComment(
-        { path: "docs/a.md", side: "RIGHT", line: 3, startLine: null },
+        { path: "docs/a.md", side: "RIGHT", line: 3, startLine: null, revision },
         "x",
         "single",
       ),
     ).resolves.toBeUndefined();
+  });
+
+  it("reports the latest revision with the threads, so a stale view can be noticed", async () => {
+    const { fetchFn } = fakeGitHub({ [changesUrl]: json(routeJson({}, {}, NEWER_HEAD)) });
+
+    expect((await createGitHubBackend(pr, fetchFn).loadThreads()).revision).toEqual({
+      base: BASE,
+      head: NEWER_HEAD,
+    });
+  });
+
+  it("posts against the revision the reviewer was looking at, even after the PR moved on", async () => {
+    // The lines were chosen in the text of HEAD; GitHub does the same for a stale page.
+    const { fetchFn, requests } = fakeGitHub({
+      [changesUrl]: json(routeJson({}, {}, NEWER_HEAD)),
+      [postUrl]: json({ thread: {} }),
+    });
+
+    await createGitHubBackend(pr, fetchFn).postComment(
+      { path: "docs/a.md", side: "RIGHT", line: 3, startLine: null, revision },
+      "x",
+      "single",
+    );
+
+    const body = JSON.parse(
+      String(requests.find((request) => request.url === postUrl)?.init?.body),
+    );
+    expect(body).toMatchObject({
+      comparisonStartOid: BASE,
+      comparisonEndOid: HEAD,
+      positioning: { commitOid: HEAD },
+    });
+  });
+
+  it("gives up on requests GitHub does not answer", async () => {
+    const hangingFetch = (_input: string, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+      });
+
+    await expect(
+      createGitHubBackend(pr, hangingFetch, { timeoutMs: 20 }).listChangedMarkdownFiles(),
+    ).rejects.toThrow(/応答/);
   });
 
   it("reports other failures with the HTTP status", async () => {
@@ -221,7 +275,7 @@ describe("createGitHubBackend", () => {
 
     await expect(
       createGitHubBackend(pr, fetchFn).postComment(
-        { path: "docs/a.md", side: "RIGHT", line: 3, startLine: null },
+        { path: "docs/a.md", side: "RIGHT", line: 3, startLine: null, revision },
         "x",
         "single",
       ),

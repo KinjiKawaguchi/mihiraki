@@ -45,6 +45,7 @@ export function ReviewApp({ backend, onClose }: ReviewAppProps) {
             backend={backend}
             file={selected}
             threads={threads.threads}
+            threadsRevision={threads.revision}
             onSubmitComment={submitComment}
           />
         </main>

@@ -1,4 +1,4 @@
-import type { FileVersions, ReviewThread } from "@mihiraki/core";
+import type { MemoryFile, ReviewThread } from "@mihiraki/core";
 
 const designDocBase = `---
 title: キャッシュ設計
@@ -78,7 +78,7 @@ Install with pnpm. Node 24 or later is required.
 Run \`pnpm dev\`.
 `;
 
-export const sampleFiles: Readonly<Record<string, FileVersions>> = {
+export const sampleFiles: Readonly<Record<string, MemoryFile>> = {
   "docs/cache-design.md": { base: designDocBase, head: designDocHead },
   "README.md": { base: readmeBase, head: readmeHead },
 };

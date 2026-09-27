@@ -53,4 +53,35 @@ describe("createThreadStore", () => {
     expect(store.getThreads()).toEqual([thread]);
     expect(store.getError()).toBeInstanceOf(Error);
   });
+
+  it("exposes the revision the threads belong to", async () => {
+    const revision = { base: "b", head: "h2" };
+    const store = createThreadStore(createMemoryBackend({}, [thread], { revision }));
+
+    expect(store.getRevision()).toBeNull();
+    await store.refresh();
+
+    expect(store.getRevision()).toEqual(revision);
+  });
+
+  it("keeps the newest result when refreshes finish out of order", async () => {
+    const pending: ((threads: readonly ReviewThread[]) => void)[] = [];
+    const backend: ReviewBackend = {
+      ...createMemoryBackend({}),
+      loadThreads: () =>
+        new Promise((resolve) => {
+          pending.push((threads) => resolve({ revision: { base: "b", head: "h" }, threads }));
+        }),
+    };
+    const store = createThreadStore(backend);
+    const older = store.refresh();
+    const newer = store.refresh();
+
+    pending[1]?.([thread]);
+    await newer;
+    pending[0]?.([]);
+    await older;
+
+    expect(store.getThreads()).toEqual([thread]);
+  });
 });

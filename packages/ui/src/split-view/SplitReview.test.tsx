@@ -3,6 +3,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/preact";
 import { describe, expect, it, vi } from "vitest";
 import { SplitReview } from "./SplitReview";
 
+const revision = { base: "b1", head: "h1" };
+
 const base = "# Title\n\nThe cache expires after ten minutes.\n";
 const head = "# Title\n\nThe cache expires after five minutes.\n";
 
@@ -14,6 +16,7 @@ function renderReview(overrides: Partial<Parameters<typeof SplitReview>[0]> = {}
       base={base}
       head={head}
       threads={[]}
+      revision={revision}
       onSubmitComment={onSubmitComment}
       {...overrides}
     />,
@@ -85,7 +88,7 @@ describe("SplitReview", () => {
 
     await waitFor(() =>
       expect(onSubmitComment).toHaveBeenCalledWith(
-        { path: "doc.md", side: "RIGHT", line: 3, startLine: null },
+        { path: "doc.md", side: "RIGHT", line: 3, startLine: null, revision },
         "Why five?",
         "single",
       ),

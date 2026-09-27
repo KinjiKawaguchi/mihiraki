@@ -1,11 +1,13 @@
-import type {
-  ChangedFile,
-  CommentMode,
-  CommentTarget,
-  ReviewBackend,
-  ReviewThread,
+import {
+  type ChangedFile,
+  type CommentMode,
+  type CommentTarget,
+  isSameRevision,
+  type ReviewBackend,
+  type ReviewThread,
+  type Revision,
 } from "@mihiraki/core";
-import { useMemo } from "preact/hooks";
+import { useMemo, useState } from "preact/hooks";
 import { errorMessage } from "../format";
 import { useAsync } from "../review-app/use-async";
 import { SplitReview } from "../split-view/SplitReview";
@@ -15,6 +17,8 @@ export interface FileSplitReviewProps {
   readonly file: ChangedFile;
   /** Threads of the whole pull request; only this file's are shown. */
   readonly threads: readonly ReviewThread[];
+  /** Revision the threads were loaded for; null while unknown. */
+  readonly threadsRevision: Revision | null;
   readonly onSubmitComment: (
     target: CommentTarget,
     body: string,
@@ -22,11 +26,29 @@ export interface FileSplitReviewProps {
   ) => Promise<void>;
 }
 
+function StaleRevisionNotice({ onReload }: { readonly onReload: () => void }) {
+  return (
+    <p class="mhr-notice mhr-notice--stale">
+      このPRは表示中の版から更新されています。コメントの位置は表示中の版に対して付きます。
+      <button type="button" class="mhr-button" onClick={onReload}>
+        最新の版を読み込む
+      </button>
+    </p>
+  );
+}
+
 /** Loads both versions of one file and shows them as a split review. */
-export function FileSplitReview({ backend, file, threads, onSubmitComment }: FileSplitReviewProps) {
+export function FileSplitReview({
+  backend,
+  file,
+  threads,
+  threadsRevision,
+  onSubmitComment,
+}: FileSplitReviewProps) {
+  const [reloads, setReloads] = useState(0);
   const loaded = useAsync(
     async () => ({ path: file.path, versions: await backend.loadFileVersions(file) }),
-    [backend, file.path],
+    [backend, file.path, reloads],
   );
   const fileThreads = useMemo(
     () => threads.filter((thread) => thread.path === file.path),
@@ -38,14 +60,20 @@ export function FileSplitReview({ backend, file, threads, onSubmitComment }: Fil
     return <p class="mhr-message mhr-message--error">{errorMessage(loaded.error)}</p>;
   if (!loaded.value || loaded.value.path !== file.path)
     return <p class="mhr-message">読み込み中…</p>;
+  const { versions } = loaded.value;
+  const isStale = threadsRevision !== null && !isSameRevision(threadsRevision, versions.revision);
   return (
-    <SplitReview
-      path={file.path}
-      base={loaded.value.versions.base}
-      head={loaded.value.versions.head}
-      threads={fileThreads}
-      hasPendingReview={hasPendingReview}
-      onSubmitComment={onSubmitComment}
-    />
+    <>
+      {isStale && <StaleRevisionNotice onReload={() => setReloads((count) => count + 1)} />}
+      <SplitReview
+        path={file.path}
+        base={versions.base}
+        head={versions.head}
+        threads={fileThreads}
+        revision={versions.revision}
+        hasPendingReview={hasPendingReview}
+        onSubmitComment={onSubmitComment}
+      />
+    </>
   );
 }

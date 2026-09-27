@@ -1,3 +1,12 @@
+/**
+ * The pair of commits a review is looking at. Line numbers only mean something relative
+ * to one revision, so versions, threads and comment targets each say which one they use.
+ */
+export interface Revision {
+  readonly base: string;
+  readonly head: string;
+}
+
 /** GitHub's naming: LEFT is the base (old) file, RIGHT the head (new) file. */
 export type Side = "LEFT" | "RIGHT";
 
@@ -37,4 +46,6 @@ export interface CommentTarget {
   readonly side: Side;
   readonly line: number;
   readonly startLine: number | null;
+  /** The revision whose text the lines were selected in. */
+  readonly revision: Revision;
 }

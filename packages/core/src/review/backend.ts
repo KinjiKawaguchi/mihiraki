@@ -1,4 +1,4 @@
-import type { CommentMode, CommentTarget, ReviewThread } from "./types";
+import type { CommentMode, CommentTarget, ReviewThread, Revision } from "./types";
 
 export type FileChangeType = "ADDED" | "MODIFIED" | "REMOVED" | "RENAMED";
 
@@ -10,8 +10,15 @@ export interface ChangedFile {
 }
 
 export interface FileVersions {
+  readonly revision: Revision;
   readonly base: string;
   readonly head: string;
+}
+
+export interface ThreadSnapshot {
+  /** The revision the threads' line numbers refer to (the latest one, for a live host). */
+  readonly revision: Revision;
+  readonly threads: readonly ReviewThread[];
 }
 
 /**
@@ -21,6 +28,6 @@ export interface FileVersions {
 export interface ReviewBackend {
   listChangedMarkdownFiles(): Promise<readonly ChangedFile[]>;
   loadFileVersions(file: ChangedFile): Promise<FileVersions>;
-  loadThreads(): Promise<readonly ReviewThread[]>;
+  loadThreads(): Promise<ThreadSnapshot>;
   postComment(target: CommentTarget, body: string, mode: CommentMode): Promise<void>;
 }

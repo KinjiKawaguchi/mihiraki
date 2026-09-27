@@ -1,4 +1,8 @@
 import type { CommentMode, CommentTarget } from "@mihiraki/core";
+
+/** Where a thread sits; the bridge does not need to know which revision it was selected in. */
+export type ThreadPosition = Omit<CommentTarget, "revision">;
+
 import { asRecord, asString } from "../github/json";
 
 /**
@@ -15,14 +19,14 @@ export const HOST_SYNC_EVENTS = {
 } as const;
 
 export interface ThreadCreatedMessage {
-  readonly target: CommentTarget;
+  readonly target: ThreadPosition;
   readonly mode: CommentMode;
   /** The `thread` object GitHub returned from create_review_comment. */
   readonly thread: Readonly<Record<string, unknown>>;
 }
 
 /** GitHub's description of a thread's position (its `subject` / `positioning`). */
-export function threadSubjectOf(target: CommentTarget) {
+export function threadSubjectOf(target: ThreadPosition) {
   return {
     path: target.path,
     startLine: target.startLine ?? target.line,
@@ -34,11 +38,11 @@ export function threadSubjectOf(target: CommentTarget) {
 }
 
 /** GitHub keys threads by side and last line, e.g. `R20` or `L5`. */
-export function diffLineKeyOf(target: CommentTarget): string {
+export function diffLineKeyOf(target: ThreadPosition): string {
   return `${target.side === "LEFT" ? "L" : "R"}${target.line}`;
 }
 
-function parseTarget(value: unknown): CommentTarget | null {
+function parseTarget(value: unknown): ThreadPosition | null {
   const record = asRecord(value);
   const path = asString(record?.path);
   const side = record?.side;

@@ -1,5 +1,5 @@
 import type { LineRange, Side } from "@mihiraki/core";
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 
 /** A source-mapped element of one row, identified by the lines it covers. */
 export interface BlockRef {
@@ -8,6 +8,8 @@ export interface BlockRef {
 }
 
 export interface BlockSelection {
+  /** Distinguishes selections, so work started for one never acts on the next. */
+  readonly serial: number;
   readonly side: Side;
   readonly anchor: BlockRef;
   readonly focus: BlockRef;
@@ -32,7 +34,12 @@ export function selectionEnd(selection: BlockSelection): BlockRef {
 /** GitHub-style "press + and drag" selection of consecutive elements on one side. */
 export function useBlockSelection() {
   const [selection, setSelection] = useState<BlockSelection | null>(null);
+  const serial = useRef(0);
   const isDragging = selection?.isDragging === true;
+  const begin = (side: Side, ref: BlockRef, isDraggingNow: boolean): BlockSelection => {
+    serial.current += 1;
+    return { serial: serial.current, side, anchor: ref, focus: ref, isDragging: isDraggingNow };
+  };
 
   const finish = () =>
     setSelection((current) => (current?.isDragging ? { ...current, isDragging: false } : current));
@@ -45,15 +52,16 @@ export function useBlockSelection() {
 
   return {
     selection,
-    start: (side: Side, ref: BlockRef) =>
-      setSelection({ side, anchor: ref, focus: ref, isDragging: true }),
-    open: (side: Side, ref: BlockRef) =>
-      setSelection({ side, anchor: ref, focus: ref, isDragging: false }),
+    start: (side: Side, ref: BlockRef) => setSelection(begin(side, ref, true)),
+    open: (side: Side, ref: BlockRef) => setSelection(begin(side, ref, false)),
     extend: (side: Side, ref: BlockRef) =>
       setSelection((current) =>
         current?.isDragging && current.side === side ? { ...current, focus: ref } : current,
       ),
     finish,
     clear: () => setSelection(null),
+    /** Clears only if `serial` is still the open selection (e.g. after a slow submit). */
+    clearIfCurrent: (expected: number) =>
+      setSelection((current) => (current?.serial === expected ? null : current)),
   };
 }

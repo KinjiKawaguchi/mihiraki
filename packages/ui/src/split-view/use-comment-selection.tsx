@@ -1,10 +1,18 @@
-import { type CommentMode, type CommentTarget, type Side, toCommentTarget } from "@mihiraki/core";
+import {
+  type CommentMode,
+  type CommentTarget,
+  type Revision,
+  type Side,
+  toCommentTarget,
+} from "@mihiraki/core";
 import { CommentForm } from "../comment-form/CommentForm";
 import { selectionEnd, selectionRange, useBlockSelection } from "./block-selection";
 import { lineElementAt, readLines } from "./rendered-dom";
 
 interface CommentSelectionOptions {
   readonly path: string;
+  /** Revision of the text being shown, which the selected lines refer to. */
+  readonly revision: Revision;
   readonly hasPendingReview: boolean;
   readonly onSubmitComment: (
     target: CommentTarget,
@@ -20,21 +28,23 @@ function isSide(value: string | null): value is Side {
 /** Selection of blocks to comment on, the form for it, and the drag handling that extends it. */
 export function useCommentSelection({
   path,
+  revision,
   hasPendingReview,
   onSubmitComment,
 }: CommentSelectionOptions) {
   const selection = useBlockSelection();
   const current = selection.selection;
   const range = current ? selectionRange(current) : null;
-  const target = current && range ? toCommentTarget(path, current.side, range) : null;
+  const target = current && range ? toCommentTarget(path, current.side, range, revision) : null;
 
-  const form = target && (
+  const form = current && target && (
     <CommentForm
+      key={current.serial}
       target={target}
       hasPendingReview={hasPendingReview}
       onSubmit={async (body, mode) => {
         await onSubmitComment(target, body, mode);
-        selection.clear();
+        selection.clearIfCurrent(current.serial);
       }}
       onCancel={selection.clear}
     />
