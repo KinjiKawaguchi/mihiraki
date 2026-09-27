@@ -22,6 +22,7 @@ GitHub標準のrich diffは、変更前後を1つの文書に重ねたunified表
 ```sh
 pnpm install
 pnpm test               # 全パッケージのテスト
+pnpm test:e2e           # ホバーやドラッグなど、実際のレイアウトに依存する操作をブラウザで確認（初回は npx playwright install chromium-headless-shell）
 pnpm typecheck
 pnpm dev:playground     # http://localhost:5178 でサンプル文書を表示
 pnpm build:extension    # apps/extension/.output/chrome-mv3 に出力

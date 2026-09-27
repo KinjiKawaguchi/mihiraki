@@ -7,7 +7,8 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "dev:extension": "pnpm --filter @better-gh-md/extension dev",
     "build:extension": "pnpm --filter @better-gh-md/extension build",
-    "dev:playground": "pnpm --filter @better-gh-md/playground dev"
+    "dev:playground": "pnpm --filter @better-gh-md/playground dev",
+    "test:e2e": "pnpm --filter @better-gh-md/playground test:e2e"
   },
   "packageManager": "pnpm@9.15.0"
 }
