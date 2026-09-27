@@ -50,9 +50,17 @@ pnpm build:extension    # apps/extension/.output/chrome-mv3 に出力
 - **組み込み先のDOM**: ファイル枠 `div#diff-<パスのSHA-256>`、見出し `[data-diff-header-wrapper]`、切り替え `[data-component="SegmentedControl"]` だけに依存する（ハッシュ化されたクラス名は使わない）。前提は `apps/extension/src/inline/github-file-dom.ts` に集約している。GitHub側が変わったときは `apps/extension/harness/` のスクリプトをPlaywrightで注入して確かめられる。
 - **配色**: github.com上ではGitHubのテーマ変数をそのまま使うので、dark dimmedやハイコントラストにも追従する。
 - **描画**: markdown-itによる自前描画。GitHubとの差として、シンタックスハイライト、mermaid・数式の描画、脚注には未対応。相対パスの画像も表示されない。
-- **コメント可能な行**: GitHubは差分のhunk（変更行の前後3行）の外への投稿を拒否することがある。範囲外のブロックではフォームに警告を出す。
-- **未検証**: 左側（変更前）への複数行コメント、リネームされたファイルの旧パスの取得。
+- **コメント可能な行**: 変更されたファイルなら、差分のhunkの外の行にもコメントできる（github.comで確認）。
+- **未検証**: 左側（変更前）への複数行コメント。
 
 ## 謝辞
 
 GitHub内部エンドポイントの仕様は、[chienyuanchang/rich-diff-comments](https://github.com/chienyuanchang/rich-diff-comments)（MIT）の `docs/github/DEV_NOTES.md` を参考にしました。
+
+## プライバシー
+
+拡張機能はデータを収集せず、通信先は github.com だけです。詳しくは [PRIVACY_POLICY.md](PRIVACY_POLICY.md) を参照してください。
+
+## ライセンス
+
+[MIT](LICENSE)

@@ -11,7 +11,7 @@
     "test": "vitest run",
     "typecheck": "wxt prepare && tsc -p tsconfig.json",
     "build:harness": "vite build --config harness/vite.config.ts",
-    "icons": "node icons/render.mjs"
+    "artwork": "node artwork/render.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
