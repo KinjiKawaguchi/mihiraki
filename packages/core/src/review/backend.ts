@@ -1,3 +1,5 @@
+import type { Result } from "../result";
+import type { PostCommentError } from "./post-comment-error";
 import type { CommentMode, CommentTarget, ReviewThread, Revision } from "./types";
 
 export type ChangedFile =
@@ -23,6 +25,11 @@ export interface ThreadSnapshot {
   /** The revision the threads' line numbers refer to (the latest one, for a live host). */
   readonly revision: Revision;
   readonly threads: readonly ReviewThread[];
+  /**
+   * Whether the viewer has started a review that is not submitted yet. Reported by the
+   * host, since a pending review may exist without any pending thread.
+   */
+  readonly hasPendingReview: boolean;
 }
 
 /**
@@ -33,5 +40,9 @@ export interface ReviewBackend {
   listChangedMarkdownFiles(): Promise<readonly ChangedFile[]>;
   loadFileVersions(file: ChangedFile): Promise<FileVersions>;
   loadThreads(): Promise<ThreadSnapshot>;
-  postComment(target: CommentTarget, body: string, mode: CommentMode): Promise<void>;
+  postComment(
+    target: CommentTarget,
+    body: string,
+    mode: CommentMode,
+  ): Promise<Result<void, PostCommentError>>;
 }

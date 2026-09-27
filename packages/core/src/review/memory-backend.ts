@@ -1,5 +1,7 @@
 import { createMarkdownRenderer } from "../markdown/renderer";
+import { err, ok } from "../result";
 import type { ChangedFile, ReviewBackend } from "./backend";
+import { availableCommentModes } from "./comment-modes";
 import { commitId } from "./commit-id";
 import type { CommentMode, CommentTarget, ReviewThread, Revision } from "./types";
 
@@ -36,6 +38,7 @@ export function createMemoryBackend(
 ): ReviewBackend {
   const md = createMarkdownRenderer();
   let threads = initialThreads;
+  const hasPendingReview = () => threads.some((thread) => thread.isPending);
 
   const toThread = (target: CommentTarget, body: string, mode: CommentMode): ReviewThread => {
     const id = String(threads.length + 1);
@@ -68,9 +71,12 @@ export function createMemoryBackend(
       if (!found) throw new Error(`Unknown file: ${file.path}`);
       return { revision, base: found.base, head: found.head };
     },
-    loadThreads: async () => ({ revision, threads }),
+    loadThreads: async () => ({ revision, threads, hasPendingReview: hasPendingReview() }),
     postComment: async (target, body, mode) => {
+      if (!availableCommentModes(hasPendingReview()).includes(mode))
+        return err({ kind: "pendingReviewConflict" });
       threads = [...threads, toThread(target, body, mode)];
+      return ok(undefined);
     },
   };
 }

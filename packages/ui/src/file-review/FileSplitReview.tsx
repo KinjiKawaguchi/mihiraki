@@ -1,13 +1,12 @@
 import {
   type ChangedFile,
-  type CommentMode,
-  type CommentTarget,
   isSameRevision,
   type ReviewBackend,
   type ReviewThread,
   type Revision,
 } from "@mihiraki/core";
 import { useMemo, useState } from "preact/hooks";
+import type { SubmitComment } from "../comment-form/submit-comment";
 import { errorMessage } from "../format";
 import { useAsync } from "../review-app/use-async";
 import { SplitReview } from "../split-view/SplitReview";
@@ -19,11 +18,9 @@ export interface FileSplitReviewProps {
   readonly threads: readonly ReviewThread[];
   /** Revision the threads were loaded for; null while unknown. */
   readonly threadsRevision: Revision | null;
-  readonly onSubmitComment: (
-    target: CommentTarget,
-    body: string,
-    mode: CommentMode,
-  ) => Promise<void>;
+  /** Whether the viewer has an unsubmitted review on the pull request. */
+  readonly hasPendingReview: boolean;
+  readonly onSubmitComment: SubmitComment;
 }
 
 function StaleRevisionNotice({ onReload }: { readonly onReload: () => void }) {
@@ -43,6 +40,7 @@ export function FileSplitReview({
   file,
   threads,
   threadsRevision,
+  hasPendingReview,
   onSubmitComment,
 }: FileSplitReviewProps) {
   const [reloads, setReloads] = useState(0);
@@ -54,7 +52,6 @@ export function FileSplitReview({
     () => threads.filter((thread) => thread.path === file.path),
     [threads, file.path],
   );
-  const hasPendingReview = useMemo(() => threads.some((thread) => thread.isPending), [threads]);
 
   if (loaded.status === "error")
     return <p class="mhr-message mhr-message--error">{errorMessage(loaded.error)}</p>;

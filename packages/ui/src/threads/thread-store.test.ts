@@ -68,6 +68,15 @@ describe("createThreadStore", () => {
     expect(store.getRevision()).toEqual(revision);
   });
 
+  it("exposes whether the viewer has a pending review, as the backend reports it", async () => {
+    const store = createThreadStore(createMemoryBackend({}, [{ ...thread, isPending: true }]));
+
+    expect(store.hasPendingReview()).toBe(false);
+    await store.refresh();
+
+    expect(store.hasPendingReview()).toBe(true);
+  });
+
   it("keeps the newest result when refreshes finish out of order", async () => {
     const pending: ((threads: readonly ReviewThread[]) => void)[] = [];
     const backend: ReviewBackend = {
@@ -78,6 +87,7 @@ describe("createThreadStore", () => {
             resolve({
               revision: { base: commitId("b1b1b1b"), head: commitId("c1c1c1c") },
               threads,
+              hasPendingReview: false,
             }),
           );
         }),

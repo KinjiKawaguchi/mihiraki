@@ -7,6 +7,7 @@ export { parseBlocks } from "./markdown/blocks";
 export { parseLineRange } from "./markdown/line-range";
 export { renderMarkdown } from "./markdown/render";
 export type { BlockKind, LineRange, SourceBlock } from "./markdown/types";
+export { err, ok, type Result } from "./result";
 export type {
   ChangedFile,
   FileChangeType,
@@ -15,12 +16,14 @@ export type {
   ThreadSnapshot,
 } from "./review/backend";
 export { basePathOf, headPathOf } from "./review/changed-file";
+export { availableCommentModes } from "./review/comment-modes";
 export { type CommitId, commitId, parseCommitId } from "./review/commit-id";
 export {
   createMemoryBackend,
   type MemoryBackendOptions,
   type MemoryFile,
 } from "./review/memory-backend";
+export type { PostCommentError } from "./review/post-comment-error";
 export { isSameRevision } from "./review/revision";
 export type {
   CommentMode,

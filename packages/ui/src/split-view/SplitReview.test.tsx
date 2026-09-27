@@ -1,7 +1,7 @@
-import { commitId, type ReviewThread } from "@mihiraki/core";
+import { commitId, err, ok, type ReviewThread } from "@mihiraki/core";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/preact";
 import { describe, expect, it, vi } from "vitest";
-import { SplitReview } from "./SplitReview";
+import { SplitReview, type SplitReviewProps } from "./SplitReview";
 
 const revision = { base: commitId("b1b1b1b"), head: commitId("c1c1c1c") };
 
@@ -9,7 +9,7 @@ const base = "# Title\n\nThe cache expires after ten minutes.\n";
 const head = "# Title\n\nThe cache expires after five minutes.\n";
 
 function renderReview(overrides: Partial<Parameters<typeof SplitReview>[0]> = {}) {
-  const onSubmitComment = vi.fn().mockResolvedValue(undefined);
+  const onSubmitComment = vi.fn().mockResolvedValue(ok(undefined));
   const view = render(
     <SplitReview
       path="doc.md"
@@ -104,16 +104,39 @@ describe("SplitReview", () => {
     await waitFor(() => expect(screen.queryByRole("textbox")).toBeNull());
   });
 
-  it("keeps the form open and shows the reason when posting fails", async () => {
-    const onSubmitComment = vi.fn().mockRejectedValue(new Error("Line could not be resolved."));
+  async function submitAndFail(onSubmitComment: SplitReviewProps["onSubmitComment"]) {
     const { container } = renderReview({ onSubmitComment });
-
     openCommentForm(container.querySelector('[data-side="head"] p') as Element);
     fireEvent.input(screen.getByRole("textbox"), { target: { value: "ok" } });
     fireEvent.click(screen.getByRole("button", { name: "コメント" }));
+  }
 
-    expect(await screen.findByText(/Line could not be resolved/)).toBeTruthy();
-    expect(screen.getByRole("textbox")).toBeTruthy();
+  it("keeps the form open and explains why the host could not place the comment", async () => {
+    await submitAndFail(vi.fn().mockResolvedValue(err({ kind: "lineNotResolved" })));
+
+    expect(await screen.findByText(/最新の版を読み込/)).toBeTruthy();
+    expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe("ok");
+  });
+
+  it("explains why a single comment cannot be posted while a review is pending", async () => {
+    await submitAndFail(vi.fn().mockResolvedValue(err({ kind: "pendingReviewConflict" })));
+
+    expect(await screen.findByText(/レビューに追加/)).toBeTruthy();
+  });
+
+  it("shows the host's own explanation when it refuses the comment", async () => {
+    await submitAndFail(
+      vi.fn().mockResolvedValue(err({ kind: "rejected", detail: "HTTP 403: Forbidden" })),
+    );
+
+    expect(await screen.findByText(/HTTP 403: Forbidden/)).toBeTruthy();
+  });
+
+  it("stays usable when submitting fails unexpectedly", async () => {
+    await submitAndFail(vi.fn().mockRejectedValue(new Error("boom")));
+
+    expect(await screen.findByText(/boom/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "コメント" })).toHaveProperty("disabled", false);
   });
 
   it("shows a single add button even when the pointer leaves a block without a mouseleave", () => {

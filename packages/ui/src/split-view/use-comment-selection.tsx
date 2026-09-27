@@ -1,5 +1,6 @@
-import type { CommentMode, CommentTarget, Revision } from "@mihiraki/core";
+import type { CommentTarget, Revision } from "@mihiraki/core";
 import { CommentForm } from "../comment-form/CommentForm";
+import type { SubmitComment } from "../comment-form/submit-comment";
 import { selectionEnd, selectionRange, useBlockSelection } from "./block-selection";
 
 interface CommentSelectionOptions {
@@ -7,11 +8,7 @@ interface CommentSelectionOptions {
   /** Revision of the text being shown, which the selected lines refer to. */
   readonly revision: Revision;
   readonly hasPendingReview: boolean;
-  readonly onSubmitComment: (
-    target: CommentTarget,
-    body: string,
-    mode: CommentMode,
-  ) => Promise<void>;
+  readonly onSubmitComment: SubmitComment;
 }
 
 /** Selection of blocks to comment on and the form for it. */
@@ -33,8 +30,9 @@ export function useCommentSelection({
       target={target}
       hasPendingReview={hasPendingReview}
       onSubmit={async (body, mode) => {
-        await onSubmitComment(target, body, mode);
-        selection.clearIfCurrent(current.serial);
+        const result = await onSubmitComment(target, body, mode);
+        if (result.ok) selection.clearIfCurrent(current.serial);
+        return result;
       }}
       onCancel={selection.clear}
     />

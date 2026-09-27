@@ -1,13 +1,12 @@
 import {
   buildSplitRows,
-  type CommentMode,
-  type CommentTarget,
   placeThreads,
   type ReviewThread,
   type Revision,
   type Side,
 } from "@mihiraki/core";
 import { useMemo, useState } from "preact/hooks";
+import type { SubmitComment } from "../comment-form/submit-comment";
 import { SIDE_LABEL } from "../format";
 import { UnplacedThreads } from "../threads/ThreadList";
 import { SplitCellView } from "./SplitCellView";
@@ -24,11 +23,7 @@ export interface SplitReviewProps {
   readonly revision: Revision;
   /** Whether the viewer already has an unsubmitted review on this pull request. */
   readonly hasPendingReview?: boolean;
-  readonly onSubmitComment: (
-    target: CommentTarget,
-    body: string,
-    mode: CommentMode,
-  ) => Promise<void>;
+  readonly onSubmitComment: SubmitComment;
 }
 
 /** Base on the left, head on the right, as in GitHub's split diff. */

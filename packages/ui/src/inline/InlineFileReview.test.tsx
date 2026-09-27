@@ -91,6 +91,22 @@ describe("InlineFileReview", () => {
     expect(screen.getByRole("button", { name: "レビューに追加" })).toBeTruthy();
   });
 
+  it("offers only adding to the review when the host reports a pending review without threads", async () => {
+    // A review can be started without any comment yet, e.g. from GitHub's own review dialog.
+    const memory = createMemoryBackend(files);
+    const backend: ReviewBackend = {
+      ...memory,
+      loadThreads: async () => ({ ...(await memory.loadThreads()), hasPendingReview: true }),
+    };
+    const { container } = await renderInline(backend);
+
+    fireEvent.mouseOver(container.querySelector('[data-side="head"] p') as Element);
+    fireEvent.click(screen.getByRole("button", { name: "コメントを追加" }));
+
+    expect(screen.getByRole("button", { name: "レビューに追加" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "コメント" })).toBeNull();
+  });
+
   it("shows the host-specific notice while the viewer has a pending review", async () => {
     const backend = createMemoryBackend(files, [
       { ...threadOn("docs/b.md", "pending"), isPending: true },

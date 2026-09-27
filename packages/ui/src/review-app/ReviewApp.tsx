@@ -1,5 +1,6 @@
-import type { CommentMode, CommentTarget, ReviewBackend } from "@mihiraki/core";
+import type { ReviewBackend } from "@mihiraki/core";
 import { useEffect, useMemo, useState } from "preact/hooks";
+import type { SubmitComment } from "../comment-form/submit-comment";
 import { FileSplitReview } from "../file-review/FileSplitReview";
 import { errorMessage } from "../format";
 import { createThreadStore, useThreadStore } from "../threads/thread-store";
@@ -25,9 +26,11 @@ export function ReviewApp({ backend, onClose }: ReviewAppProps) {
   const fileList = files.value ?? [];
   const selected = fileList.find((file) => file.path === selectedPath) ?? fileList[0] ?? null;
 
-  const submitComment = async (target: CommentTarget, body: string, mode: CommentMode) => {
-    await backend.postComment(target, body, mode);
+  const submitComment: SubmitComment = async (target, body, mode) => {
+    const result = await backend.postComment(target, body, mode);
+    // Also after a failure: the pending review or the revision may be what changed.
     await store.refresh();
+    return result;
   };
 
   const renderBody = () => {
@@ -46,6 +49,7 @@ export function ReviewApp({ backend, onClose }: ReviewAppProps) {
             file={selected}
             threads={threads.threads}
             threadsRevision={threads.revision}
+            hasPendingReview={threads.hasPendingReview}
             onSubmitComment={submitComment}
           />
         </main>
