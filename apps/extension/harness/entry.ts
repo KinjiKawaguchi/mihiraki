@@ -4,6 +4,8 @@
  */
 import cssText from '../entrypoints/github.content/style.css?inline';
 import { createGitHubBackend } from '../src/github/github-backend';
+import { installHostBridge } from '../src/host-sync/bridge';
+import { createHostSyncClient } from '../src/host-sync/client';
 import { parsePullRequestLocation } from '../src/github/pr-location';
 import { inheritHostThemeColors } from '../src/inline/host-theme';
 import { startInlineReview } from '../src/inline/inline-review';
@@ -16,5 +18,9 @@ declare global {
 
 const pr = parsePullRequestLocation(window.location.href);
 if (pr) {
-  window.betterGhMd = startInlineReview({ document, backend: createGitHubBackend(pr), cssText: inheritHostThemeColors(cssText) });
+  // The harness runs entirely in the main world, so the bridge lives in the same bundle.
+  installHostBridge(document);
+  const hostSync = createHostSyncClient(document);
+  const backend = createGitHubBackend(pr, undefined, { onThreadCreated: (created) => hostSync.announceThreadCreated(created) });
+  window.betterGhMd = startInlineReview({ document, backend, cssText: inheritHostThemeColors(cssText), hostSync });
 }

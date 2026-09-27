@@ -1,5 +1,5 @@
 import type { ChangedFile } from '@better-gh-md/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createGitHubBackend } from './github-backend';
 
 const pr = { owner: 'acme', repo: 'docs', number: 7 };
@@ -140,6 +140,30 @@ describe('createGitHubBackend', () => {
       createGitHubBackend(pr, fetchFn).postComment({ path: 'docs/a.md', side: 'RIGHT', line: 3, startLine: null }, 'x', 'single'),
     ).rejects.toThrow(/保留中のレビュー/);
     expect(requests.some((request) => request.url === postUrl)).toBe(false);
+  });
+
+  it('passes the thread GitHub returned on, so it can also be shown in GitHub own UI', async () => {
+    const thread = { id: '77', subjectType: 'line' };
+    const { fetchFn } = fakeGitHub({ [changesUrl]: json(routeJson()), [postUrl]: json({ thread }) });
+    const onThreadCreated = vi.fn();
+    const target = { path: 'docs/a.md', side: 'RIGHT' as const, line: 3, startLine: null };
+
+    await createGitHubBackend(pr, fetchFn, { onThreadCreated }).postComment(target, 'x', 'review');
+
+    expect(onThreadCreated).toHaveBeenCalledWith({ target, mode: 'review', thread });
+  });
+
+  it('keeps a successful post successful even if showing it in GitHub UI fails', async () => {
+    const { fetchFn } = fakeGitHub({ [changesUrl]: json(routeJson()), [postUrl]: json({ thread: { id: '1' } }) });
+    const onThreadCreated = vi.fn().mockRejectedValue(new Error('bridge gone'));
+
+    await expect(
+      createGitHubBackend(pr, fetchFn, { onThreadCreated }).postComment(
+        { path: 'docs/a.md', side: 'RIGHT', line: 3, startLine: null },
+        'x',
+        'single',
+      ),
+    ).resolves.toBeUndefined();
   });
 
   it('reports other failures with the HTTP status', async () => {

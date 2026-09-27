@@ -1,8 +1,9 @@
-import { createMemoryBackend } from '@better-gh-md/core';
+import { createMemoryBackend, type ReviewBackend, type ReviewThread } from '@better-gh-md/core';
 import { waitFor } from '@testing-library/preact';
 import { afterEach, describe, expect, it } from 'vitest';
 import { appendFileBlock } from './fixture';
 import { SPLIT_TOGGLE_TAG, SPLIT_VIEW_TAG, isSplitActive } from './github-file-dom';
+import type { HostSyncClient } from '../host-sync/client';
 import { startInlineReview } from './inline-review';
 
 const backend = createMemoryBackend({
@@ -96,5 +97,81 @@ describe('startInlineReview', () => {
     expect(container.querySelector(SPLIT_VIEW_TAG)).toBeNull();
     expect(isSplitActive(container)).toBe(false);
     expect(document.head.querySelector('style')).toBeNull();
+  });
+
+  describe('with GitHub own UI kept in sync', () => {
+    const pending: ReviewThread = {
+      id: 'p1',
+      path: 'docs/a.md',
+      side: 'RIGHT',
+      line: 1,
+      startLine: null,
+      isResolved: false,
+      isOutdated: false,
+      isPending: true,
+      comments: [],
+    };
+
+    function fakeHostSync(isAvailable: boolean) {
+      let notify: (() => void) | null = null;
+      const client: HostSyncClient = {
+        isHostAvailable: async () => isAvailable,
+        announceThreadCreated: async () => isAvailable,
+        onHostThreadsChanged: (listener) => {
+          notify = listener;
+          return () => {
+            notify = null;
+          };
+        },
+      };
+      return { client, changeHostThreads: () => notify?.() };
+    }
+
+    function backendWithPendingReview(): ReviewBackend & { loadThreadsCalls: () => number } {
+      const base = createMemoryBackend(
+        { 'docs/a.md': { base: 'Alpha version one.\n', head: 'Alpha version two.\n' } },
+        [pending],
+      );
+      let calls = 0;
+      return {
+        ...base,
+        loadThreads: () => {
+          calls += 1;
+          return base.loadThreads();
+        },
+        loadThreadsCalls: () => calls,
+      };
+    }
+
+    async function startWith(hostSync: HostSyncClient, backend: ReviewBackend) {
+      const container = await appendFileBlock(document, 'docs/a.md');
+      stop = await startInlineReview({ document, backend, cssText: '', hostSync });
+      toggleButton(container)?.click();
+      await waitFor(() => expect(splitViewText(container)).toContain('Alpha version two.'));
+      return container;
+    }
+
+    it('leaves out the reload notice because GitHub counts the pending comments itself', async () => {
+      const container = await startWith(fakeHostSync(true).client, backendWithPendingReview());
+
+      expect(splitViewText(container)).not.toContain('Submit review');
+    });
+
+    it('keeps the reload notice when GitHub stores cannot be reached', async () => {
+      const container = await startWith(fakeHostSync(false).client, backendWithPendingReview());
+
+      await waitFor(() => expect(splitViewText(container)).toContain('Submit review'));
+    });
+
+    it('reloads threads when they change in GitHub own UI', async () => {
+      const host = fakeHostSync(true);
+      const backend = backendWithPendingReview();
+      await startWith(host.client, backend);
+      const before = backend.loadThreadsCalls();
+
+      host.changeHostThreads();
+
+      await waitFor(() => expect(backend.loadThreadsCalls()).toBeGreaterThan(before));
+    });
   });
 });

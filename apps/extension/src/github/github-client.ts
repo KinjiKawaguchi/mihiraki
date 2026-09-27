@@ -1,6 +1,6 @@
 import type { CommentTarget } from '@better-gh-md/core';
 import { extractBlobSource } from './blob-source';
-import { asString, pick } from './json';
+import { asRecord, asString, pick, type JsonRecord } from './json';
 import { pullRequestUrl, type PullRequestLocation } from './pr-location';
 import { parseRouteData, type RouteData } from './route-data';
 
@@ -64,16 +64,21 @@ async function sendReviewComment(fetchFn: FetchFn, pr: PullRequestLocation, payl
     headers: { ...ROUTE_HEADERS, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  return { status: response.status, isOk: response.ok, message: response.ok ? '' : await readErrorMessage(response) };
+  if (!response.ok) return { status: response.status, isOk: false, message: await readErrorMessage(response), thread: null };
+  const body: unknown = await response.json().catch(() => null);
+  return { status: response.status, isOk: true, message: '', thread: asRecord(pick(body, 'thread')) };
 }
 
-/** `POST /pull/:n/page_data/create_review_comment`, the endpoint behind GitHub's own "+" button. */
+/**
+ * `POST /pull/:n/page_data/create_review_comment`, the endpoint behind GitHub's own "+"
+ * button. Resolves to the created `thread` object GitHub returns, if any.
+ */
 export async function postReviewComment(
   fetchFn: FetchFn,
   pr: PullRequestLocation,
   target: CommentTarget,
   payload: unknown,
-): Promise<void> {
+): Promise<JsonRecord | null> {
   let result = await sendReviewComment(fetchFn, pr, payload);
   // GitHub's own UI occasionally gets a transient 422 and succeeds on a second attempt.
   if (result.status === 422 && !LINE_NOT_RESOLVED.test(result.message)) {
@@ -81,4 +86,5 @@ export async function postReviewComment(
     result = await sendReviewComment(fetchFn, pr, payload);
   }
   if (!result.isOk) throw describePostFailure(result.status, result.message, target);
+  return result.thread;
 }

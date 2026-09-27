@@ -5,18 +5,13 @@ import { findHeader, findViewSwitcher, setSplitActive, SPLIT_TOGGLE_TAG, SPLIT_V
 import { createShadowHost, type ShadowHost } from './shadow-host';
 import { SPLIT_TOGGLE_CSS, SplitToggle } from './SplitToggle';
 
-/**
- * GitHub's own "Submit review" counter does not notice comments added from here until
- * the page is reloaded, although submitting still includes them.
- */
-const PENDING_REVIEW_NOTICE =
-  '保留中のコメントは GitHub の「Submit review」から提出できます。件数に反映されていなければ再読み込みしてください。';
-
 export interface FileDecoratorContext {
   readonly document: Document;
   readonly backend: ReviewBackend;
   readonly store: ThreadStore;
   readonly cssText: string;
+  /** Shown in split views while a review is pending; omitted when GitHub's UI is kept in sync. */
+  readonly pendingReviewNotice: string | undefined;
   readonly isActive: (path: string) => boolean;
   readonly setActive: (path: string, isActive: boolean) => void;
 }
@@ -63,7 +58,7 @@ function syncView(context: FileDecoratorContext, views: HostsByPath, container: 
       backend={context.backend}
       file={file}
       store={context.store}
-      pendingReviewNotice={PENDING_REVIEW_NOTICE}
+      pendingReviewNotice={context.pendingReviewNotice}
     />,
     created.mount,
   );

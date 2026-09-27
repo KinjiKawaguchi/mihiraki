@@ -1,5 +1,6 @@
 import { createGitHubBackend } from '../../src/github/github-backend';
 import { isFilesTab, parsePullRequestLocation } from '../../src/github/pr-location';
+import { createHostSyncClient } from '../../src/host-sync/client';
 import { inheritHostThemeColors } from '../../src/inline/host-theme';
 import { startInlineReview } from '../../src/inline/inline-review';
 import cssText from './style.css?inline';
@@ -17,7 +18,9 @@ function pullRequestKeyOf(href: string): string | null {
 function startSession(href: string, pullRequestKey: string): Session | null {
   const pr = parsePullRequestLocation(href);
   if (!pr) return null;
-  const stopped = startInlineReview({ document, backend: createGitHubBackend(pr), cssText: inheritHostThemeColors(cssText) }).catch((error: unknown) => {
+  const hostSync = createHostSyncClient(document);
+  const backend = createGitHubBackend(pr, undefined, { onThreadCreated: (created) => hostSync.announceThreadCreated(created) });
+  const stopped = startInlineReview({ document, backend, cssText: inheritHostThemeColors(cssText), hostSync }).catch((error: unknown) => {
     console.warn('[better-gh-md] 分割表示を準備できませんでした:', error);
     return () => undefined;
   });
