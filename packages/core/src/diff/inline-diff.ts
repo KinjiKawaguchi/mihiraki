@@ -30,22 +30,24 @@ function wrapRun(run: readonly string[], marker: Marker): string {
   return `<${marker} class="${MARKER_CLASS[marker]}">${text}</${marker}>`;
 }
 
-/** Re-emits the tokens, wrapping each run of changed text (never tags) in a marker element. */
+/**
+ * Re-emits the tokens, wrapping each run of changed text (never tags) in a marker element.
+ * Builds its output in local arrays only.
+ */
 function renderWithMarkers(
   tokens: readonly HtmlToken[],
   flags: readonly boolean[],
   marker: Marker,
 ): string {
   const parts: string[] = [];
-  let run: string[] = [];
+  const run: string[] = [];
   tokens.forEach((token, index) => {
-    const isChangedText = token.kind === "text" && flags[index] === true;
-    if (isChangedText) {
-      run = [...run, token.value];
+    if (token.kind === "text" && flags[index] === true) {
+      run.push(token.value);
       return;
     }
     parts.push(wrapRun(run, marker), token.value);
-    run = [];
+    run.length = 0;
   });
   parts.push(wrapRun(run, marker));
   return parts.join("");

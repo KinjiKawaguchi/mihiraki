@@ -35,4 +35,14 @@ describe("tokenizeHtml", () => {
     expect(base?.key).toBe(head?.key);
     expect(base?.value).not.toBe(head?.value);
   });
+
+  it("keeps a raw HTML tag whole when a quoted attribute contains >", () => {
+    const tokens = tokenizeHtml('<img alt="a > b" src="x.png"> after');
+
+    expect(tokens.map((t) => [t.kind, t.value])).toEqual([
+      ["tag", '<img alt="a > b" src="x.png">'],
+      ["text", " "],
+      ["text", "after"],
+    ]);
+  });
 });
