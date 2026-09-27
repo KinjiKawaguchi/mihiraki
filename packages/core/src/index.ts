@@ -1,0 +1,12 @@
+export type { BlockKind, LineRange, SourceBlock } from './markdown/types';
+export { parseBlocks } from './markdown/blocks';
+export type { AlignedRow, RowKind } from './diff/align';
+export { alignBlocks } from './diff/align';
+export { diffBlockHtml } from './diff/inline-diff';
+export type { RowThreads, SplitCell, SplitRow } from './document/split-document';
+export { buildSplitRows, groupThreadsByRow } from './document/split-document';
+export type { ResolvedCommentTarget } from './review/commentable';
+export { computeCommentableLines, resolveCommentTarget } from './review/commentable';
+export type { ChangedFile, FileChangeType, FileVersions, ReviewBackend } from './review/backend';
+export type { CommentableLines, CommentTarget, ReviewComment, ReviewThread, Side } from './review/types';
+export { createMemoryBackend } from './review/memory-backend';
