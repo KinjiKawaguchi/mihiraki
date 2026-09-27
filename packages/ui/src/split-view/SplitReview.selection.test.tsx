@@ -1,4 +1,4 @@
-import { commitId } from "@mihiraki/core";
+import { commitId, ok } from "@mihiraki/core";
 import { fireEvent, render, screen, waitFor } from "@testing-library/preact";
 import { describe, expect, it, vi } from "vitest";
 import { SplitReview } from "./SplitReview";
@@ -10,7 +10,7 @@ const base = `${common}Third paragraph.\n\n- item one\n- item two\n- item three\
 const head = `${common}Third paragraph changed.\n\n- item one\n- item two\n- item three\n`;
 
 function setup() {
-  const onSubmitComment = vi.fn().mockResolvedValue(undefined);
+  const onSubmitComment = vi.fn().mockResolvedValue(ok(undefined));
   const view = render(
     <SplitReview
       path="doc.md"
@@ -100,8 +100,8 @@ describe("SplitReview block selection", () => {
   it("keeps a form opened while an earlier comment was still being posted", async () => {
     let finishFirstPost: () => void = () => undefined;
     const onSubmitComment = vi.fn().mockReturnValueOnce(
-      new Promise<void>((resolve) => {
-        finishFirstPost = resolve;
+      new Promise((resolve) => {
+        finishFirstPost = () => resolve(ok(undefined));
       }),
     );
     const view = render(

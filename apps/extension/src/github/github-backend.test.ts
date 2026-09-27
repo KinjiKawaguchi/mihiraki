@@ -1,4 +1,4 @@
-import { type ChangedFile, type CommentTarget, commitId } from "@mihiraki/core";
+import { type ChangedFile, type CommentTarget, commitId, err, ok } from "@mihiraki/core";
 import { describe, expect, it, vi } from "vitest";
 import { createGitHubBackend } from "./github-backend";
 
@@ -157,14 +157,24 @@ describe("createGitHubBackend", () => {
     expect((await backend.loadThreads()).threads).toHaveLength(1);
   });
 
+  it("reports whether the viewer has a pending review with the threads", async () => {
+    const pendingRoute = routeJson();
+    (pendingRoute.payload.pullRequestsChangesRoute as Record<string, unknown>).viewerPendingReview =
+      { id: 9, comments: [] };
+    const { fetchFn } = fakeGitHub({ [changesUrl]: json(pendingRoute) });
+
+    expect((await createGitHubBackend(pr, fetchFn).loadThreads()).hasPendingReview).toBe(true);
+  });
+
   it("posts a review comment through the internal endpoint", async () => {
     const { fetchFn, requests } = fakeGitHub({
       [changesUrl]: json(routeJson()),
       [postUrl]: json({ thread: {} }),
     });
 
-    await createGitHubBackend(pr, fetchFn).postComment(target, "LGTM", "review");
+    const result = await createGitHubBackend(pr, fetchFn).postComment(target, "LGTM", "review");
 
+    expect(result).toEqual(ok(undefined));
     const post = requests.find((request) => request.url === postUrl);
     expect(post?.init?.method).toBe("POST");
     expect(post?.init?.credentials).toBe("include");
@@ -177,19 +187,19 @@ describe("createGitHubBackend", () => {
     });
   });
 
-  it("suggests reloading when GitHub cannot place the comment on the compared commits", async () => {
+  it("reports when GitHub cannot place the comment on the compared commits", async () => {
     const { fetchFn } = fakeGitHub({
       [changesUrl]: json(routeJson()),
       [postUrl]: json({ error: "Line could not be resolved." }, 422),
     });
 
-    await expect(
-      createGitHubBackend(pr, fetchFn).postComment(
+    expect(
+      await createGitHubBackend(pr, fetchFn).postComment(
         { ...target, lines: { start: 90, end: 90 } },
         "x",
         "single",
       ),
-    ).rejects.toThrow(/再読み込み/);
+    ).toEqual(err({ kind: "lineNotResolved" }));
   });
 
   it("refuses a single comment while a review is pending, instead of publishing that review", async () => {
@@ -201,9 +211,9 @@ describe("createGitHubBackend", () => {
       [postUrl]: json({ thread: {} }),
     });
 
-    await expect(
-      createGitHubBackend(pr, fetchFn).postComment(target, "x", "single"),
-    ).rejects.toThrow(/保留中のレビュー/);
+    expect(await createGitHubBackend(pr, fetchFn).postComment(target, "x", "single")).toEqual(
+      err({ kind: "pendingReviewConflict" }),
+    );
     expect(requests.some((request) => request.url === postUrl)).toBe(false);
   });
 
@@ -228,7 +238,7 @@ describe("createGitHubBackend", () => {
 
     await expect(
       createGitHubBackend(pr, fetchFn, { onThreadCreated }).postComment(target, "x", "single"),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual(ok(undefined));
   });
 
   it("reports the latest revision with the threads, so a stale view can be noticed", async () => {
@@ -270,14 +280,46 @@ describe("createGitHubBackend", () => {
     ).rejects.toThrow(/応答/);
   });
 
-  it("reports other failures with the HTTP status", async () => {
+  it("reports other refusals with the HTTP status and GitHub's message", async () => {
     const { fetchFn } = fakeGitHub({
       [changesUrl]: json(routeJson()),
       [postUrl]: json({ message: "Forbidden" }, 403),
     });
 
-    await expect(
-      createGitHubBackend(pr, fetchFn).postComment(target, "x", "single"),
-    ).rejects.toThrow(/403/);
+    expect(await createGitHubBackend(pr, fetchFn).postComment(target, "x", "single")).toEqual(
+      err({ kind: "rejected", detail: "HTTP 403: Forbidden" }),
+    );
+  });
+
+  it("reports a post GitHub does not answer as a timeout", async () => {
+    const hangingFetch = (_input: string, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+      });
+
+    expect(
+      await createGitHubBackend(pr, hangingFetch, { timeoutMs: 20 }).postComment(
+        target,
+        "x",
+        "review",
+      ),
+    ).toEqual(err({ kind: "timeout" }));
+  });
+
+  it("reports a post that cannot reach GitHub as a network failure", async () => {
+    const offlineFetch = () => Promise.reject(new TypeError("Failed to fetch"));
+
+    expect(await createGitHubBackend(pr, offlineFetch).postComment(target, "x", "review")).toEqual(
+      err({ kind: "network" }),
+    );
+  });
+
+  it("reports pull request data it cannot understand as an unexpected response", async () => {
+    // e.g. GitHub answering with its sign-in page instead of JSON.
+    const { fetchFn } = fakeGitHub({ [changesUrl]: () => new Response("<html></html>") });
+
+    expect(await createGitHubBackend(pr, fetchFn).postComment(target, "x", "single")).toEqual(
+      err({ kind: "unexpectedResponse" }),
+    );
   });
 });

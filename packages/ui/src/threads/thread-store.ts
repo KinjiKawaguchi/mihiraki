@@ -6,6 +6,8 @@ export interface ThreadStore {
   getThreads(): readonly ReviewThread[];
   /** Revision the threads' lines refer to; null until the first successful load. */
   getRevision(): Revision | null;
+  /** Whether the viewer has an unsubmitted review; false until the first successful load. */
+  hasPendingReview(): boolean;
   getError(): unknown;
   subscribe(listener: () => void): () => void;
   refresh(): Promise<void>;
@@ -14,6 +16,7 @@ export interface ThreadStore {
 export function createThreadStore(backend: ReviewBackend): ThreadStore {
   let threads: readonly ReviewThread[] = [];
   let revision: Revision | null = null;
+  let isReviewPending = false;
   let error: unknown = null;
   let listeners: readonly (() => void)[] = [];
   let latestRequest = 0;
@@ -21,6 +24,7 @@ export function createThreadStore(backend: ReviewBackend): ThreadStore {
   return {
     getThreads: () => threads,
     getRevision: () => revision,
+    hasPendingReview: () => isReviewPending,
     getError: () => error,
     subscribe: (listener) => {
       listeners = [...listeners, listener];
@@ -37,6 +41,7 @@ export function createThreadStore(backend: ReviewBackend): ThreadStore {
         if (request !== latestRequest) return;
         threads = snapshot.threads;
         revision = snapshot.revision;
+        isReviewPending = snapshot.hasPendingReview;
         error = null;
       } catch (loadError) {
         if (request !== latestRequest) return;
@@ -50,11 +55,17 @@ export function createThreadStore(backend: ReviewBackend): ThreadStore {
 export interface ThreadStoreSnapshot {
   readonly threads: readonly ReviewThread[];
   readonly revision: Revision | null;
+  readonly hasPendingReview: boolean;
   readonly error: unknown;
 }
 
 function snapshotOf(store: ThreadStore): ThreadStoreSnapshot {
-  return { threads: store.getThreads(), revision: store.getRevision(), error: store.getError() };
+  return {
+    threads: store.getThreads(),
+    revision: store.getRevision(),
+    hasPendingReview: store.hasPendingReview(),
+    error: store.getError(),
+  };
 }
 
 export function useThreadStore(store: ThreadStore): ThreadStoreSnapshot {

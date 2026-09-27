@@ -11,6 +11,7 @@ import {
 } from "@mihiraki/core";
 import { type LineKey, parseLineKey } from "./diff-side";
 import { asArray, asRecord, asRecords, asString, type JsonRecord, pick } from "./json";
+import { UnexpectedResponseError } from "./request-errors";
 
 export interface RouteData {
   /** The commits compared on the page. */
@@ -102,7 +103,7 @@ export function parseRouteData(json: unknown): RouteData {
   const base = parseCommitId(pick(route, "comparison", "fullDiff", "baseOid"));
   const head = parseCommitId(pick(route, "comparison", "fullDiff", "headOid"));
   if (!route || !base || !head) {
-    throw new Error(
+    throw new UnexpectedResponseError(
       "GitHubのpull requestデータを解釈できませんでした（内部仕様が変わった可能性があります）",
     );
   }

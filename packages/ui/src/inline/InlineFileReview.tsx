@@ -1,4 +1,5 @@
-import type { ChangedFile, CommentMode, CommentTarget, ReviewBackend } from "@mihiraki/core";
+import type { ChangedFile, ReviewBackend } from "@mihiraki/core";
+import type { SubmitComment } from "../comment-form/submit-comment";
 import { FileSplitReview } from "../file-review/FileSplitReview";
 import { errorMessage } from "../format";
 import { type ThreadStore, useThreadStore } from "../threads/thread-store";
@@ -18,12 +19,13 @@ export function InlineFileReview({
   store,
   pendingReviewNotice,
 }: InlineFileReviewProps) {
-  const { threads, revision, error } = useThreadStore(store);
-  const hasPendingReview = threads.some((thread) => thread.isPending);
+  const { threads, revision, hasPendingReview, error } = useThreadStore(store);
 
-  const submitComment = async (target: CommentTarget, body: string, mode: CommentMode) => {
-    await backend.postComment(target, body, mode);
+  const submitComment: SubmitComment = async (target, body, mode) => {
+    const result = await backend.postComment(target, body, mode);
+    // Also after a failure: the pending review or the revision may be what changed.
     await store.refresh();
+    return result;
   };
 
   return (
@@ -39,6 +41,7 @@ export function InlineFileReview({
         file={file}
         threads={threads}
         threadsRevision={revision}
+        hasPendingReview={hasPendingReview}
         onSubmitComment={submitComment}
       />
     </div>

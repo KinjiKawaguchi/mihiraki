@@ -1,30 +1,20 @@
-import type { CommentMode, CommentTarget } from "@mihiraki/core";
+import { availableCommentModes, type CommentMode, type CommentTarget } from "@mihiraki/core";
 import { useState } from "preact/hooks";
 import { formatLineRange } from "../format";
 import { CommentPreview } from "./CommentPreview";
-import { useCommentDraft } from "./use-comment-draft";
+import { type SubmitDraft, useCommentDraft } from "./use-comment-draft";
 
 interface CommentFormProps {
   readonly target: CommentTarget;
   readonly hasPendingReview: boolean;
-  /** Resolves once the comment is stored; the parent then closes the form. */
-  readonly onSubmit: (body: string, mode: CommentMode) => Promise<void>;
+  /** On success the parent closes the form; a failure is shown in it. */
+  readonly onSubmit: SubmitDraft;
   readonly onCancel: () => void;
 }
 
-/**
- * While a review is pending GitHub only offers "Add review comment": posting a single
- * comment then would publish the whole pending review along with it.
- */
-function submitModes(
-  hasPendingReview: boolean,
-): readonly { readonly mode: CommentMode; readonly label: string }[] {
-  return hasPendingReview
-    ? [{ mode: "review", label: "レビューに追加" }]
-    : [
-        { mode: "single", label: "コメント" },
-        { mode: "review", label: "レビューを開始" },
-      ];
+function modeLabel(mode: CommentMode, hasPendingReview: boolean): string {
+  if (mode === "single") return "コメント";
+  return hasPendingReview ? "レビューに追加" : "レビューを開始";
 }
 
 function EditorTabs({
@@ -55,7 +45,7 @@ interface SubmitButtonsProps {
 function SubmitButtons({ hasPendingReview, canSubmit, onSubmit }: SubmitButtonsProps) {
   return (
     <>
-      {submitModes(hasPendingReview).map(({ mode, label }) => (
+      {availableCommentModes(hasPendingReview).map((mode) => (
         <button
           key={mode}
           type="button"
@@ -63,7 +53,7 @@ function SubmitButtons({ hasPendingReview, canSubmit, onSubmit }: SubmitButtonsP
           disabled={!canSubmit}
           onClick={() => onSubmit(mode)}
         >
-          {label}
+          {modeLabel(mode, hasPendingReview)}
         </button>
       ))}
     </>
