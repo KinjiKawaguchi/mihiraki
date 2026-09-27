@@ -49,11 +49,10 @@ export function ReviewApp({ backend, onClose }: ReviewAppProps) {
         )}
         <main class="mhr-app__main">
           <FileSplitReview
+            key={selected.path}
             backend={backend}
             file={selected}
-            threads={threads.threads}
-            threadsRevision={threads.revision}
-            hasPendingReview={threads.hasPendingReview}
+            threads={threads.snapshot}
             onSubmitComment={submitComment}
           />
         </main>

@@ -1,10 +1,8 @@
 import {
   type ChangedFile,
   isSameRevision,
-  mapResult,
   type ReviewBackend,
-  type ReviewThread,
-  type Revision,
+  type ThreadSnapshot,
 } from "@mihiraki/core";
 import { useMemo, useState } from "preact/hooks";
 import type { SubmitComment } from "../comment-form/submit-comment";
@@ -15,12 +13,8 @@ import { SplitReview } from "../split-view/SplitReview";
 export interface FileSplitReviewProps {
   readonly backend: ReviewBackend;
   readonly file: ChangedFile;
-  /** Threads of the whole pull request; only this file's are shown. */
-  readonly threads: readonly ReviewThread[];
-  /** Revision the threads were loaded for; null while unknown. */
-  readonly threadsRevision: Revision | null;
-  /** Whether the viewer has an unsubmitted review on the pull request. */
-  readonly hasPendingReview: boolean;
+  /** Threads of the whole pull request (only this file's are shown); null until loaded. */
+  readonly threads: ThreadSnapshot | null;
   readonly onSubmitComment: SubmitComment;
 }
 
@@ -35,26 +29,15 @@ function StaleRevisionNotice({ onReload }: { readonly onReload: () => void }) {
   );
 }
 
-/** Loads both versions of one file and shows them as a split review. */
-export function FileSplitReview({
-  backend,
-  file,
-  threads,
-  threadsRevision,
-  hasPendingReview,
-  onSubmitComment,
-}: FileSplitReviewProps) {
+/**
+ * Loads both versions of one file and shows them as a split review. Mount one per file
+ * (keyed by its path), so a view never shows another file's text while loading.
+ */
+export function FileSplitReview({ backend, file, threads, onSubmitComment }: FileSplitReviewProps) {
   const [reloads, setReloads] = useState(0);
-  const loaded = useAsync(
-    async () =>
-      mapResult(await backend.loadFileVersions(file), (versions) => ({
-        path: file.path,
-        versions,
-      })),
-    [backend, file.path, reloads],
-  );
+  const loaded = useAsync(() => backend.loadFileVersions(file), [backend, file, reloads]);
   const fileThreads = useMemo(
-    () => threads.filter((thread) => thread.path === file.path),
+    () => threads?.threads.filter((thread) => thread.path === file.path) ?? [],
     [threads, file.path],
   );
 
@@ -64,10 +47,10 @@ export function FileSplitReview({
         {describeLoadFailure(`${file.path} を読み込めませんでした`, loaded.failure)}
       </p>
     );
-  if (!loaded.value || loaded.value.path !== file.path)
-    return <p class="mhr-message">読み込み中…</p>;
-  const { versions } = loaded.value;
-  const isStale = threadsRevision !== null && !isSameRevision(threadsRevision, versions.revision);
+  if (!loaded.value) return <p class="mhr-message">読み込み中…</p>;
+  const versions = loaded.value;
+  // Unknown until the threads are loaded; nothing is claimed about them before that.
+  const isStale = threads !== null && !isSameRevision(threads.revision, versions.revision);
   return (
     <>
       {isStale && <StaleRevisionNotice onReload={() => setReloads((count) => count + 1)} />}
@@ -77,7 +60,7 @@ export function FileSplitReview({
         head={versions.head}
         threads={fileThreads}
         revision={versions.revision}
-        hasPendingReview={hasPendingReview}
+        hasPendingReview={threads?.hasPendingReview === true}
         onSubmitComment={onSubmitComment}
       />
     </>

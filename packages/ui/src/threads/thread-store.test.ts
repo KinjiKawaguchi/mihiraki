@@ -17,10 +17,10 @@ describe("createThreadStore", () => {
   it("starts empty and loads threads on refresh", async () => {
     const store = createThreadStore(createMemoryBackend({}, [thread]));
 
-    expect(store.getThreads()).toEqual([]);
+    expect(store.getState().snapshot).toBeNull();
     await store.refresh();
 
-    expect(store.getThreads()).toEqual([thread]);
+    expect(store.getState().snapshot?.threads).toEqual([thread]);
   });
 
   it("notifies subscribers after a refresh until they unsubscribe", async () => {
@@ -49,8 +49,8 @@ describe("createThreadStore", () => {
     shouldFail = true;
     await store.refresh();
 
-    expect(store.getThreads()).toEqual([thread]);
-    expect(store.getError()).toEqual({
+    expect(store.getState().snapshot?.threads).toEqual([thread]);
+    expect(store.getState().error).toEqual({
       kind: "host",
       error: { kind: "rejected", detail: "HTTP 500" },
     });
@@ -60,10 +60,9 @@ describe("createThreadStore", () => {
     const revision = { base: commitId("b1b1b1b"), head: commitId("c2c2c2c") };
     const store = createThreadStore(createMemoryBackend({}, [thread], { revision }));
 
-    expect(store.getRevision()).toBeNull();
     await store.refresh();
 
-    expect(store.getRevision()).toEqual(revision);
+    expect(store.getState().snapshot?.revision).toEqual(revision);
   });
 
   it("exposes whether the viewer has a pending review, as the backend reports it", async () => {
@@ -80,10 +79,9 @@ describe("createThreadStore", () => {
       createMemoryBackend({}, [{ ...thread, comments: [pendingComment] }]),
     );
 
-    expect(store.hasPendingReview()).toBe(false);
     await store.refresh();
 
-    expect(store.hasPendingReview()).toBe(true);
+    expect(store.getState().snapshot?.hasPendingReview).toBe(true);
   });
 
   it("keeps the newest result when refreshes finish out of order", async () => {
@@ -112,6 +110,6 @@ describe("createThreadStore", () => {
     pending[0]?.([]);
     await older;
 
-    expect(store.getThreads()).toEqual([thread]);
+    expect(store.getState().snapshot?.threads).toEqual([thread]);
   });
 });

@@ -19,7 +19,7 @@ export function InlineFileReview({
   store,
   pendingReviewNotice,
 }: InlineFileReviewProps) {
-  const { threads, revision, hasPendingReview, error } = useThreadStore(store);
+  const { snapshot, error } = useThreadStore(store);
 
   const submitComment: SubmitComment = async (target, body, mode) => {
     const result = await backend.postComment(target, body, mode);
@@ -35,13 +35,13 @@ export function InlineFileReview({
           {describeLoadFailure("コメントを取得できませんでした", error)}
         </p>
       )}
-      {hasPendingReview && pendingReviewNotice && <p class="mhr-notice">{pendingReviewNotice}</p>}
+      {snapshot?.hasPendingReview && pendingReviewNotice && (
+        <p class="mhr-notice">{pendingReviewNotice}</p>
+      )}
       <FileSplitReview
         backend={backend}
         file={file}
-        threads={threads}
-        threadsRevision={revision}
-        hasPendingReview={hasPendingReview}
+        threads={snapshot}
         onSubmitComment={submitComment}
       />
     </div>
