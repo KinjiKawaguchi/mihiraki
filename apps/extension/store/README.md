@@ -10,3 +10,22 @@ What is entered in the Chrome Web Store developer dashboard, kept here so it can
 | `../public/icon/128.png` | Store icon |
 
 Privacy policy URL: https://github.com/KinjiKawaguchi/mihiraki/blob/main/PRIVACY_POLICY.md
+
+## Automated submission
+
+On every `v*` tag, `.github/workflows/publish-release.yml` uploads the package to the store item and submits it for review with the Chrome Web Store API v2. The first version was uploaded by hand in the developer dashboard, since the API cannot create an item.
+
+No key is stored anywhere. The job exchanges GitHub's OIDC token for a short-lived token of the service account `cws-publisher@mihiraki-release.iam.gserviceaccount.com` through Workload Identity Federation:
+
+- Google Cloud project `mihiraki-release`, pool `github`, provider `mihiraki`
+- The provider accepts only `v*` tags of this repository (matched by repository and owner id)
+- The service account holds no roles; it is registered on the publisher in the dashboard (Account > Service account), which is what lets it publish
+
+Repository variables used by the job (it is skipped while `CWS_EXTENSION_ID` is unset):
+
+| Variable | Value |
+| --- | --- |
+| `GCP_WORKLOAD_IDENTITY_PROVIDER` | `projects/757531454947/locations/global/workloadIdentityPools/github/providers/mihiraki` |
+| `GCP_SERVICE_ACCOUNT` | `cws-publisher@mihiraki-release.iam.gserviceaccount.com` |
+| `CWS_PUBLISHER_ID` | Publisher ID from the dashboard (Account) |
+| `CWS_EXTENSION_ID` | The store item's ID |
