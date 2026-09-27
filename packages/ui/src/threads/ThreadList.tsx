@@ -30,6 +30,7 @@ function ThreadView({ thread }: { readonly thread: ReviewThread }) {
       <button type="button" class="bgm-thread__header" onClick={() => setIsExpanded(!isExpanded)}>
         <span>{formatLineRange(thread.side, lines)}</span>
         <span>{thread.comments.length}件</span>
+        {thread.isPending && <span class="bgm-badge bgm-badge--pending">保留中</span>}
         {thread.isResolved && <span class="bgm-badge">解決済み</span>}
         {thread.isOutdated && <span class="bgm-badge">古い差分</span>}
       </button>

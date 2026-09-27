@@ -1,4 +1,4 @@
-import type { CommentTarget, ReviewBackend } from '@better-gh-md/core';
+import type { CommentMode, CommentTarget, ReviewBackend } from '@better-gh-md/core';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { FileSplitReview } from '../file-review/FileSplitReview';
 import { errorMessage } from '../format';
@@ -25,8 +25,8 @@ export function ReviewApp({ backend, onClose }: ReviewAppProps) {
   const fileList = files.value ?? [];
   const selected = fileList.find((file) => file.path === selectedPath) ?? fileList[0] ?? null;
 
-  const submitComment = async (target: CommentTarget, body: string) => {
-    await backend.postComment(target, body);
+  const submitComment = async (target: CommentTarget, body: string, mode: CommentMode) => {
+    await backend.postComment(target, body, mode);
     await store.refresh();
   };
 

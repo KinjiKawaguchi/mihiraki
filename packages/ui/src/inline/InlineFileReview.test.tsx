@@ -19,6 +19,7 @@ function threadOn(path: string, text: string): ReviewThread {
     startLine: null,
     isResolved: false,
     isOutdated: false,
+    isPending: false,
     comments: [{ id: path, author: 'bob', avatarUrl: '', bodyHtml: `<p>${text}</p>`, createdAt: '', url: '' }],
   };
 }
@@ -57,9 +58,40 @@ describe('InlineFileReview', () => {
     fireEvent.mouseOver(container.querySelector('[data-side="RIGHT"] p') as Element);
     fireEvent.click(screen.getByRole('button', { name: 'コメントを追加' }));
     fireEvent.input(screen.getByRole('textbox'), { target: { value: 'Posted inline' } });
-    fireEvent.click(screen.getByRole('button', { name: 'コメントする' }));
+    fireEvent.click(screen.getByRole('button', { name: 'コメント' }));
 
     expect(await screen.findByText('Posted inline')).toBeTruthy();
+  });
+
+  it('offers adding to the review when the viewer has a pending review in any file', async () => {
+    const pending = { ...threadOn('docs/b.md', 'pending elsewhere'), isPending: true };
+    const { container } = await renderInline(createMemoryBackend(files, [pending]));
+
+    fireEvent.mouseOver(container.querySelector('[data-side="RIGHT"] p') as Element);
+    fireEvent.click(screen.getByRole('button', { name: 'コメントを追加' }));
+
+    expect(screen.getByRole('button', { name: 'レビューに追加' })).toBeTruthy();
+  });
+
+  it('shows the host-specific notice while the viewer has a pending review', async () => {
+    const backend = createMemoryBackend(files, [{ ...threadOn('docs/b.md', 'pending'), isPending: true }]);
+    const store = createThreadStore(backend);
+    await store.refresh();
+
+    render(<InlineFileReview backend={backend} file={fileA} store={store} pendingReviewNotice="Submit from the host" />);
+
+    expect(await screen.findByText('Submit from the host')).toBeTruthy();
+  });
+
+  it('hides the notice when nothing is pending', async () => {
+    const backend = createMemoryBackend(files);
+    const store = createThreadStore(backend);
+    await store.refresh();
+
+    render(<InlineFileReview backend={backend} file={fileA} store={store} pendingReviewNotice="Submit from the host" />);
+
+    await waitFor(() => expect(document.body.textContent).toContain('Alpha version two.'));
+    expect(screen.queryByText('Submit from the host')).toBeNull();
   });
 
   it('shows why the file could not be loaded', async () => {

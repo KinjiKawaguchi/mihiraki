@@ -1,6 +1,9 @@
 import type { LineRange } from '@better-gh-md/core';
-import { useMemo, useRef, useState } from 'preact/hooks';
+import type { ComponentChild } from 'preact';
+import { createPortal } from 'preact/compat';
+import { useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { sanitizeHtml } from '../sanitize';
+import { insertSlotBelow, LINE_ELEMENT_SELECTOR, markSelectedElements, readLines } from './rendered-dom';
 
 interface HoveredElement {
   readonly lines: LineRange;
@@ -12,47 +15,70 @@ interface RenderedBlockProps {
   /** Only the most recently hovered block shows its button, since mouseleave is not guaranteed. */
   readonly isActive: boolean;
   readonly onActivate: () => void;
+  /** Pointer pressed on "+": starts a selection that can be extended by dragging. */
+  readonly onSelectionStart: (lines: LineRange) => void;
+  /** "+" activated from the keyboard: comment on this element only. */
   readonly onRequestComment: (lines: LineRange) => void;
+  readonly highlightedLines: LineRange | null;
+  /** Lines of the element the comment form should appear under, if it belongs to this block. */
+  readonly formAfterLines: LineRange | null;
+  readonly form: ComponentChild;
 }
 
-function readLines(element: Element): LineRange | null {
-  const start = Number(element.getAttribute('data-line-start'));
-  const end = Number(element.getAttribute('data-line-end'));
-  return Number.isInteger(start) && start > 0 ? { start, end: Math.max(start, end) } : null;
+function useFormSlot(contentRef: { current: HTMLDivElement | null }, html: string, lines: LineRange | null) {
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    const created = contentRef.current && lines ? insertSlotBelow(contentRef.current, lines) : null;
+    setSlot(created);
+    return () => created?.remove();
+  }, [html, lines?.start, lines?.end]);
+  return slot;
 }
 
 /** Sanitised rendered Markdown with a "+" button on whichever source-mapped element is hovered. */
-export function RenderedBlock({ html, isActive, onActivate, onRequestComment }: RenderedBlockProps) {
+export function RenderedBlock(props: RenderedBlockProps) {
+  const { html, isActive, onActivate, onSelectionStart, onRequestComment, highlightedLines, formAfterLines, form } = props;
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState<HoveredElement | null>(null);
   const safeHtml = useMemo(() => sanitizeHtml(html), [html]);
+  const slot = useFormSlot(contentRef, safeHtml, formAfterLines);
+
+  useLayoutEffect(() => {
+    if (contentRef.current) markSelectedElements(contentRef.current, highlightedLines);
+  }, [safeHtml, highlightedLines?.start, highlightedLines?.end]);
 
   const handleMouseOver = (event: MouseEvent) => {
     const container = containerRef.current;
-    const element = (event.target as Element | null)?.closest('[data-line-start]');
-    if (!container || !element || !container.contains(element)) return;
-    const lines = readLines(element);
-    if (!lines) return;
-    const top = element.getBoundingClientRect().top - container.getBoundingClientRect().top;
-    setHovered({ lines, top });
+    const element = (event.target as Element | null)?.closest(LINE_ELEMENT_SELECTOR);
+    const lines = element ? readLines(element) : null;
+    if (!container || !element || !lines || !contentRef.current?.contains(element)) return;
+    setHovered({ lines, top: element.getBoundingClientRect().top - container.getBoundingClientRect().top });
     onActivate();
   };
 
   return (
     <div class="bgm-block" ref={containerRef} onMouseOver={handleMouseOver} onMouseLeave={() => setHovered(null)}>
-      <div class="markdown-body" dangerouslySetInnerHTML={{ __html: safeHtml }} />
+      <div class="markdown-body" ref={contentRef} dangerouslySetInnerHTML={{ __html: safeHtml }} />
       {isActive && hovered && (
         <button
           type="button"
           class="bgm-add"
           aria-label="コメントを追加"
-          title={`コメントを追加 (L${hovered.lines.start})`}
+          title="クリックでコメント、ドラッグで範囲を選択"
           style={{ top: `${hovered.top}px` }}
-          onClick={() => onRequestComment(hovered.lines)}
+          onMouseDown={(event) => {
+            event.preventDefault();
+            onSelectionStart(hovered.lines);
+          }}
+          onClick={(event) => {
+            if (event.detail === 0) onRequestComment(hovered.lines);
+          }}
         >
           +
         </button>
       )}
+      {slot && createPortal(form, slot)}
     </div>
   );
 }

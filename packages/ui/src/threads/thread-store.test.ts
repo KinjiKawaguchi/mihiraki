@@ -10,6 +10,7 @@ const thread: ReviewThread = {
   startLine: null,
   isResolved: false,
   isOutdated: false,
+  isPending: false,
   comments: [],
 };
 

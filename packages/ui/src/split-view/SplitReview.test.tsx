@@ -31,6 +31,7 @@ const thread: ReviewThread = {
   startLine: null,
   isResolved: false,
   isOutdated: false,
+  isPending: false,
   comments: [
     { id: 'c1', author: 'alice', avatarUrl: '', bodyHtml: '<p>Why ten?</p>', createdAt: '2026-09-01T00:00:00Z', url: '' },
   ],
@@ -64,10 +65,14 @@ describe('SplitReview', () => {
 
     openCommentForm(paragraph as Element);
     fireEvent.input(screen.getByRole('textbox'), { target: { value: 'Why five?' } });
-    fireEvent.click(screen.getByRole('button', { name: 'コメントする' }));
+    fireEvent.click(screen.getByRole('button', { name: 'コメント' }));
 
     await waitFor(() =>
-      expect(onSubmitComment).toHaveBeenCalledWith({ path: 'doc.md', side: 'RIGHT', line: 3, startLine: null }, 'Why five?'),
+      expect(onSubmitComment).toHaveBeenCalledWith(
+        { path: 'doc.md', side: 'RIGHT', line: 3, startLine: null },
+        'Why five?',
+        'single',
+      ),
     );
   });
 
@@ -76,7 +81,7 @@ describe('SplitReview', () => {
 
     openCommentForm(container.querySelector('[data-side="RIGHT"] p') as Element);
     fireEvent.input(screen.getByRole('textbox'), { target: { value: 'ok' } });
-    fireEvent.click(screen.getByRole('button', { name: 'コメントする' }));
+    fireEvent.click(screen.getByRole('button', { name: 'コメント' }));
 
     await waitFor(() => expect(screen.queryByRole('textbox')).toBeNull());
   });
@@ -87,19 +92,10 @@ describe('SplitReview', () => {
 
     openCommentForm(container.querySelector('[data-side="RIGHT"] p') as Element);
     fireEvent.input(screen.getByRole('textbox'), { target: { value: 'ok' } });
-    fireEvent.click(screen.getByRole('button', { name: 'コメントする' }));
+    fireEvent.click(screen.getByRole('button', { name: 'コメント' }));
 
     expect(await screen.findByText(/Line could not be resolved/)).toBeTruthy();
     expect(screen.getByRole('textbox')).toBeTruthy();
-  });
-
-  it('warns before commenting on a block outside the diff', () => {
-    const body = Array.from({ length: 12 }, (_, i) => `Paragraph ${i + 1}.`).join('\n\n');
-    const { container } = renderReview({ base: `${body}\n`, head: `${body}\n\nAppended.\n` });
-
-    openCommentForm(container.querySelector('[data-side="RIGHT"] p[data-line-start="1"]') as Element);
-
-    expect(screen.getByText(/差分の外/)).toBeTruthy();
   });
 
   it('shows a single add button even when the pointer leaves a block without a mouseleave', () => {
@@ -109,6 +105,33 @@ describe('SplitReview', () => {
     fireEvent.mouseOver(container.querySelector('[data-side="LEFT"] h1') as Element);
 
     expect(screen.getAllByRole('button', { name: 'コメントを追加' })).toHaveLength(1);
+  });
+
+  it('starts a pending review from the form', async () => {
+    const { container, onSubmitComment } = renderReview();
+
+    openCommentForm(container.querySelector('[data-side="RIGHT"] p') as Element);
+    fireEvent.input(screen.getByRole('textbox'), { target: { value: 'later' } });
+    fireEvent.click(screen.getByRole('button', { name: 'レビューを開始' }));
+
+    await waitFor(() => expect(onSubmitComment).toHaveBeenCalledWith(expect.anything(), 'later', 'review'));
+  });
+
+  it('adds to the pending review by default once one exists', async () => {
+    const { container, onSubmitComment } = renderReview({ hasPendingReview: true });
+
+    openCommentForm(container.querySelector('[data-side="RIGHT"] p') as Element);
+    fireEvent.input(screen.getByRole('textbox'), { target: { value: 'more' } });
+
+    expect(screen.getByRole('button', { name: '単発でコメント' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'レビューに追加' }));
+    await waitFor(() => expect(onSubmitComment).toHaveBeenCalledWith(expect.anything(), 'more', 'review'));
+  });
+
+  it('marks threads that belong to an unsubmitted review', () => {
+    const { column } = renderReview({ threads: [{ ...thread, isPending: true }] });
+
+    expect(column('LEFT')).toContain('保留中');
   });
 
   it('shows existing threads beside the block on their own side', () => {

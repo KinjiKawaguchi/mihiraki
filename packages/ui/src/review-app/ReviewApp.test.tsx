@@ -17,6 +17,7 @@ function threadOn(path: string, text: string): ReviewThread {
     startLine: null,
     isResolved: false,
     isOutdated: false,
+    isPending: false,
     comments: [{ id: path, author: 'bob', avatarUrl: '', bodyHtml: `<p>${text}</p>`, createdAt: '', url: '' }],
   };
 }
@@ -62,7 +63,7 @@ describe('ReviewApp', () => {
     fireEvent.mouseOver(container.querySelector('[data-side="RIGHT"] p') as Element);
     fireEvent.click(screen.getByRole('button', { name: 'コメントを追加' }));
     fireEvent.input(screen.getByRole('textbox'), { target: { value: 'Nice change' } });
-    fireEvent.click(screen.getByRole('button', { name: 'コメントする' }));
+    fireEvent.click(screen.getByRole('button', { name: 'コメント' }));
 
     expect(await screen.findByText('Nice change')).toBeTruthy();
   });
