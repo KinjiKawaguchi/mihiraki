@@ -12,13 +12,13 @@ import {
 import {
   HOST_SYNC_EVENTS,
   parseJson,
-  type ThreadCreatedMessage,
-  toThreadCreatedMessage,
+  type ThreadRegistration,
+  toThreadRegistration,
 } from "./protocol";
 
 export interface HostBridgeOptions {
   readonly findStores?: (document: Document) => ReviewStores | null;
-  readonly register?: (stores: ReviewStores, message: ThreadCreatedMessage) => boolean;
+  readonly register?: (stores: ReviewStores, registration: ThreadRegistration) => boolean;
 }
 
 export function installHostBridge(document: Document, options: HostBridgeOptions = {}): () => void {
@@ -46,7 +46,7 @@ export function installHostBridge(document: Document, options: HostBridgeOptions
   const onThreadCreated = (event: Event) => {
     const detail = asRecord(parseJson((event as CustomEvent<unknown>).detail));
     const requestId = asString(detail?.requestId);
-    const message = toThreadCreatedMessage(detail?.message);
+    const message = toThreadRegistration(detail?.message);
     if (!requestId || !message) return;
     const stores = currentStores();
     reply(HOST_SYNC_EVENTS.threadRegistered, {

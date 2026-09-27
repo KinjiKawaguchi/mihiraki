@@ -1,11 +1,5 @@
-import {
-  commitId,
-  createMemoryBackend,
-  err,
-  ok,
-  type ReviewBackend,
-  type ReviewThread,
-} from "@mihiraki/core";
+import { commitId, err, ok, type ReviewBackend, type ReviewThread } from "@mihiraki/core";
+import { createMemoryBackend } from "@mihiraki/core/memory";
 import { fireEvent, render, screen, waitFor } from "@testing-library/preact";
 import { describe, expect, it } from "vitest";
 import { createThreadStore } from "../threads/thread-store";
@@ -25,10 +19,10 @@ function threadOn(path: string, text: string): ReviewThread {
     lines: { start: 1, end: 1 },
     isResolved: false,
     isOutdated: false,
-    isPending: false,
     comments: [
       {
         id: path,
+        isPending: false,
         author: "bob",
         avatarUrl: "",
         bodyHtml: `<p>${text}</p>`,
@@ -37,6 +31,11 @@ function threadOn(path: string, text: string): ReviewThread {
       },
     ],
   };
+}
+
+function pendingThreadOn(path: string, text: string): ReviewThread {
+  const thread = threadOn(path, text);
+  return { ...thread, comments: thread.comments.map((c) => ({ ...c, isPending: true })) };
 }
 
 function columnText(container: Element, side: "base" | "head"): string {
@@ -84,7 +83,7 @@ describe("InlineFileReview", () => {
   });
 
   it("offers adding to the review when the viewer has a pending review in any file", async () => {
-    const pending = { ...threadOn("docs/b.md", "pending elsewhere"), isPending: true };
+    const pending = pendingThreadOn("docs/b.md", "pending elsewhere");
     const { container } = await renderInline(createMemoryBackend(files, [pending]));
 
     fireEvent.mouseOver(container.querySelector('[data-side="head"] p') as Element);
@@ -113,9 +112,7 @@ describe("InlineFileReview", () => {
   });
 
   it("shows the host-specific notice while the viewer has a pending review", async () => {
-    const backend = createMemoryBackend(files, [
-      { ...threadOn("docs/b.md", "pending"), isPending: true },
-    ]);
+    const backend = createMemoryBackend(files, [pendingThreadOn("docs/b.md", "pending")]);
     const store = createThreadStore(backend);
     await store.refresh();
 

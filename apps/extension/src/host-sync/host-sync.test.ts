@@ -65,7 +65,7 @@ describe("host sync between the extension and the page bridge", () => {
     }).announceThreadCreated(message);
 
     expect(isRegistered).toBe(true);
-    expect(register).toHaveBeenCalledWith(expect.anything(), message);
+    expect(register).toHaveBeenCalledWith(expect.anything(), { ...message, threadId: 42 });
   });
 
   it("tells listeners when a created thread could not be shown in GitHub UI", async () => {

@@ -27,7 +27,23 @@ describe("host sync protocol", () => {
       thread: { id: "42" },
     };
 
-    expect(parseThreadCreatedMessage(JSON.stringify(message))).toEqual(message);
+    expect(parseThreadCreatedMessage(JSON.stringify(message))).toEqual({
+      ...message,
+      threadId: 42,
+    });
+  });
+
+  it("rejects a thread id GitHub's stores could not use, such as a node id", () => {
+    const message = (id: unknown) =>
+      JSON.stringify({
+        target: { path: "a.md", side: "head", lines: { start: 3, end: 3 } },
+        mode: "review",
+        thread: { id },
+      });
+
+    expect(parseThreadCreatedMessage(message("PRRT_kwDOABC"))).toBeNull();
+    expect(parseThreadCreatedMessage(message(0))).toBeNull();
+    expect(parseThreadCreatedMessage(message(42))).not.toBeNull();
   });
 
   it("rejects anything else, since page scripts can dispatch the same events", () => {

@@ -1,11 +1,5 @@
-import {
-  commitId,
-  createMemoryBackend,
-  err,
-  ok,
-  type ReviewBackend,
-  type ReviewThread,
-} from "@mihiraki/core";
+import { commitId, err, ok, type ReviewBackend, type ReviewThread } from "@mihiraki/core";
+import { createMemoryBackend } from "@mihiraki/core/memory";
 import { describe, expect, it, vi } from "vitest";
 import { createThreadStore } from "./thread-store";
 
@@ -16,7 +10,6 @@ const thread: ReviewThread = {
   lines: { start: 1, end: 1 },
   isResolved: false,
   isOutdated: false,
-  isPending: false,
   comments: [],
 };
 
@@ -74,7 +67,18 @@ describe("createThreadStore", () => {
   });
 
   it("exposes whether the viewer has a pending review, as the backend reports it", async () => {
-    const store = createThreadStore(createMemoryBackend({}, [{ ...thread, isPending: true }]));
+    const pendingComment = {
+      id: "c1",
+      isPending: true,
+      author: "me",
+      avatarUrl: "",
+      bodyHtml: "",
+      createdAt: "",
+      url: "",
+    };
+    const store = createThreadStore(
+      createMemoryBackend({}, [{ ...thread, comments: [pendingComment] }]),
+    );
 
     expect(store.hasPendingReview()).toBe(false);
     await store.refresh();

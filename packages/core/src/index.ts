@@ -19,11 +19,6 @@ export { basePathOf, headPathOf } from "./review/changed-file";
 export { availableCommentModes } from "./review/comment-modes";
 export { type CommitId, commitId, parseCommitId } from "./review/commit-id";
 export type { HostError } from "./review/host-error";
-export {
-  createMemoryBackend,
-  type MemoryBackendOptions,
-  type MemoryFile,
-} from "./review/memory-backend";
 export type { PostCommentError } from "./review/post-comment-error";
 export { isSameRevision } from "./review/revision";
 export type {

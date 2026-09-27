@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { ok } from "../result";
-import type { ReviewBackend } from "./backend";
-import { commitId } from "./commit-id";
+import type { ReviewBackend } from "../review/backend";
+import { commitId } from "../review/commit-id";
+import type { CommentTarget, ReviewThread } from "../review/types";
 import { createMemoryBackend } from "./memory-backend";
-import type { CommentTarget } from "./types";
 
 const revision = { base: commitId("b1b1b1b"), head: commitId("c1c1c1c") };
 const files = {
@@ -61,9 +61,9 @@ describe("createMemoryBackend", () => {
       side: "head",
       lines: { start: 1, end: 2 },
       isResolved: false,
-      isPending: false,
     });
     expect(thread?.comments[0]?.bodyHtml).toContain("<strong>good</strong>");
+    expect(thread?.comments[0]?.isPending).toBe(false);
   });
 
   it("keeps comments posted as part of a review pending", async () => {
@@ -72,7 +72,7 @@ describe("createMemoryBackend", () => {
     await backend.postComment(target, "later", "review");
     const snapshot = await loadSnapshot(backend);
 
-    expect(snapshot.threads[0]?.isPending).toBe(true);
+    expect(snapshot.threads[0]?.comments[0]?.isPending).toBe(true);
     expect(snapshot.hasPendingReview).toBe(true);
   });
 
@@ -84,6 +84,25 @@ describe("createMemoryBackend", () => {
 
     expect(result).toEqual({ ok: false, error: { kind: "pendingReviewConflict" } });
     expect((await loadSnapshot(backend)).threads).toHaveLength(1);
+  });
+
+  it("gives new threads and comments ids that differ from every existing one", async () => {
+    const existing: ReviewThread = {
+      id: "2",
+      path: "docs/a.md",
+      side: "head",
+      lines: { start: 1, end: 1 },
+      isResolved: false,
+      isOutdated: false,
+      comments: [],
+    };
+    const backend = createMemoryBackend(files, [existing]);
+
+    await backend.postComment(target, "one", "single");
+    await backend.postComment(target, "two", "single");
+    const ids = (await loadSnapshot(backend)).threads.map((thread) => thread.id);
+
+    expect(new Set(ids).size).toBe(3);
   });
 
   it("has no pending review until a comment is added to one", async () => {

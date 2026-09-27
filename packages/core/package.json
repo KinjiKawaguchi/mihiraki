@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./memory": "./src/memory/memory-backend.ts"
   },
   "scripts": {
     "test": "vitest run",
