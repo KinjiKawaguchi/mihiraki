@@ -42,6 +42,11 @@ export interface Messages {
   readonly resolved: string;
   readonly outdated: string;
   readonly openOnGitHub: string;
+  readonly authorBadge: string;
+  readonly moreActions: string;
+  readonly copyLink: string;
+  readonly copyMarkdown: string;
+  readonly referenceInNewIssue: string;
   readonly commentCount: (count: number) => string;
   readonly unplacedThreads: string;
 }

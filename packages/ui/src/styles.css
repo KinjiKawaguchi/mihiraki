@@ -266,11 +266,11 @@
   gap: 8px;
   padding-bottom: 8px;
 }
+/* Not clipped, so a comment's menu can open past the thread's edge. */
 .mhr-thread {
   border: 1px solid var(--mhr-border);
   border-radius: 6px;
   background: var(--mhr-bg);
-  overflow: hidden;
 }
 .mhr-thread--resolved {
   opacity: 0.75;
@@ -282,6 +282,7 @@
   padding: 6px 10px;
   border: none;
   border-bottom: 1px solid var(--mhr-border);
+  border-radius: 5px 5px 0 0;
   background: var(--mhr-bg-muted);
   color: var(--mhr-fg-muted);
   font: inherit;
@@ -316,8 +317,80 @@
 .mhr-comment__time {
   color: var(--mhr-fg-muted);
 }
-.mhr-comment__link {
+.mhr-comment__trail {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.mhr-menu {
+  position: relative;
+}
+.mhr-menu__button {
+  padding: 0 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--mhr-fg-muted);
+  font: inherit;
+  font-size: 16px;
+  line-height: 20px;
+  cursor: pointer;
+}
+.mhr-menu__button:hover,
+.mhr-menu__button[aria-expanded="true"] {
+  background: var(--mhr-bg-muted);
+}
+.mhr-menu__list {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: 6px 0;
+  border: 1px solid var(--mhr-border);
+  border-radius: 12px;
+  background: var(--mhr-bg);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+}
+.mhr-menu__list > * {
+  padding: 6px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--mhr-fg);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.mhr-menu__list > *:hover,
+.mhr-menu__list > *:focus-visible {
+  background: var(--mhr-bg-muted);
+}
+.mhr-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.mhr-reaction {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--mhr-border);
+  border-radius: 12px;
+  color: var(--mhr-fg-muted);
+  font-size: 12px;
+}
+.mhr-reaction--mine {
+  border-color: var(--mhr-accent);
   color: var(--mhr-accent);
 }
 .mhr-comment__body {

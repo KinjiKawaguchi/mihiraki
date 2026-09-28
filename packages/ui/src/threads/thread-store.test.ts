@@ -74,6 +74,10 @@ describe("createThreadStore", () => {
       bodyHtml: "",
       createdAt: "",
       url: "",
+      isByChangeAuthor: false,
+      bodyMarkdown: "",
+      reactions: [],
+      newIssueUrl: null,
     };
     const store = createThreadStore(
       createMemoryBackend({}, [{ ...thread, comments: [pendingComment] }]),

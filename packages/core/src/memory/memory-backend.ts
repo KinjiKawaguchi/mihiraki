@@ -66,9 +66,13 @@ export function createMemoryBackend(
           isPending: mode === "review",
           author: "you",
           avatarUrl: "",
+          isByChangeAuthor: false,
           bodyHtml: md.render(body),
+          bodyMarkdown: body,
           createdAt: new Date().toISOString(),
           url: "",
+          reactions: [],
+          newIssueUrl: null,
         },
       ],
     };

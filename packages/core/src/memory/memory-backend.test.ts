@@ -63,6 +63,7 @@ describe("createMemoryBackend", () => {
       isResolved: false,
     });
     expect(thread?.comments[0]?.bodyHtml).toContain("<strong>good</strong>");
+    expect(thread?.comments[0]?.bodyMarkdown).toBe("Looks **good**");
     expect(thread?.comments[0]?.isPending).toBe(false);
   });
 

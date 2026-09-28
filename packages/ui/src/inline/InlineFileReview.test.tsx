@@ -28,6 +28,10 @@ function threadOn(path: string, text: string): ReviewThread {
         bodyHtml: `<p>${text}</p>`,
         createdAt: "",
         url: "",
+        isByChangeAuthor: false,
+        bodyMarkdown: "",
+        reactions: [],
+        newIssueUrl: null,
       },
     ],
   };

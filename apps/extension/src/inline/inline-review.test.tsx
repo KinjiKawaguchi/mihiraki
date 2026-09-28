@@ -155,6 +155,10 @@ describe("startInlineReview", () => {
           bodyHtml: "<p>draft</p>",
           createdAt: "",
           url: "",
+          isByChangeAuthor: false,
+          bodyMarkdown: "",
+          reactions: [],
+          newIssueUrl: null,
         },
       ],
     };

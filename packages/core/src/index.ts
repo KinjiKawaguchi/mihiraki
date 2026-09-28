@@ -25,6 +25,8 @@ export { isSameRevision } from "./review/revision";
 export type {
   CommentMode,
   CommentTarget,
+  Reaction,
+  ReactionKind,
   ReviewComment,
   ReviewThread,
   Revision,

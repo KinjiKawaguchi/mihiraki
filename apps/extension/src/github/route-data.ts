@@ -4,7 +4,6 @@ import {
   type LineRange,
   parseCommitId,
   parseLineRange,
-  type ReviewComment,
   type ReviewThread,
   type Revision,
   type Side,
@@ -14,6 +13,7 @@ import { parseDiffLayout } from "./diff-layout";
 import { type LineKey, parseLineKey } from "./diff-side";
 import { asArray, asRecord, asRecords, asString, type JsonRecord, pick } from "./json";
 import { UnexpectedResponseError } from "./request-errors";
+import { toComment } from "./route-comments";
 
 export interface RouteData {
   /** The commits compared on the page. */
@@ -93,24 +93,11 @@ function locateThreads(summary: JsonRecord): ThreadLocation[] {
   });
 }
 
-function toComment(raw: unknown): ReviewComment | null {
-  const comment = asRecord(raw);
-  const id = asString(comment?.databaseId) ?? asString(comment?.id);
-  // Without an id a view could not tell comments apart.
-  if (!comment || !id) return null;
-  return {
-    id,
-    // Comments of an unsubmitted review are returned with `state: "pending"`.
-    isPending: comment.state === "pending",
-    author: asString(pick(comment, "author", "login")) ?? "unknown",
-    avatarUrl: asString(pick(comment, "author", "avatarUrl")) ?? "",
-    bodyHtml: asString(comment.bodyHTML) ?? "",
-    createdAt: asString(comment.createdAt) ?? "",
-    url: asString(comment.url) ?? "",
-  };
-}
-
-function toThread(location: ThreadLocation, raw: unknown): ReviewThread | null {
+function toThread(
+  location: ThreadLocation,
+  raw: unknown,
+  changeAuthor: string | null,
+): ReviewThread | null {
   const thread = asRecord(raw);
   if (!thread || thread.subjectType === "FILE") return null;
   const rawComments = asArray(pick(thread, "commentsData", "comments"));
@@ -118,7 +105,7 @@ function toThread(location: ThreadLocation, raw: unknown): ReviewThread | null {
     ...location,
     isResolved: thread.isResolved === true,
     isOutdated: thread.isOutdated === true,
-    comments: rawComments.flatMap((comment) => toComment(comment) ?? []),
+    comments: rawComments.flatMap((comment) => toComment(comment, changeAuthor) ?? []),
   };
 }
 
@@ -133,11 +120,12 @@ export function parseRouteData(json: unknown): RouteData {
   const summaries = asRecords(route.diffSummaries);
   const previousPaths = previousPathsOf(route);
   const threadsById = asRecord(pick(route, "markers", "threads")) ?? {};
+  const changeAuthor = asString(pick(route, "pullRequest", "author", "login"));
   const locations = summaries.flatMap(locateThreads);
   // A thread can be listed under more than one line key; the first one places it.
   const threads = locations
     .filter((location, index) => locations.findIndex(({ id }) => id === location.id) === index)
-    .flatMap((location) => toThread(location, threadsById[location.id]) ?? []);
+    .flatMap((location) => toThread(location, threadsById[location.id], changeAuthor) ?? []);
   return {
     revision: { base, head },
     hasPendingReview: asString(pick(route, "viewerPendingReview", "id")) !== null,

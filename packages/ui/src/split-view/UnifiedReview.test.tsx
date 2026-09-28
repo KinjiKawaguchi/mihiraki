@@ -50,6 +50,10 @@ function thread(side: "base" | "head", line: number, text: string): ReviewThread
         bodyHtml: `<p>${text}</p>`,
         createdAt: "",
         url: "",
+        isByChangeAuthor: false,
+        bodyMarkdown: "",
+        reactions: [],
+        newIssueUrl: null,
       },
     ],
   };

@@ -203,10 +203,67 @@ describe("parseRouteData", () => {
     expect(route.threads[0]?.comments.map((comment) => comment.id)).toEqual(["2"]);
   });
 
+  it("reads what a comment adds beyond its text: reactions, authorship and links", () => {
+    const route = parseRouteData({
+      payload: {
+        pullRequestsChangesRoute: {
+          ...response.payload.pullRequestsChangesRoute,
+          pullRequest: { author: { login: "alice" } },
+          diffSummaries: [
+            { path: "docs/design.md", markersMap: { R12: { threads: [{ id: 7 }] } } },
+          ],
+          markers: {
+            threads: {
+              "7": {
+                id: 7,
+                subjectType: "LINE",
+                commentsData: {
+                  comments: [
+                    {
+                      databaseId: 1,
+                      author: { login: "alice" },
+                      body: "Why **ten**?",
+                      url: "https://github.com/acme/docs/pull/1#discussion_r1",
+                      reactionGroups: [
+                        {
+                          reaction: { content: "THUMBS_UP", viewerHasReacted: true },
+                          totalCount: 2,
+                        },
+                        { reaction: { content: "HEART", viewerHasReacted: false }, totalCount: 0 },
+                        { reaction: { content: "ROCKET", viewerHasReacted: false }, totalCount: 1 },
+                      ],
+                    },
+                    { databaseId: 2, author: { login: "bob" }, body: "b" },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    const [first, second] = route.threads[0]?.comments ?? [];
+
+    expect(first).toMatchObject({
+      bodyMarkdown: "Why **ten**?",
+      isByChangeAuthor: true,
+      reactions: [
+        { kind: "thumbsUp", count: 2, isByViewer: true },
+        { kind: "rocket", count: 1, isByViewer: false },
+      ],
+    });
+    expect(first?.newIssueUrl).toBe(
+      `https://github.com/acme/docs/issues/new?body=${encodeURIComponent(
+        "> Why **ten**?\n\n_Originally posted by @alice in https://github.com/acme/docs/pull/1#discussion_r1_",
+      )}`,
+    );
+    expect(second).toMatchObject({ isByChangeAuthor: false, reactions: [], newIssueUrl: null });
+  });
+
   it("maps comment authors and rendered bodies", () => {
     const [first] = parseRouteData(response).threads;
 
-    expect(first?.comments).toEqual([
+    expect(first?.comments).toMatchObject([
       {
         id: "9001",
         isPending: false,
