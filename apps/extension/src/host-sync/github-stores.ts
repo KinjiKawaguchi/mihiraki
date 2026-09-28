@@ -4,6 +4,8 @@
  * Runs in the page's main world. Everything here relies on GitHub internals observed on
  * github.com (2026-09) and fails closed: when something is missing nothing is changed.
  */
+import type { DiffLayout } from "@mihiraki/ui";
+import { parseDiffLayout } from "../github/diff-layout";
 import { asRecord } from "../github/json";
 import { diffLineKeyOf, type ThreadRegistration, threadSubjectOf } from "./protocol";
 
@@ -130,5 +132,25 @@ export function watchReviewThreads(stores: ReviewStores, onChange: () => void): 
     const before = asRecord(previous);
     if (next?.markers !== before?.markers || next?.pendingReview !== before?.pendingReview)
       onChange();
+  });
+}
+
+function diffLayoutOf(pageState: unknown): DiffLayout | null {
+  return parseDiffLayout(asRecord(asRecord(pageState)?.viewSettings)?.splitPreference);
+}
+
+/** The viewer's split / unified setting, as GitHub's page store currently holds it. */
+export function readDiffLayout(stores: ReviewStores): DiffLayout | null {
+  return diffLayoutOf(stores.page.getState());
+}
+
+/** Calls `onChange` whenever the viewer switches between split and unified. */
+export function watchDiffLayout(
+  stores: ReviewStores,
+  onChange: (layout: DiffLayout) => void,
+): () => void {
+  return stores.page.subscribe((state, previous) => {
+    const layout = diffLayoutOf(state);
+    if (layout !== null && layout !== diffLayoutOf(previous)) onChange(layout);
   });
 }

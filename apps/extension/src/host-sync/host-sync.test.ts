@@ -12,8 +12,19 @@ const message: ThreadCreatedMessage = {
 
 function fakeStores() {
   let listener: ((state: unknown, previous: unknown) => void) | null = null;
+  let pageListener: ((state: unknown, previous: unknown) => void) | null = null;
+  let pageState: unknown = { viewSettings: { splitPreference: "split" } };
   const stores = {
-    page: { getState: () => ({}), setState: () => undefined, subscribe: () => () => undefined },
+    page: {
+      getState: () => pageState,
+      setState: () => undefined,
+      subscribe: (next: (state: unknown, previous: unknown) => void) => {
+        pageListener = next;
+        return () => {
+          pageListener = null;
+        };
+      },
+    },
     layout: {
       getState: () => ({}),
       setState: () => undefined,
@@ -25,7 +36,16 @@ function fakeStores() {
       },
     },
   } satisfies ReviewStores;
-  return { stores, emitChange: () => listener?.({ markers: { "a.md": {} } }, { markers: {} }) };
+  const changeLayout = (splitPreference: string) => {
+    const previous = pageState;
+    pageState = { viewSettings: { splitPreference } };
+    pageListener?.(pageState, previous);
+  };
+  return {
+    stores,
+    emitChange: () => listener?.({ markers: { "a.md": {} } }, { markers: {} }),
+    changeLayout,
+  };
 }
 
 let cleanups: (() => void)[] = [];
@@ -114,5 +134,18 @@ describe("host sync between the extension and the page bridge", () => {
     );
 
     expect(register).not.toHaveBeenCalled();
+  });
+
+  it("tells the extension GitHub's diff layout, and again whenever it changes", async () => {
+    const { stores, changeLayout } = fakeStores();
+    install({ findStores: () => stores, register: vi.fn() });
+    const client = createHostSyncClient(document, { timeoutMs: 50 });
+    const layouts: string[] = [];
+    cleanups.push(client.watchDiffLayout((layout) => layouts.push(layout)));
+
+    await vi.waitFor(() => expect(layouts).toEqual(["split"]));
+    changeLayout("unified");
+
+    expect(layouts).toEqual(["split", "unified"]);
   });
 });

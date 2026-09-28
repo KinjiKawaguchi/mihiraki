@@ -36,4 +36,20 @@ describe("watchDocument", () => {
 
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  it("calls back when a button's pressed state changes, as when a file switches to rich diff", async () => {
+    vi.useFakeTimers();
+    const button = document.createElement("button");
+    button.setAttribute("aria-pressed", "false");
+    document.body.append(button);
+    const onChange = vi.fn();
+    const stop = watchDocument(document, onChange);
+
+    button.setAttribute("aria-pressed", "true");
+    await flushMutations();
+    vi.runAllTimers();
+    stop();
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
 });

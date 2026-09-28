@@ -34,7 +34,7 @@ pnpm build:extension    # apps/extension/.output/chrome-mv3 に出力
 1. `pnpm build:extension` を実行する
 2. `chrome://extensions` で「デベロッパーモード」を有効にし、「パッケージ化されていない拡張機能を読み込む」で `apps/extension/.output/chrome-mv3` を選ぶ
 3. GitHubにログインした状態でPRの Files changed を開く
-4. Markdownファイルの見出しにある、ソース/rich diff切り替えの隣の「分割」を押す。そのファイルの差分が左右分割のレンダリング表示に置き換わる（もう一度押すと元に戻る）
+4. Markdownファイルの見出しにある、ソース/rich diffの切り替えでrich diffを選ぶ。GitHubの表示設定がSplitなら左右分割、Unifiedなら1列のレンダリング表示に置き換わり、どちらでもコメントできる（ソース表示に戻すと元に戻る）
 5. ブロックにマウスを乗せると左端に「+」が出る。左（変更前）に付けたコメントは削除側、右（変更後）は追加側の行に付く
 
 ## 仕組みと制約

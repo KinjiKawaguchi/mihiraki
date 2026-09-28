@@ -4,9 +4,10 @@
 
 Review Markdown changes in GitHub pull requests the way they read: rendered, side by side, with the old version on the left and the new one on the right — and comment on them right there.
 
-For Markdown, GitHub's rich diff overlays both versions in a single view and does not take review comments. Mihiraki adds a "Split" button to each changed Markdown file on a pull request's "Files changed" tab.
+For Markdown, GitHub's rich diff overlays both versions in a single view and does not take review comments. Mihiraki takes its place when you switch a changed Markdown file to the rich diff on a pull request's "Files changed" tab, following GitHub's own split / unified setting.
 
-• Both versions rendered and aligned block by block: headings, paragraphs, lists, tables
+• Split layout: both versions rendered and aligned block by block (headings, paragraphs, lists, tables)
+• Unified layout: one column, with the changes marked in place
 • Changed words highlighted inside each block (character by character for Japanese and Chinese)
 • Hover over a block and press "+" to comment, or drag to select a range, as in GitHub's own diff
 • Comments are ordinary GitHub review comments: post one right away, or add it to your pending review

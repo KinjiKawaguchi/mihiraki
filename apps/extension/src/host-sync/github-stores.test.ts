@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   findReviewStores,
+  readDiffLayout,
   registerCreatedThread,
+  watchDiffLayout,
   watchReviewThreads,
   type ZustandStore,
 } from "./github-stores";
@@ -173,5 +175,32 @@ describe("watchReviewThreads", () => {
     stores.layout.setState({ pendingReview: { id: 1 } });
 
     expect(onChange).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("diff layout", () => {
+  function storesWithLayout(splitPreference: unknown) {
+    return {
+      page: createStore({ viewSettings: { splitPreference, lineSpacing: "compact" } }),
+      layout: createStore({}),
+    };
+  }
+
+  it("reads the split / unified setting from GitHub's page store", () => {
+    expect(readDiffLayout(storesWithLayout("split"))).toBe("split");
+    expect(readDiffLayout(storesWithLayout("unified"))).toBe("unified");
+    expect(readDiffLayout(storesWithLayout(undefined))).toBeNull();
+  });
+
+  it("reports only changes of the setting itself", () => {
+    const stores = storesWithLayout("split");
+    const onChange = vi.fn();
+    watchDiffLayout(stores, onChange);
+
+    stores.page.setState({ unrelated: 1 });
+    stores.page.setState({ viewSettings: { splitPreference: "unified" } });
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith("unified");
   });
 });

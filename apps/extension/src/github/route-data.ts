@@ -9,6 +9,8 @@ import {
   type Revision,
   type Side,
 } from "@mihiraki/core";
+import type { DiffLayout } from "@mihiraki/ui";
+import { parseDiffLayout } from "./diff-layout";
 import { type LineKey, parseLineKey } from "./diff-side";
 import { asArray, asRecord, asRecords, asString, type JsonRecord, pick } from "./json";
 import { UnexpectedResponseError } from "./request-errors";
@@ -20,6 +22,8 @@ export interface RouteData {
   readonly hasPendingReview: boolean;
   readonly files: readonly ChangedFile[];
   readonly threads: readonly ReviewThread[];
+  /** The viewer's split / unified setting when the page was loaded; null when unknown. */
+  readonly diffLayout: DiffLayout | null;
 }
 
 interface ThreadLocation {
@@ -139,5 +143,6 @@ export function parseRouteData(json: unknown): RouteData {
     hasPendingReview: asString(pick(route, "viewerPendingReview", "id")) !== null,
     files: summaries.flatMap((summary) => toChangedFile(summary, previousPaths) ?? []),
     threads,
+    diffLayout: parseDiffLayout(pick(route, "user", "viewSettings", "splitPreference")),
   };
 }

@@ -219,6 +219,23 @@ describe("parseRouteData", () => {
     ]);
   });
 
+  it("reads the viewer's diff layout setting, and nothing when it is missing or unknown", () => {
+    const withLayout = (splitPreference: unknown) =>
+      parseRouteData({
+        payload: {
+          pullRequestsChangesRoute: {
+            ...response.payload.pullRequestsChangesRoute,
+            user: { viewSettings: { splitPreference } },
+          },
+        },
+      }).diffLayout;
+
+    expect(withLayout("split")).toBe("split");
+    expect(withLayout("unified")).toBe("unified");
+    expect(withLayout("sideways")).toBeNull();
+    expect(parseRouteData(response).diffLayout).toBeNull();
+  });
+
   it("tells whether the viewer has an unsubmitted review", () => {
     const withPending = structuredClone(response);
     (withPending.payload.pullRequestsChangesRoute as Record<string, unknown>).viewerPendingReview =

@@ -2,6 +2,8 @@
  * The extension side (isolated world) of host sync. Every request resolves to false when
  * the bridge does not answer in time, so callers can fall back to a plain notice.
  */
+import type { DiffLayout } from "@mihiraki/ui";
+import { parseDiffLayout } from "../github/diff-layout";
 import { asRecord } from "../github/json";
 import { HOST_SYNC_EVENTS, parseJson, type ThreadCreatedMessage } from "./protocol";
 
@@ -12,6 +14,8 @@ export interface HostSyncClient {
   onHostThreadsChanged(listener: () => void): () => void;
   /** Called when a created thread could not be shown in GitHub's own UI, which then stays stale. */
   onSyncLost(listener: () => void): () => void;
+  /** Reports GitHub's split / unified setting once the bridge answers, then on every change. */
+  watchDiffLayout(listener: (layout: DiffLayout) => void): () => void;
 }
 
 interface Exchange {
@@ -79,6 +83,16 @@ export function createHostSyncClient(
       return () => {
         syncLostListeners = syncLostListeners.filter((existing) => existing !== listener);
       };
+    },
+    watchDiffLayout: (listener) => {
+      const handler = (event: Event) => {
+        const detail = asRecord(parseJson((event as CustomEvent<unknown>).detail));
+        const layout = parseDiffLayout(detail?.layout);
+        if (layout) listener(layout);
+      };
+      document.addEventListener(HOST_SYNC_EVENTS.diffLayout, handler);
+      document.dispatchEvent(new CustomEvent(HOST_SYNC_EVENTS.diffLayoutRequest, { detail: "{}" }));
+      return () => document.removeEventListener(HOST_SYNC_EVENTS.diffLayout, handler);
     },
     onHostThreadsChanged: (listener) => {
       const handler = () => listener();

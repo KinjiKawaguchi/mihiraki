@@ -5,23 +5,27 @@ import {
   type Result,
   type ReviewBackend,
 } from "@mihiraki/core";
-import { createThreadStore, type Locale } from "@mihiraki/ui";
+import { createThreadStore, type DiffLayout, type Locale } from "@mihiraki/ui";
 import type { HostSyncClient } from "../host-sync/client";
 import { watchDocument } from "./document-watch";
 import { fileContainerId } from "./file-anchor";
 import { createFileDecorator } from "./file-decorator";
-import { installPageStyle, removePageStyle, setSplitActive } from "./github-file-dom";
+import { installPageStyle, removePageStyle, setRenderedViewActive } from "./github-file-dom";
 import { INLINE_MESSAGES } from "./messages";
 
 export interface InlineReviewOptions {
   readonly document: Document;
   readonly backend: ReviewBackend;
-  /** Stylesheet of the split view, injected into each view's shadow root. */
+  /** Stylesheet of the view, injected into each view's shadow root. */
   readonly cssText: string;
-  /** Keeps GitHub's own UI and the split views showing the same threads, when available. */
+  /**
+   * Keeps GitHub's own UI and the views in step (threads, layout setting), when available.
+   */
   readonly hostSync?: HostSyncClient;
   /** Language of everything added to the page. */
   readonly locale: Locale;
+  /** GitHub's split / unified setting at start; host sync reports later changes. */
+  readonly initialLayout: DiffLayout;
 }
 
 /** GitHub updates several stores per comment; reload our threads once they settle. */
@@ -38,36 +42,31 @@ function debounce(callback: () => void, delayMs: number): () => void {
 interface HostWatch {
   readonly onThreadsChanged: () => void;
   readonly onSyncLost: () => void;
+  readonly onLayoutChanged: (layout: DiffLayout) => void;
 }
 
-/** Follows GitHub's own UI: changes to its threads, and comments it could not take in. */
+/** Follows GitHub's own UI: its threads, comments it could not take in, and its layout. */
 function watchHost(hostSync: HostSyncClient | undefined, handlers: HostWatch): () => void {
   if (!hostSync) return () => undefined;
-  const stopThreads = hostSync.onHostThreadsChanged(
-    debounce(handlers.onThreadsChanged, HOST_REFRESH_DELAY_MS),
-  );
-  const stopLoss = hostSync.onSyncLost(handlers.onSyncLost);
+  const stops = [
+    hostSync.onHostThreadsChanged(debounce(handlers.onThreadsChanged, HOST_REFRESH_DELAY_MS)),
+    hostSync.onSyncLost(handlers.onSyncLost),
+    hostSync.watchDiffLayout(handlers.onLayoutChanged),
+  ];
   return () => {
-    stopThreads();
-    stopLoss();
+    for (const stop of stops) stop();
   };
 }
 
-/** Which files show the split view; switching the first one on calls `onFirstActivation`. */
-function createActivation(onFirstActivation: () => void) {
-  let activePaths: ReadonlySet<string> = new Set();
-  let hasActivated = false;
+/** Threads are loaded when the first view is shown, not before anyone looks at them. */
+function createLazyLoad(load: () => void) {
+  let hasLoaded = false;
   return {
-    isActive: (path: string) => activePaths.has(path),
-    hasActivated: () => hasActivated,
-    set: (path: string, isActive: boolean) => {
-      activePaths = new Set(
-        [...activePaths].filter((active) => active !== path).concat(isActive ? [path] : []),
-      );
-      if (isActive && !hasActivated) {
-        hasActivated = true;
-        onFirstActivation();
-      }
+    hasLoaded: () => hasLoaded,
+    loadOnce: () => {
+      if (hasLoaded) return;
+      hasLoaded = true;
+      load();
     },
   };
 }
@@ -104,25 +103,27 @@ function decorateAll(document: Document, targets: readonly FileTarget[], decorat
 function restoreAll(document: Document, targets: readonly FileTarget[]) {
   for (const { containerId } of targets) {
     const container = document.getElementById(containerId);
-    if (container) setSplitActive(container, false);
+    if (container) setRenderedViewActive(container, false);
   }
 }
 
 /**
- * Adds a "split" toggle to every changed Markdown file on GitHub's Files changed page
- * and swaps the file's diff for the rendered split review while it is on.
- * Returns a function that removes everything again, or why the files could not be found.
+ * Shows changed Markdown files on GitHub's Files changed page rendered, with comments,
+ * whenever GitHub's own switcher shows their rich diff: split or unified as GitHub's
+ * layout setting says. Returns a function that removes everything again, or why the
+ * files could not be found.
  */
 export async function startInlineReview(
   options: InlineReviewOptions,
 ): Promise<Result<() => void, HostError>> {
   const { document, backend, cssText, hostSync, locale } = options;
+  let layout = options.initialLayout;
   const located = await locateFiles(backend);
   if (!located.ok) return located;
   const targets = located.value;
   let isHostSynced = hostSync ? await hostSync.isHostAvailable() : false;
   const store = createThreadStore(backend);
-  const activation = createActivation(() => void store.refresh());
+  const threads = createLazyLoad(() => void store.refresh());
 
   const sync = () => decorateAll(document, targets, decorator);
 
@@ -134,11 +135,8 @@ export async function startInlineReview(
     pendingReviewNotice: () =>
       isHostSynced ? undefined : INLINE_MESSAGES[locale].pendingReviewNotice,
     locale,
-    isActive: activation.isActive,
-    setActive: (path, isActive) => {
-      activation.set(path, isActive);
-      sync();
-    },
+    layout: () => layout,
+    onViewShown: threads.loadOnce,
   });
 
   installPageStyle(document);
@@ -146,11 +144,15 @@ export async function startInlineReview(
   const stopWatching = watchDocument(document, sync);
   const stopHostWatch = watchHost(hostSync, {
     onThreadsChanged: () => {
-      if (activation.hasActivated()) void store.refresh();
+      if (threads.hasLoaded()) void store.refresh();
     },
     // A comment GitHub's UI could not take in leaves its counts stale until reloaded.
     onSyncLost: () => {
       isHostSynced = false;
+      sync();
+    },
+    onLayoutChanged: (next) => {
+      layout = next;
       sync();
     },
   });

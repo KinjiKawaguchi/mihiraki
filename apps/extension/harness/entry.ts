@@ -26,11 +26,14 @@ if (pr) {
   const backend = createGitHubBackend(pr, undefined, {
     onThreadCreated: (created) => hostSync.announceThreadCreated(created),
   });
-  window.mihiraki = startInlineReview({
-    document,
-    backend,
-    cssText: inheritHostThemeColors(cssText),
-    hostSync,
-    locale: resolveLocale(navigator.languages),
-  });
+  window.mihiraki = backend.diffLayout().then((layout) =>
+    startInlineReview({
+      document,
+      backend,
+      cssText: inheritHostThemeColors(cssText),
+      hostSync,
+      locale: resolveLocale(navigator.languages),
+      initialLayout: layout ?? "split",
+    }),
+  );
 }

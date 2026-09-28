@@ -1,42 +1,50 @@
 /**
  * Everything this extension assumes about the DOM of GitHub's Files changed page.
- * Class names there are hashed per build, so only ids, roles and data attributes are used.
+ * Class names there are hashed per build, so only ids, roles and data / aria attributes are used.
  */
 
-export const SPLIT_VIEW_TAG = "mhr-split-view";
-export const SPLIT_TOGGLE_TAG = "mhr-split-toggle";
+export const REVIEW_VIEW_TAG = "mhr-review";
 
 const HEADER_SELECTOR = "[data-diff-header-wrapper]";
 const VIEW_SWITCHER_SELECTOR = `${HEADER_SELECTOR} [data-component="SegmentedControl"]`;
-const SPLIT_ATTR = "data-mhr-split";
+const VIEW_ATTR = "data-mhr-view";
 const PAGE_STYLE_ATTR = "data-mhr-page-style";
 
-/** GitHub's own "source diff / rich diff" switcher in a file header. */
-export function findViewSwitcher(container: Element): Element | null {
-  return container.querySelector(VIEW_SWITCHER_SELECTOR);
-}
-
-export function findHeader(container: Element): Element | null {
-  return container.querySelector(HEADER_SELECTOR);
+/** A button's accessible name; GitHub labels these by pointing at their tooltip. */
+function labelOf(button: Element): string {
+  const id = button.getAttribute("aria-labelledby");
+  const tooltip = id ? button.ownerDocument.getElementById(id) : null;
+  return tooltip?.textContent ?? button.getAttribute("aria-label") ?? "";
 }
 
 /**
- * Split files are marked with an attribute rather than by styling GitHub's nodes
- * directly, so React re-renders cannot undo it and switching back leaves no trace.
+ * Whether the file header's "source diff / rich diff" switcher has rich diff pressed:
+ * the button labelled as the rich diff, or else the second one.
  */
-export function setSplitActive(container: Element, isActive: boolean): void {
-  if (isActive) container.setAttribute(SPLIT_ATTR, "");
-  else container.removeAttribute(SPLIT_ATTR);
+export function isRichDiffShown(container: Element): boolean {
+  const buttons = Array.from(
+    container.querySelectorAll(`${VIEW_SWITCHER_SELECTOR} button[aria-pressed]`),
+  );
+  const rich = buttons.find((button) => /rich diff/i.test(labelOf(button))) ?? buttons[1];
+  return rich?.getAttribute("aria-pressed") === "true";
 }
 
-export function isSplitActive(container: Element): boolean {
-  return container.hasAttribute(SPLIT_ATTR);
+/**
+ * Files showing the rendered view are marked with an attribute rather than by styling
+ * GitHub's nodes directly, so React re-renders cannot undo it and removing it leaves no trace.
+ */
+export function setRenderedViewActive(container: Element, isActive: boolean): void {
+  if (isActive) container.setAttribute(VIEW_ATTR, "");
+  else container.removeAttribute(VIEW_ATTR);
+}
+
+export function isRenderedViewActive(container: Element): boolean {
+  return container.hasAttribute(VIEW_ATTR);
 }
 
 const PAGE_STYLE = `
-[${SPLIT_ATTR}] > :not(${HEADER_SELECTOR}):not(${SPLIT_VIEW_TAG}) { display: none !important; }
-${SPLIT_TOGGLE_TAG} { display: inline-flex; margin-left: 8px; vertical-align: middle; }
-${SPLIT_VIEW_TAG} { display: block; }
+[${VIEW_ATTR}] > :not(${HEADER_SELECTOR}):not(${REVIEW_VIEW_TAG}) { display: none !important; }
+${REVIEW_VIEW_TAG} { display: block; }
 `;
 
 export function installPageStyle(document: Document): void {

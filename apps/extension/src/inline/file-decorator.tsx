@@ -1,15 +1,7 @@
 import type { ChangedFile, ReviewBackend } from "@mihiraki/core";
-import { InlineFileReview, type Locale, type ThreadStore } from "@mihiraki/ui";
+import { type DiffLayout, InlineFileReview, type Locale, type ThreadStore } from "@mihiraki/ui";
 import { render } from "preact";
-import {
-  findHeader,
-  findViewSwitcher,
-  SPLIT_TOGGLE_TAG,
-  SPLIT_VIEW_TAG,
-  setSplitActive,
-} from "./github-file-dom";
-import { INLINE_MESSAGES } from "./messages";
-import { SPLIT_TOGGLE_CSS, SplitToggle } from "./SplitToggle";
+import { isRichDiffShown, REVIEW_VIEW_TAG, setRenderedViewActive } from "./github-file-dom";
 import { createShadowHost, type ShadowHost } from "./shadow-host";
 
 export interface FileDecoratorContext {
@@ -17,59 +9,32 @@ export interface FileDecoratorContext {
   readonly backend: ReviewBackend;
   readonly store: ThreadStore;
   readonly cssText: string;
-  /** Shown in split views while a review is pending; none while GitHub's UI is kept in sync. */
-  readonly pendingReviewNotice: () => string | undefined;
   readonly locale: Locale;
-  readonly isActive: (path: string) => boolean;
-  readonly setActive: (path: string, isActive: boolean) => void;
+  /** Shown in the views while a review is pending; none while GitHub's UI is kept in sync. */
+  readonly pendingReviewNotice: () => string | undefined;
+  /** GitHub's split / unified setting, which the views follow. */
+  readonly layout: () => DiffLayout;
+  /** Called whenever a file starts showing the rendered view. */
+  readonly onViewShown: () => void;
 }
 
-function unmount(shadow: ShadowHost | undefined): void {
-  if (!shadow) return;
-  render(null, shadow.mount);
-  shadow.host.remove();
-}
-
-type HostsByPath = Map<string, ShadowHost>;
-
-interface SplitView extends ShadowHost {
-  /** The notice it was rendered with, so it is rendered again only when that changes. */
+interface RenderedView extends ShadowHost {
+  /** What it was rendered with, so it is rendered again only when that changes. */
   readonly notice: string | undefined;
+  readonly layout: DiffLayout;
 }
 
-type ViewsByPath = Map<string, SplitView>;
+type ViewsByPath = Map<string, RenderedView>;
 
-function syncToggle(
-  context: FileDecoratorContext,
-  toggles: HostsByPath,
-  container: HTMLElement,
-  file: ChangedFile,
-) {
-  let toggle = toggles.get(file.path);
-  if (!toggle || !container.contains(toggle.host)) {
-    const switcher = findViewSwitcher(container);
-    const header = findHeader(container);
-    if (!switcher && !header) return;
-    unmount(toggle);
-    toggle = createShadowHost(context.document, SPLIT_TOGGLE_TAG, SPLIT_TOGGLE_CSS);
-    if (switcher) switcher.after(toggle.host);
-    else header?.append(toggle.host);
-    toggles.set(file.path, toggle);
-  }
-  const isOn = context.isActive(file.path);
-  render(
-    <SplitToggle
-      isActive={isOn}
-      onToggle={() => context.setActive(file.path, !isOn)}
-      label={INLINE_MESSAGES[context.locale].toggle}
-      title={INLINE_MESSAGES[context.locale].toggleTitle}
-    />,
-    toggle.mount,
-  );
+function unmount(view: ShadowHost | undefined): void {
+  if (!view) return;
+  render(null, view.mount);
+  view.host.remove();
 }
 
 function renderView(context: FileDecoratorContext, host: ShadowHost, file: ChangedFile) {
   const notice = context.pendingReviewNotice();
+  const layout = context.layout();
   render(
     <InlineFileReview
       backend={context.backend}
@@ -77,12 +42,21 @@ function renderView(context: FileDecoratorContext, host: ShadowHost, file: Chang
       store={context.store}
       pendingReviewNotice={notice}
       locale={context.locale}
+      layout={layout}
     />,
     host.mount,
   );
-  return { ...host, notice };
+  return { ...host, notice, layout };
 }
 
+function isUpToDate(context: FileDecoratorContext, view: RenderedView): boolean {
+  return view.notice === context.pendingReviewNotice() && view.layout === context.layout();
+}
+
+/**
+ * Keeps one file block in line with GitHub's own switcher: while it shows the rich diff,
+ * the rendered view replaces it; with the source diff, GitHub's diff is left as it is.
+ */
 function syncView(
   context: FileDecoratorContext,
   views: ViewsByPath,
@@ -90,37 +64,32 @@ function syncView(
   file: ChangedFile,
 ) {
   const view = views.get(file.path);
-  const isOn = context.isActive(file.path);
-  setSplitActive(container, isOn);
-  if (!isOn) {
+  const isShown = isRichDiffShown(container);
+  setRenderedViewActive(container, isShown);
+  if (!isShown) {
     unmount(view);
     views.delete(file.path);
     return;
   }
   if (view && container.contains(view.host)) {
-    // Rendering again keeps the view's state; only needed when the notice changed.
-    if (view.notice !== context.pendingReviewNotice())
-      views.set(file.path, renderView(context, view, file));
+    // Rendering again keeps the view's state; only needed when its inputs changed.
+    if (!isUpToDate(context, view)) views.set(file.path, renderView(context, view, file));
     return;
   }
   unmount(view);
-  const created = createShadowHost(context.document, SPLIT_VIEW_TAG, context.cssText);
+  const created = createShadowHost(context.document, REVIEW_VIEW_TAG, context.cssText);
   container.append(created.host);
   views.set(file.path, renderView(context, created, file));
+  context.onViewShown();
 }
 
-/** Keeps the split toggle and (when on) the split view attached to GitHub's file blocks. */
+/** Puts the rendered view in place of GitHub's rich diff for changed Markdown files. */
 export function createFileDecorator(context: FileDecoratorContext) {
-  const toggles: HostsByPath = new Map();
   const views: ViewsByPath = new Map();
   return {
-    sync: (container: HTMLElement, file: ChangedFile) => {
-      syncToggle(context, toggles, container, file);
-      syncView(context, views, container, file);
-    },
+    sync: (container: HTMLElement, file: ChangedFile) => syncView(context, views, container, file),
     dispose: () => {
-      [...toggles.values(), ...views.values()].forEach(unmount);
-      toggles.clear();
+      for (const view of views.values()) unmount(view);
       views.clear();
     },
   };
