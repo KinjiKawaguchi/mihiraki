@@ -44,6 +44,14 @@ function routeJson(
   };
 }
 
+function styledUrl(oid: string, path: string) {
+  return `https://github.com/acme/docs/_styled/${oid}/${path}`;
+}
+
+function styledBlob(lines: string[]) {
+  return json({ payload: { "codeViewBlobLayoutRoute.StyledBlob": { rawLines: lines } } });
+}
+
 function blobPage(lines: string[]) {
   return `<script type="application/json">${JSON.stringify({ payload: { blob: { rawLines: lines } } })}</script>`;
 }
@@ -95,10 +103,8 @@ describe("createGitHubBackend", () => {
   it("loads the base version at the base commit and the head version at the head commit", async () => {
     const { fetchFn } = fakeGitHub({
       [changesUrl]: json(routeJson()),
-      [`https://github.com/acme/docs/blob/${BASE}/docs/a.md`]: () =>
-        new Response(blobPage(["old"])),
-      [`https://github.com/acme/docs/blob/${HEAD}/docs/a.md`]: () =>
-        new Response(blobPage(["new"])),
+      [styledUrl(BASE, "docs/a.md")]: styledBlob(["old"]),
+      [styledUrl(HEAD, "docs/a.md")]: styledBlob(["new"]),
     });
     const file: ChangedFile = { path: "docs/a.md", changeType: "MODIFIED" };
 
@@ -110,8 +116,7 @@ describe("createGitHubBackend", () => {
   it("does not fetch a base version for an added file", async () => {
     const { fetchFn, requests } = fakeGitHub({
       [changesUrl]: json(routeJson()),
-      [`https://github.com/acme/docs/blob/${HEAD}/docs/new.md`]: () =>
-        new Response(blobPage(["fresh"])),
+      [styledUrl(HEAD, "docs/new.md")]: styledBlob(["fresh"]),
     });
     const file: ChangedFile = { path: "docs/new.md", changeType: "ADDED" };
 
@@ -124,10 +129,8 @@ describe("createGitHubBackend", () => {
   it("loads the base version of a renamed file from its previous path", async () => {
     const { fetchFn } = fakeGitHub({
       [changesUrl]: json(routeJson()),
-      [`https://github.com/acme/docs/blob/${BASE}/old/moved.md`]: () =>
-        new Response(blobPage(["before"])),
-      [`https://github.com/acme/docs/blob/${HEAD}/docs/moved.md`]: () =>
-        new Response(blobPage(["after"])),
+      [styledUrl(BASE, "old/moved.md")]: styledBlob(["before"]),
+      [styledUrl(HEAD, "docs/moved.md")]: styledBlob(["after"]),
     });
     const file: ChangedFile = {
       path: "docs/moved.md",
@@ -140,9 +143,23 @@ describe("createGitHubBackend", () => {
     );
   });
 
-  it("reports a blob page without the file's source as an unexpected response", async () => {
+  it("falls back to the blob page when the styled source is not served", async () => {
     const { fetchFn } = fakeGitHub({
       [changesUrl]: json(routeJson()),
+      [`https://github.com/acme/docs/blob/${HEAD}/docs/new.md`]: () =>
+        new Response(blobPage(["from the page"])),
+    });
+    const file: ChangedFile = { path: "docs/new.md", changeType: "ADDED" };
+
+    expect(await createGitHubBackend(pr, fetchFn).loadFileVersions(file)).toEqual(
+      ok({ revision, base: null, head: "from the page" }),
+    );
+  });
+
+  it("reports a file whose source is found nowhere as an unexpected response", async () => {
+    const { fetchFn } = fakeGitHub({
+      [changesUrl]: json(routeJson()),
+      [styledUrl(HEAD, "docs/new.md")]: json({ payload: {} }),
       [`https://github.com/acme/docs/blob/${HEAD}/docs/new.md`]: () =>
         new Response("<html></html>"),
     });
@@ -184,6 +201,50 @@ describe("createGitHubBackend", () => {
 
     expect((await loadSnapshot(backend)).threads).toHaveLength(0);
     expect((await loadSnapshot(backend)).threads).toHaveLength(1);
+  });
+
+  it("does not make file versions wait for a thread refresh in flight", async () => {
+    let routeCalls = 0;
+    const { fetchFn } = fakeGitHub({
+      [changesUrl]: () => {
+        routeCalls += 1;
+        return new Response(JSON.stringify(routeJson()));
+      },
+      [styledUrl(BASE, "docs/a.md")]: styledBlob(["old"]),
+      [styledUrl(HEAD, "docs/a.md")]: styledBlob(["new"]),
+    });
+    const slowRefresh = new Promise<Response>(() => undefined);
+    const backend = createGitHubBackend(pr, (input, init) =>
+      routeCalls >= 1 && String(input) === changesUrl ? slowRefresh : fetchFn(input, init),
+    );
+    await backend.listChangedMarkdownFiles();
+
+    void backend.loadThreads();
+    const versions = await backend.loadFileVersions({ path: "docs/a.md", changeType: "MODIFIED" });
+
+    expect(versions).toEqual(ok({ revision, base: "old", head: "new" }));
+  });
+
+  it("keeps the newest route data when refreshes finish out of order", async () => {
+    const pendingRoutes: ((response: Response) => void)[] = [];
+    const fileRequests: string[] = [];
+    const backend = createGitHubBackend(pr, (input) => {
+      const url = String(input);
+      if (url === changesUrl) return new Promise((resolve) => pendingRoutes.push(resolve));
+      fileRequests.push(url);
+      return Promise.resolve(styledBlob(["text"])());
+    });
+    const route = (headOid: string) => new Response(JSON.stringify(routeJson({}, {}, headOid)));
+
+    const older = backend.loadThreads();
+    const newer = backend.loadThreads();
+    pendingRoutes[1]?.(route(NEWER_HEAD));
+    await newer;
+    pendingRoutes[0]?.(route(HEAD));
+    await older;
+    await backend.loadFileVersions({ path: "docs/new.md", changeType: "ADDED" });
+
+    expect(fileRequests).toEqual([styledUrl(NEWER_HEAD, "docs/new.md")]);
   });
 
   it("reports whether the viewer has a pending review with the threads", async () => {

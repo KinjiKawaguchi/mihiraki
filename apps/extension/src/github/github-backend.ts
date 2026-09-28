@@ -85,12 +85,23 @@ export function createGitHubBackend(
   const request = guardRequests(fetchFn, timeoutMs);
   let cachedRoute: Promise<RouteData> | null = null;
 
+  let latestRefresh: Promise<RouteData> | null = null;
+
+  // A refresh replaces the cached route only once it succeeds, so reading files never
+  // waits for one (the first load is shared, as there is nothing to read before it), and
+  // only if no newer refresh has started meanwhile.
   const refreshRoute = (): Promise<RouteData> => {
     const pending = fetchRouteData(request, pr);
-    cachedRoute = pending;
-    pending.catch(() => {
-      if (cachedRoute === pending) cachedRoute = null;
-    });
+    latestRefresh = pending;
+    cachedRoute ??= pending;
+    pending.then(
+      () => {
+        if (latestRefresh === pending) cachedRoute = pending;
+      },
+      () => {
+        if (cachedRoute === pending) cachedRoute = null;
+      },
+    );
     return pending;
   };
   const currentRoute = (): Promise<RouteData> => cachedRoute ?? refreshRoute();

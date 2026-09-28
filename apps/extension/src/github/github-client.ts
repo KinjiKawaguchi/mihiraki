@@ -1,5 +1,5 @@
 import { type CommitId, err, ok, type PostCommentError, type Result } from "@mihiraki/core";
-import { extractBlobSource } from "./blob-source";
+import { extractBlobSource, findBlobSource } from "./blob-source";
 import { asRecord, asString, type JsonRecord, pick } from "./json";
 import { type PullRequestLocation, pullRequestUrl } from "./pr-location";
 import {
@@ -77,15 +77,31 @@ export async function fetchRouteData(
   return parseRouteData(json);
 }
 
-/** Raw file text at a commit, read from the blob page (raw.githubusercontent.com rejects credentialed CORS). */
+function fileUrl(pr: PullRequestLocation, route: "blob" | "_styled", oid: CommitId, path: string) {
+  return `https://github.com/${encodeURIComponent(pr.owner)}/${encodeURIComponent(pr.repo)}/${route}/${oid}/${encodePath(path)}`;
+}
+
+/** Source from the small JSON GitHub's code view loads for a file, or null if it has none. */
+async function fetchStyledSource(fetchFn: FetchFn, url: string): Promise<string | null> {
+  const response = await fetchFn(url, { credentials: "include", headers: ROUTE_HEADERS });
+  if (!response.ok) return null;
+  return findBlobSource(await response.json().catch(() => null));
+}
+
+/**
+ * Raw file text at a commit. Read from the code view's JSON, which is several times
+ * smaller and faster than the blob page; the blob page stays as the fallback.
+ * (raw.githubusercontent.com rejects credentialed CORS.)
+ */
 export async function fetchFileSource(
   fetchFn: FetchFn,
   pr: PullRequestLocation,
   oid: CommitId,
   path: string,
 ): Promise<string> {
-  const url = `https://github.com/${encodeURIComponent(pr.owner)}/${encodeURIComponent(pr.repo)}/blob/${oid}/${encodePath(path)}`;
-  const response = await fetchFn(url, { credentials: "include" });
+  const styled = await fetchStyledSource(fetchFn, fileUrl(pr, "_styled", oid, path));
+  if (styled !== null) return styled;
+  const response = await fetchFn(fileUrl(pr, "blob", oid, path), { credentials: "include" });
   if (!response.ok) throw new HttpStatusError(response.status);
   const source = extractBlobSource(await response.text());
   if (source === null) throw new UnexpectedResponseError(`no source in the blob page of ${path}`);
