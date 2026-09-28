@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.0](https://github.com/KinjiKawaguchi/mihiraki/compare/v0.1.0...v0.2.0) (2026-09-28)
+
+
+### Features
+
+* draw mermaid diagrams as GitHub does, before and after side by side ([#32](https://github.com/KinjiKawaguchi/mihiraki/issues/32)) ([3bbc39e](https://github.com/KinjiKawaguchi/mihiraki/commit/3bbc39e2c95914752ae43115547488d948b91271))
+* **extension:** GitHubのrich diffとSplit/Unified設定に合わせて表示を自動で切り替える ([#26](https://github.com/KinjiKawaguchi/mihiraki/issues/26)) ([e6687a6](https://github.com/KinjiKawaguchi/mihiraki/commit/e6687a615b8dbefbb77fd845b7533aaa2e2459c4))
+* **ui:** 1列でもレンダリングしたまま差分を見てコメントできるビューを加える ([#25](https://github.com/KinjiKawaguchi/mihiraki/issues/25)) ([3daf8d8](https://github.com/KinjiKawaguchi/mihiraki/commit/3daf8d804a2a2492796643e810147d84220bb902))
+* コメントを相対時刻、作成者バッジ、リアクション、操作メニュー付きで表示する ([#27](https://github.com/KinjiKawaguchi/mihiraki/issues/27)) ([19e7d65](https://github.com/KinjiKawaguchi/mihiraki/commit/19e7d65a88d4d3de51f064c8ceff092576712b43))
+
+
+### Bug Fixes
+
+* **extension:** start the review on in-page navigation to Files changed ([#28](https://github.com/KinjiKawaguchi/mihiraki/issues/28)) ([33657f2](https://github.com/KinjiKawaguchi/mihiraki/commit/33657f2f8260774e801b4d0037d93fa35738cda0))
+
+
+### Performance
+
+* **extension:** show the rendered view sooner after switching to rich diff ([#30](https://github.com/KinjiKawaguchi/mihiraki/issues/30)) ([db807b3](https://github.com/KinjiKawaguchi/mihiraki/commit/db807b3f45301b390af7d9e9e1ebe0734ff02e2e))
+* keep the Markdown renderer out of the main-world bridge script ([#31](https://github.com/KinjiKawaguchi/mihiraki/issues/31)) ([093ff4b](https://github.com/KinjiKawaguchi/mihiraki/commit/093ff4b770e59ebcb4ce510da95567187724297e))
+
 ## 0.1.0 (2026-09-27)
 
 
