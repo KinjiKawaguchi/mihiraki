@@ -11,6 +11,8 @@ export type BlockKind =
   | "table"
   | "blockquote"
   | "code"
+  /** A fenced block a host can draw, e.g. a mermaid chart; its code is the fallback. */
+  | "diagram"
   | "hr"
   | "html"
   | "frontmatter"

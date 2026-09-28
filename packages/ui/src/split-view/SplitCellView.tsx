@@ -27,7 +27,9 @@ export interface SplitCellViewProps extends CommentCellProps {
 export function SplitCellView({ side, cell, kind, threads, ...blockProps }: SplitCellViewProps) {
   return (
     <div class={`mhr-cell mhr-cell--${cell ? kind : "empty"}`} data-side={side}>
-      {cell && <RenderedBlock html={cell.html} {...blockProps} />}
+      {cell && (
+        <RenderedBlock html={cell.html} isDiagram={cell.block.kind === "diagram"} {...blockProps} />
+      )}
       <ThreadList threads={threads} />
     </div>
   );

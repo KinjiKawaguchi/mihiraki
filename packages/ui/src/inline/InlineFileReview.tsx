@@ -1,5 +1,6 @@
 import type { ChangedFile, ReviewBackend } from "@mihiraki/core";
 import type { SubmitComment } from "../comment-form/submit-comment";
+import { type DiagramRenderer, DiagramRendererContext } from "../diagrams/diagrams";
 import { FileSplitReview } from "../file-review/FileSplitReview";
 import { describeLoadFailure } from "../host-errors/describe";
 import { I18nProvider, useMessages } from "../i18n/i18n";
@@ -17,6 +18,8 @@ export interface InlineFileReviewProps {
   readonly locale?: Locale;
   /** Two columns (base | head) or one, as the host shows diffs; split by default. */
   readonly layout?: DiffLayout;
+  /** Draws diagrams as the host does; without it they stay code blocks. */
+  readonly renderDiagram?: DiagramRenderer;
 }
 
 function InlineFileReviewBody({
@@ -25,7 +28,7 @@ function InlineFileReviewBody({
   store,
   pendingReviewNotice,
   layout,
-}: Omit<InlineFileReviewProps, "locale">) {
+}: Omit<InlineFileReviewProps, "locale" | "renderDiagram">) {
   const t = useMessages();
   const { snapshot, error } = useThreadStore(store);
 
@@ -58,10 +61,16 @@ function InlineFileReviewBody({
 }
 
 /** Split review of a single file, meant to be embedded where the host shows that file's diff. */
-export function InlineFileReview({ locale = "en", ...props }: InlineFileReviewProps) {
+export function InlineFileReview({
+  locale = "en",
+  renderDiagram,
+  ...props
+}: InlineFileReviewProps) {
   return (
     <I18nProvider locale={locale}>
-      <InlineFileReviewBody {...props} />
+      <DiagramRendererContext.Provider value={renderDiagram ?? null}>
+        <InlineFileReviewBody {...props} />
+      </DiagramRendererContext.Provider>
     </I18nProvider>
   );
 }
