@@ -11,6 +11,7 @@ import {
   type Result,
   type ReviewBackend,
 } from "@mihiraki/core";
+import type { DiffLayout } from "@mihiraki/ui";
 import type { ThreadCreatedMessage } from "../host-sync/protocol";
 import { buildCreateCommentPayload } from "./comment-payload";
 import {
@@ -66,6 +67,12 @@ async function postComment(
   return ok(undefined);
 }
 
+/** The ReviewBackend for GitHub, plus what only the Files changed page itself needs. */
+export interface GitHubBackend extends ReviewBackend {
+  /** The viewer's split / unified setting in the page data; null when it cannot be read. */
+  diffLayout(): Promise<DiffLayout | null>;
+}
+
 /**
  * ReviewBackend for a github.com pull request. Uses the same internal endpoints and
  * session cookies as GitHub's own UI, so no token is needed and permissions match.
@@ -74,7 +81,7 @@ export function createGitHubBackend(
   pr: PullRequestLocation,
   fetchFn: FetchFn = (input, init) => fetch(input, init),
   { onThreadCreated, timeoutMs = DEFAULT_TIMEOUT_MS }: GitHubBackendOptions = {},
-): ReviewBackend {
+): GitHubBackend {
   const request = guardRequests(fetchFn, timeoutMs);
   let cachedRoute: Promise<RouteData> | null = null;
 
@@ -113,6 +120,12 @@ export function createGitHubBackend(
         const { revision, threads, hasPendingReview } = await refreshRoute();
         return { revision, threads, hasPendingReview };
       }),
+
+    diffLayout: () =>
+      currentRoute().then(
+        (route) => route.diffLayout,
+        () => null,
+      ),
 
     postComment: (target, body, mode) =>
       postComment(postContext, target, body, mode).catch((error: unknown) =>

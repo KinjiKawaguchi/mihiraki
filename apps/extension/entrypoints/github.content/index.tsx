@@ -8,7 +8,7 @@ import { startInlineReview } from "../../src/inline/inline-review";
 import { followPullRequestPages } from "../../src/session/pull-request-pages";
 import cssText from "./style.css?inline";
 
-function startReview(pr: PullRequestLocation): Promise<Result<() => void, HostError>> {
+async function startReview(pr: PullRequestLocation): Promise<Result<() => void, HostError>> {
   const hostSync = createHostSyncClient(document);
   const backend = createGitHubBackend(pr, undefined, {
     onThreadCreated: (created) => hostSync.announceThreadCreated(created),
@@ -19,6 +19,8 @@ function startReview(pr: PullRequestLocation): Promise<Result<() => void, HostEr
     cssText: inheritHostThemeColors(cssText),
     hostSync,
     locale: resolveLocale(navigator.languages),
+    // GitHub's own store reports later changes; the page data covers the start.
+    initialLayout: (await backend.diffLayout()) ?? "split",
   });
 }
 
@@ -32,7 +34,7 @@ export default defineContentScript({
     followPullRequestPages(ctx, {
       initialUrl: window.location.href,
       start: startReview,
-      onGiveUp: (error) => console.warn("[mihiraki] Could not start the split view:", error),
+      onGiveUp: (error) => console.warn("[mihiraki] Could not start the review:", error),
     });
   },
 });

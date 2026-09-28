@@ -16,6 +16,8 @@ export const HOST_SYNC_EVENTS = {
   threadCreated: "mihiraki:thread-created",
   threadRegistered: "mihiraki:thread-registered",
   hostThreadsChanged: "mihiraki:host-threads-changed",
+  diffLayoutRequest: "mihiraki:diff-layout-request",
+  diffLayout: "mihiraki:diff-layout",
 } as const;
 
 export interface ThreadCreatedMessage {

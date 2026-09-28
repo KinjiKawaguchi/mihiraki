@@ -351,4 +351,20 @@ describe("createGitHubBackend", () => {
       err({ kind: "unexpectedResponse" }),
     );
   });
+
+  it("tells the viewer's diff layout setting from the page data", async () => {
+    const route = routeJson();
+    (route.payload.pullRequestsChangesRoute as Record<string, unknown>).user = {
+      viewSettings: { splitPreference: "unified" },
+    };
+    const { fetchFn } = fakeGitHub({ [changesUrl]: json(route) });
+
+    expect(await createGitHubBackend(pr, fetchFn).diffLayout()).toBe("unified");
+  });
+
+  it("does not know the diff layout when the page data cannot be loaded", async () => {
+    const offlineFetch = () => Promise.reject(new TypeError("Failed to fetch"));
+
+    expect(await createGitHubBackend(pr, offlineFetch).diffLayout()).toBeNull();
+  });
 });

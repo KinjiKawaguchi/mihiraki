@@ -2,7 +2,8 @@
 const SYNC_DELAY_MS = 50;
 
 /**
- * Calls `onChange` (debounced) whenever nodes are added to or removed from the page.
+ * Calls `onChange` (debounced) whenever nodes are added to or removed from the page, or
+ * a button's pressed state changes (as when a file switches between source and rich diff).
  * Stopping also cancels a call already scheduled, so nothing runs after it.
  */
 export function watchDocument(document: Document, onChange: () => void): () => void {
@@ -14,7 +15,12 @@ export function watchDocument(document: Document, onChange: () => void): () => v
       onChange();
     }, SYNC_DELAY_MS);
   });
-  observer.observe(document.body, { childList: true, subtree: true });
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["aria-pressed"],
+  });
   return () => {
     observer.disconnect();
     if (timer !== null) clearTimeout(timer);

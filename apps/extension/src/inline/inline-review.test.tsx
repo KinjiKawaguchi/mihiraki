@@ -1,11 +1,11 @@
 import { err, type ReviewBackend, type ReviewThread } from "@mihiraki/core";
 import { createMemoryBackend } from "@mihiraki/core/memory";
-import type { Locale } from "@mihiraki/ui";
+import type { DiffLayout } from "@mihiraki/ui";
 import { waitFor } from "@testing-library/preact";
 import { afterEach, describe, expect, it } from "vitest";
 import type { HostSyncClient } from "../host-sync/client";
-import { appendFileBlock } from "./fixture";
-import { isSplitActive, SPLIT_TOGGLE_TAG, SPLIT_VIEW_TAG } from "./github-file-dom";
+import { appendFileBlock, showRichDiff } from "./fixture";
+import { isRenderedViewActive, REVIEW_VIEW_TAG } from "./github-file-dom";
 import { startInlineReview } from "./inline-review";
 
 const backend = createMemoryBackend({
@@ -22,67 +22,76 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-async function start(reviewBackend: ReviewBackend = backend, locale: Locale = "ja") {
+async function start(reviewBackend: ReviewBackend = backend, initialLayout: DiffLayout = "split") {
   const started = await startInlineReview({
     document,
     backend: reviewBackend,
     cssText: "",
-    locale,
+    locale: "ja",
+    initialLayout,
   });
   if (!started.ok) throw new Error(`Unexpected failure: ${started.error.kind}`);
   stop = started.value;
 }
 
-function toggleButton(container: Element): HTMLButtonElement | null {
-  return container.querySelector(SPLIT_TOGGLE_TAG)?.shadowRoot?.querySelector("button") ?? null;
+function viewRoot(container: Element): ShadowRoot | null {
+  return container.querySelector(REVIEW_VIEW_TAG)?.shadowRoot ?? null;
 }
 
-function splitViewText(container: Element): string {
-  return container.querySelector(SPLIT_VIEW_TAG)?.shadowRoot?.textContent ?? "";
+function viewText(container: Element): string {
+  return viewRoot(container)?.textContent ?? "";
 }
 
 describe("startInlineReview", () => {
-  it("adds a split toggle beside the view switcher of changed Markdown files only", async () => {
-    const markdown = await appendFileBlock(document, "docs/a.md");
+  it("leaves a file alone while GitHub shows its source diff", async () => {
+    const container = await appendFileBlock(document, "docs/a.md");
+    await start();
+
+    expect(container.querySelector(REVIEW_VIEW_TAG)).toBeNull();
+    expect(isRenderedViewActive(container)).toBe(false);
+  });
+
+  it("replaces GitHub's rich diff with the split view when the layout is split", async () => {
+    const container = await appendFileBlock(document, "docs/a.md");
+    await start();
+
+    showRichDiff(container, true);
+
+    await waitFor(() => expect(viewText(container)).toContain("Alpha version two."));
+    expect(isRenderedViewActive(container)).toBe(true);
+    expect(viewRoot(container)?.querySelector(".mhr-split__header")).toBeTruthy();
+  });
+
+  it("shows one column with comments when the layout is unified", async () => {
+    const container = await appendFileBlock(document, "docs/a.md");
+    await start(backend, "unified");
+
+    showRichDiff(container, true);
+
+    await waitFor(() => expect(viewRoot(container)?.querySelector(".mhr-unified")).toBeTruthy());
+    expect(viewRoot(container)?.querySelector(".mhr-split__header")).toBeNull();
+  });
+
+  it("restores GitHub's diff when the file goes back to the source diff", async () => {
+    const container = await appendFileBlock(document, "docs/a.md");
+    await start();
+    showRichDiff(container, true);
+    await waitFor(() => expect(viewText(container)).toContain("Alpha version two."));
+
+    showRichDiff(container, false);
+
+    await waitFor(() => expect(container.querySelector(REVIEW_VIEW_TAG)).toBeNull());
+    expect(isRenderedViewActive(container)).toBe(false);
+  });
+
+  it("leaves files other than changed Markdown files alone", async () => {
     const code = await appendFileBlock(document, "src/app.ts");
-
     await start();
 
-    expect(
-      markdown
-        .querySelector('[data-component="SegmentedControl"]')
-        ?.nextElementSibling?.tagName.toLowerCase(),
-    ).toBe(SPLIT_TOGGLE_TAG);
-    expect(toggleButton(code)).toBeNull();
-  });
+    showRichDiff(code, true);
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
-  it("labels the toggle in the language it is given", async () => {
-    const container = await appendFileBlock(document, "docs/a.md");
-    await start(backend, "en");
-
-    expect(toggleButton(container)?.textContent).toBe("Split");
-  });
-
-  it("replaces the diff with the rendered split view when toggled on", async () => {
-    const container = await appendFileBlock(document, "docs/a.md");
-    await start();
-
-    toggleButton(container)?.click();
-
-    expect(isSplitActive(container)).toBe(true);
-    expect(toggleButton(container)?.getAttribute("aria-pressed")).toBe("true");
-    await waitFor(() => expect(splitViewText(container)).toContain("Alpha version two."));
-  });
-
-  it("restores GitHub diff when toggled off", async () => {
-    const container = await appendFileBlock(document, "docs/a.md");
-    await start();
-
-    toggleButton(container)?.click();
-    toggleButton(container)?.click();
-
-    expect(isSplitActive(container)).toBe(false);
-    expect(container.querySelector(SPLIT_VIEW_TAG)).toBeNull();
+    expect(code.querySelector(REVIEW_VIEW_TAG)).toBeNull();
   });
 
   it("reports a pull request whose files cannot be listed, leaving the page alone", async () => {
@@ -97,42 +106,35 @@ describe("startInlineReview", () => {
       backend: offline,
       cssText: "",
       locale: "ja",
+      initialLayout: "split",
     });
+    showRichDiff(container, true);
 
     expect(started).toEqual(err({ kind: "network" }));
-    expect(toggleButton(container)).toBeNull();
+    expect(container.querySelector(REVIEW_VIEW_TAG)).toBeNull();
     expect(document.head.querySelector("style")).toBeNull();
   });
 
-  it("decorates file blocks that GitHub renders later", async () => {
+  it("handles file blocks that GitHub renders later", async () => {
     await start();
 
     const late = await appendFileBlock(document, "docs/b.md");
+    showRichDiff(late, true);
 
-    await waitFor(() => expect(toggleButton(late)).not.toBeNull());
-  });
-
-  it("puts the toggle back when GitHub re-renders the file header", async () => {
-    const container = await appendFileBlock(document, "docs/a.md");
-    await start();
-
-    container.querySelector(SPLIT_TOGGLE_TAG)?.remove();
-    container.querySelector(".actions")?.append(document.createElement("span"));
-
-    await waitFor(() => expect(toggleButton(container)).not.toBeNull());
+    await waitFor(() => expect(viewText(late)).toContain("Bravo changed."));
   });
 
   it("removes every trace when stopped", async () => {
     const container = await appendFileBlock(document, "docs/a.md");
     await start();
-    toggleButton(container)?.click();
+    showRichDiff(container, true);
+    await waitFor(() => expect(viewText(container)).toContain("Alpha version two."));
 
     stop?.();
     stop = null;
 
-    expect(container.querySelector(SPLIT_TOGGLE_TAG)).toBeNull();
-    expect(container.querySelector(SPLIT_VIEW_TAG)).toBeNull();
-    expect(isSplitActive(container)).toBe(false);
+    expect(container.querySelector(REVIEW_VIEW_TAG)).toBeNull();
+    expect(isRenderedViewActive(container)).toBe(false);
     expect(document.head.querySelector("style")).toBeNull();
   });
 
@@ -160,6 +162,7 @@ describe("startInlineReview", () => {
     function fakeHostSync(isAvailable: boolean) {
       let notify: (() => void) | null = null;
       let notifyLost: (() => void) | null = null;
+      let notifyLayout: ((layout: DiffLayout) => void) | null = null;
       const client: HostSyncClient = {
         isHostAvailable: async () => isAvailable,
         announceThreadCreated: async () => isAvailable,
@@ -175,8 +178,19 @@ describe("startInlineReview", () => {
             notifyLost = null;
           };
         },
+        watchDiffLayout: (listener) => {
+          notifyLayout = listener;
+          return () => {
+            notifyLayout = null;
+          };
+        },
       };
-      return { client, changeHostThreads: () => notify?.(), loseSync: () => notifyLost?.() };
+      return {
+        client,
+        changeHostThreads: () => notify?.(),
+        loseSync: () => notifyLost?.(),
+        changeLayout: (layout: DiffLayout) => notifyLayout?.(layout),
+      };
     }
 
     function backendWithPendingReview(): ReviewBackend & { loadThreadsCalls: () => number } {
@@ -203,24 +217,25 @@ describe("startInlineReview", () => {
         cssText: "",
         hostSync,
         locale: "ja",
+        initialLayout: "split",
       });
       if (!started.ok) throw new Error(`Unexpected failure: ${started.error.kind}`);
       stop = started.value;
-      toggleButton(container)?.click();
-      await waitFor(() => expect(splitViewText(container)).toContain("Alpha version two."));
+      showRichDiff(container, true);
+      await waitFor(() => expect(viewText(container)).toContain("Alpha version two."));
       return container;
     }
 
     it("leaves out the reload notice because GitHub counts the pending comments itself", async () => {
       const container = await startWith(fakeHostSync(true).client, backendWithPendingReview());
 
-      expect(splitViewText(container)).not.toContain("Submit review");
+      expect(viewText(container)).not.toContain("Submit review");
     });
 
     it("keeps the reload notice when GitHub stores cannot be reached", async () => {
       const container = await startWith(fakeHostSync(false).client, backendWithPendingReview());
 
-      await waitFor(() => expect(splitViewText(container)).toContain("Submit review"));
+      await waitFor(() => expect(viewText(container)).toContain("Submit review"));
     });
 
     it("shows the reload notice once a comment could not be shown in GitHub own UI", async () => {
@@ -229,8 +244,20 @@ describe("startInlineReview", () => {
 
       host.loseSync();
 
-      await waitFor(() => expect(splitViewText(container)).toContain("Submit review"));
-      expect(splitViewText(container)).toContain("Alpha version two.");
+      await waitFor(() => expect(viewText(container)).toContain("Submit review"));
+      expect(viewText(container)).toContain("Alpha version two.");
+    });
+
+    it("follows GitHub's layout setting when it changes", async () => {
+      const host = fakeHostSync(true);
+      const container = await startWith(host.client, backendWithPendingReview());
+
+      host.changeLayout("unified");
+
+      await waitFor(() => expect(viewRoot(container)?.querySelector(".mhr-unified")).toBeTruthy());
+      // One column shows both versions of the changed words in place.
+      expect(viewRoot(container)?.querySelector("del.mhr-del")?.textContent).toBe("one");
+      expect(viewRoot(container)?.querySelector("ins.mhr-ins")?.textContent).toBe("two");
     });
 
     it("reloads threads when they change in GitHub own UI", async () => {
