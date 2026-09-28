@@ -8,6 +8,7 @@ import {
   findReviewStores,
   type ReviewStores,
   readDiffLayout,
+  viewerLoginOf,
   watchDiffLayout,
   watchReviewThreads,
 } from "./github-stores";
@@ -20,7 +21,11 @@ import {
 
 export interface HostBridgeOptions {
   readonly findStores?: (document: Document) => ReviewStores | null;
-  readonly apply?: (stores: ReviewStores, change: CheckedHostChange) => boolean;
+  readonly apply?: (
+    stores: ReviewStores,
+    change: CheckedHostChange,
+    viewerLogin: string | null,
+  ) => boolean;
 }
 
 export function installHostBridge(document: Document, options: HostBridgeOptions = {}): () => void {
@@ -72,7 +77,7 @@ export function installHostBridge(document: Document, options: HostBridgeOptions
     const stores = currentStores();
     reply(HOST_SYNC_EVENTS.changeApplied, {
       requestId,
-      isApplied: stores !== null && apply(stores, change),
+      isApplied: stores !== null && apply(stores, change, viewerLoginOf(document)),
     });
   };
 

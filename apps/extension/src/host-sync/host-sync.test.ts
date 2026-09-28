@@ -77,16 +77,22 @@ describe("host sync between the extension and the page bridge", () => {
     expect(await createHostSyncClient(document, { timeoutMs: 20 }).isHostAvailable()).toBe(false);
   });
 
-  it("has the bridge apply a change and reports the outcome", async () => {
+  it("has the bridge apply a change as the signed-in viewer and reports the outcome", async () => {
     const apply = vi.fn().mockReturnValue(true);
     install({ findStores: () => fakeStores().stores, apply });
+    const clientEnv = document.createElement("script");
+    clientEnv.id = "client-env";
+    clientEnv.type = "application/json";
+    clientEnv.textContent = '{"login":"mona","locale":"en"}';
+    document.body.append(clientEnv);
+    cleanups.push(() => clientEnv.remove());
 
     const isApplied = await createHostSyncClient(document, {
       timeoutMs: 50,
     }).announceChange(message);
 
     expect(isApplied).toBe(true);
-    expect(apply).toHaveBeenCalledWith(expect.anything(), { ...message, threadId: 42 });
+    expect(apply).toHaveBeenCalledWith(expect.anything(), { ...message, threadId: 42 }, "mona");
   });
 
   it("tells listeners when a change could not be shown in GitHub UI", async () => {

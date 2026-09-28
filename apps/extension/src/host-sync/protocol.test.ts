@@ -48,6 +48,24 @@ describe("host sync protocol", () => {
     expect(parseHostChange(message(42))).not.toBeNull();
   });
 
+  it("accepts replies and resolutions", () => {
+    const target = { path: "a.md", side: "head", lines: { start: 3, end: 3 } };
+    const reply = { kind: "threadReplied", target, mode: "single", thread: { id: "7", body: 1 } };
+    const resolution = { kind: "threadResolved", target, thread: { id: "7" }, isResolved: false };
+
+    expect(parseHostChange(JSON.stringify(reply))).toEqual({ ...reply, threadId: 7 });
+    expect(parseHostChange(JSON.stringify(resolution))).toEqual({ ...resolution, threadId: 7 });
+  });
+
+  it("rejects a resolution that does not say which way, and unknown kinds", () => {
+    const target = { path: "a.md", side: "head", lines: { start: 3, end: 3 } };
+    const change = (extra: Record<string, unknown>) =>
+      JSON.stringify({ kind: "threadResolved", target, thread: { id: "7" }, ...extra });
+
+    expect(parseHostChange(change({ isResolved: "yes" }))).toBeNull();
+    expect(parseHostChange(change({ kind: "threadDeleted", isResolved: true }))).toBeNull();
+  });
+
   it("rejects anything else, since page scripts can dispatch the same events", () => {
     expect(parseHostChange('{"target":{"path":1}}')).toBeNull();
     expect(parseHostChange("not json")).toBeNull();

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  applyHostChange,
   findReviewStores,
   readDiffLayout,
   registerCreatedThread,
@@ -58,6 +59,7 @@ function createActions() {
     updateThread: vi.fn(),
     onCommentThreadAdded: vi.fn(),
     incrementUnresolvedConversationCount: vi.fn(),
+    decrementUnresolvedConversationCount: vi.fn(),
   };
 }
 
@@ -72,6 +74,7 @@ function storesWith(actions: ReturnType<typeof createActions>) {
     markersActions: { updateThread: actions.updateThread },
     markerCountsActions: {
       incrementUnresolvedConversationCount: actions.incrementUnresolvedConversationCount,
+      decrementUnresolvedConversationCount: actions.decrementUnresolvedConversationCount,
     },
   });
   return { page, layout };
@@ -160,6 +163,93 @@ describe("registerCreatedThread", () => {
     stores.layout.setState({ markersActions: {} });
 
     expect(registerCreatedThread(stores, message)).toBe(false);
+    expect(actions.addPendingComment).not.toHaveBeenCalled();
+  });
+});
+
+describe("applyHostChange", () => {
+  const target = { path: "docs/a.md", side: "head" as const, lines: { start: 11, end: 11 } };
+  const reply = {
+    kind: "threadReplied" as const,
+    target,
+    mode: "review" as const,
+    thread: { id: "77", isResolved: false },
+    threadId: 77,
+  };
+  const resolution = (isResolved: boolean) => ({
+    kind: "threadResolved" as const,
+    target,
+    thread: { id: "77" },
+    isResolved,
+    threadId: 77,
+  });
+  const producerOf = (actions: ReturnType<typeof createActions>) =>
+    actions.updateThread.mock.calls[0]?.[3] as (previous: unknown) => unknown;
+
+  it("replays what GitHub does after its own reply box adds a review comment", () => {
+    const actions = createActions();
+
+    expect(applyHostChange(storesWith(actions), reply, "mona")).toBe(true);
+
+    expect(actions.addPendingComment).toHaveBeenCalledWith(77);
+    expect(actions.updateThread).toHaveBeenCalledWith(77, "docs/a.md", "R11", expect.any(Function));
+    expect(producerOf(actions)({ id: "77", subject: { endLine: 11 }, isResolved: true })).toEqual({
+      id: "77",
+      subject: { endLine: 11 },
+      isResolved: false,
+    });
+    expect(actions.onCommentThreadAdded).not.toHaveBeenCalled();
+    expect(actions.incrementUnresolvedConversationCount).not.toHaveBeenCalled();
+  });
+
+  it("does not add a published reply to the pending review", () => {
+    const actions = createActions();
+
+    applyHostChange(storesWith(actions), { ...reply, mode: "single" }, "mona");
+
+    expect(actions.addPendingComment).not.toHaveBeenCalled();
+    expect(actions.updateThread).toHaveBeenCalled();
+  });
+
+  it("marks a thread resolved by the viewer, as GitHub's own Resolve button does", () => {
+    const actions = createActions();
+
+    expect(applyHostChange(storesWith(actions), resolution(true), "mona")).toBe(true);
+
+    expect(actions.updateThread).toHaveBeenCalledWith(77, "docs/a.md", "R11", expect.any(Function));
+    expect(producerOf(actions)({ id: "77", isResolved: false, resolvedBy: null })).toEqual({
+      id: "77",
+      isResolved: true,
+      resolvedBy: "mona",
+      resolutionReason: undefined,
+    });
+    expect(producerOf(actions)(undefined)).toBeUndefined();
+    expect(actions.decrementUnresolvedConversationCount).toHaveBeenCalled();
+  });
+
+  it("opens a thread again, counting it as unresolved", () => {
+    const actions = createActions();
+
+    applyHostChange(storesWith(actions), resolution(false), "mona");
+
+    expect(producerOf(actions)({ id: "77", isResolved: true, resolvedBy: "mona" })).toEqual({
+      id: "77",
+      isResolved: false,
+      resolvedBy: undefined,
+      resolutionReason: undefined,
+    });
+    expect(actions.incrementUnresolvedConversationCount).toHaveBeenCalled();
+    expect(actions.decrementUnresolvedConversationCount).not.toHaveBeenCalled();
+  });
+
+  it("changes nothing when GitHub no longer has the expected actions", () => {
+    const actions = createActions();
+    const stores = storesWith(actions);
+    stores.layout.setState({ markersActions: {} });
+
+    expect(applyHostChange(stores, resolution(true), "mona")).toBe(false);
+    expect(applyHostChange(stores, reply, "mona")).toBe(false);
+    expect(actions.decrementUnresolvedConversationCount).not.toHaveBeenCalled();
     expect(actions.addPendingComment).not.toHaveBeenCalled();
   });
 });

@@ -531,6 +531,43 @@ describe("createGitHubBackend", () => {
       );
     });
 
+    it("tells GitHub's own UI about a reply, with the thread GitHub returned", async () => {
+      const returned = { id: "5", isResolved: false };
+      const { fetchFn } = fakeGitHub({
+        [changesUrl]: json(withThread()),
+        [postUrl]: json({ thread: returned }),
+      });
+      const onHostChanged = vi.fn();
+      const backend = createGitHubBackend(pr, fetchFn, { onHostChanged });
+
+      await backend.replyToThread(await loadThread(backend), "Agreed", "single");
+
+      expect(onHostChanged).toHaveBeenCalledWith({
+        kind: "threadReplied",
+        target: { path: "docs/a.md", side: "head", lines: { start: 3, end: 3 } },
+        mode: "single",
+        thread: returned,
+      });
+    });
+
+    it("tells GitHub's own UI about a resolution once GitHub accepted it", async () => {
+      const { fetchFn } = fakeGitHub({
+        [changesUrl]: json(withThread()),
+        [resolveUrl]: json({ message: "ok" }),
+      });
+      const onHostChanged = vi.fn();
+      const backend = createGitHubBackend(pr, fetchFn, { onHostChanged });
+
+      await backend.setThreadResolved(await loadThread(backend), true);
+
+      expect(onHostChanged).toHaveBeenCalledWith({
+        kind: "threadResolved",
+        target: { path: "docs/a.md", side: "head", lines: { start: 3, end: 3 } },
+        thread: { id: "5" },
+        isResolved: true,
+      });
+    });
+
     it("tells whether the viewer may reply, assuming so when GitHub does not say", async () => {
       const { fetchFn: denied } = fakeGitHub({
         [changesUrl]: json(withThread({ viewerCanReply: false })),

@@ -20,14 +20,17 @@ export const HOST_SYNC_EVENTS = {
   diffLayout: "mihiraki:diff-layout",
 } as const;
 
-/** A change made through GitHub's endpoints, which GitHub's own UI should show too. */
-export interface HostChange {
-  readonly kind: "threadCreated";
+interface ThreadChange {
   readonly target: ThreadPosition;
-  readonly mode: CommentMode;
-  /** The `thread` object GitHub returned from create_review_comment. */
+  /** The `thread` object GitHub returned, or for a resolution just its `id`. */
   readonly thread: Readonly<Record<string, unknown>>;
 }
+
+/** A change made through GitHub's endpoints, which GitHub's own UI should show too. */
+export type HostChange =
+  | (ThreadChange & { readonly kind: "threadCreated"; readonly mode: CommentMode })
+  | (ThreadChange & { readonly kind: "threadReplied"; readonly mode: CommentMode })
+  | (ThreadChange & { readonly kind: "threadResolved"; readonly isResolved: boolean });
 
 /** GitHub's description of a thread's position (its `subject` / `positioning`). */
 export function threadSubjectOf(target: ThreadPosition) {
@@ -76,16 +79,35 @@ function parseThreadId(value: unknown): number | null {
   return Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 
+function parseMode(value: unknown): CommentMode | null {
+  return value === "single" || value === "review" ? value : null;
+}
+
+/** The kind-specific part of a change, or null when it does not validate. */
+function parseChangeKind(record: Readonly<Record<string, unknown>>) {
+  const mode = parseMode(record.mode);
+  switch (record.kind) {
+    case "threadCreated":
+    case "threadReplied":
+      return mode ? { kind: record.kind, mode } : null;
+    case "threadResolved":
+      return typeof record.isResolved === "boolean"
+        ? { kind: record.kind, isResolved: record.isResolved }
+        : null;
+    default:
+      return null;
+  }
+}
+
 /** Validates a message; page scripts can dispatch the same events, so nothing is trusted. */
 export function toCheckedHostChange(value: unknown): CheckedHostChange | null {
   const record = asRecord(value);
   const target = parseTarget(record?.target);
-  const mode = record?.mode;
   const thread = asRecord(record?.thread);
   const threadId = parseThreadId(thread?.id);
-  if (record?.kind !== "threadCreated" || !target || !thread || threadId === null) return null;
-  if (mode !== "single" && mode !== "review") return null;
-  return { kind: "threadCreated", target, mode, thread, threadId };
+  const kind = record ? parseChangeKind(record) : null;
+  if (!kind || !target || !thread || threadId === null) return null;
+  return { ...kind, target, thread, threadId };
 }
 
 export function parseHostChange(json: string): CheckedHostChange | null {

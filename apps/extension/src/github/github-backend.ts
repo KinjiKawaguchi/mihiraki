@@ -13,7 +13,7 @@ import {
   type ReviewThread,
 } from "@mihiraki/core";
 import type { DiffLayout } from "@mihiraki/ui";
-import type { HostChange } from "../host-sync/protocol";
+import type { HostChange, ThreadPosition } from "../host-sync/protocol";
 import { buildCreateCommentPayload, buildReplyPayload } from "./comment-payload";
 import {
   type FetchFn,
@@ -41,6 +41,10 @@ interface PostContext {
   readonly pr: PullRequestLocation;
   readonly refreshRoute: () => Promise<RouteData>;
   readonly onHostChanged: GitHubBackendOptions["onHostChanged"];
+}
+
+function positionOf({ path, side, lines }: ReviewThread): ThreadPosition {
+  return { path, side, lines };
 }
 
 async function notifyHost(context: PostContext, change: HostChange): Promise<void> {
@@ -86,7 +90,29 @@ async function replyToThread(
   if (!(await isModeAvailable(context, mode))) return err({ kind: "pendingReviewConflict" });
   const payload = buildReplyPayload(thread, lastCommentId, body, mode);
   const posted = await postReviewComment(context.request, context.pr, payload);
-  return posted.ok ? ok(undefined) : posted;
+  if (!posted.ok) return posted;
+  if (posted.value)
+    await notifyHost(context, {
+      kind: "threadReplied",
+      target: positionOf(thread),
+      mode,
+      thread: posted.value,
+    });
+  return ok(undefined);
+}
+
+async function setThreadResolved(
+  context: PostContext,
+  thread: ReviewThread,
+  isResolved: boolean,
+): Promise<void> {
+  await sendThreadResolution(context.request, context.pr, thread.id, isResolved);
+  await notifyHost(context, {
+    kind: "threadResolved",
+    target: positionOf(thread),
+    thread: { id: thread.id },
+    isResolved,
+  });
 }
 
 /** The ReviewBackend for GitHub, plus what only the Files changed page itself needs. */
@@ -171,6 +197,6 @@ export function createGitHubBackend(
       ),
 
     setThreadResolved: (thread, isResolved) =>
-      settleRequest(() => sendThreadResolution(request, pr, thread.id, isResolved)),
+      settleRequest(() => setThreadResolved(postContext, thread, isResolved)),
   };
 }
