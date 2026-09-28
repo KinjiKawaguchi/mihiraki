@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/KinjiKawaguchi/mihiraki/compare/v0.2.0...v0.2.1) (2026-09-28)
+
+
+### Bug Fixes
+
+* **ci:** pass the extension zip to the store submission job ([#33](https://github.com/KinjiKawaguchi/mihiraki/issues/33)) ([8b63074](https://github.com/KinjiKawaguchi/mihiraki/commit/8b630744b0f5a45088393ddddb13baad5d30a6ee))
+
 ## [0.2.0](https://github.com/KinjiKawaguchi/mihiraki/compare/v0.1.0...v0.2.0) (2026-09-28)
 
 
