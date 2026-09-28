@@ -52,4 +52,23 @@ describe("watchDocument", () => {
 
     expect(onChange).toHaveBeenCalledTimes(1);
   });
+
+  it("reacts to a pressed-state change right away, without the batching delay", async () => {
+    vi.useFakeTimers();
+    const button = document.createElement("button");
+    button.setAttribute("aria-pressed", "false");
+    document.body.append(button);
+    const onChange = vi.fn();
+    const stop = watchDocument(document, onChange);
+
+    button.setAttribute("aria-pressed", "true");
+    document.body.append(document.createElement("div"));
+    await flushMutations();
+    const callsBeforeTimers = onChange.mock.calls.length;
+    vi.runAllTimers();
+    stop();
+
+    expect(callsBeforeTimers).toBe(1);
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
 });

@@ -17,6 +17,11 @@ function findSource(node: unknown, depth: number): string | null {
   return null;
 }
 
+/** A file's raw text from route data of GitHub's code view, wherever in the tree it is. */
+export function findBlobSource(json: unknown): string | null {
+  return findSource(json, 0);
+}
+
 /**
  * Extracts a file's raw text from a `/blob/:sha/:path` page. The location inside the
  * embedded JSON has changed several times, so the whole tree is searched.
@@ -27,7 +32,7 @@ export function extractBlobSource(html: string): string | null {
     const text = script.textContent ?? "";
     if (!text.includes("rawLines") && !text.includes("rawBlob")) continue;
     try {
-      const found = findSource(JSON.parse(text), 0);
+      const found = findBlobSource(JSON.parse(text));
       if (found !== null) return found;
     } catch {
       // Not the payload we are looking for; keep scanning.
