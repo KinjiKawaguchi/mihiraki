@@ -2,6 +2,7 @@ import type { HostError, Result } from "@mihiraki/core";
 import { resolveLocale } from "@mihiraki/ui";
 import { createGitHubBackend } from "../../src/github/github-backend";
 import type { PullRequestLocation } from "../../src/github/pr-location";
+import { createViewscreenRenderer, hostColorMode } from "../../src/github/viewscreen";
 import { createHostSyncClient } from "../../src/host-sync/client";
 import { inheritHostThemeColors } from "../../src/inline/host-theme";
 import { startInlineReview } from "../../src/inline/inline-review";
@@ -19,6 +20,7 @@ async function startReview(pr: PullRequestLocation): Promise<Result<() => void, 
     cssText: inheritHostThemeColors(cssText),
     hostSync,
     locale: resolveLocale(navigator.languages),
+    renderDiagram: createViewscreenRenderer(window, () => hostColorMode(window)),
     // GitHub's own store reports later changes; the page data covers the start.
     initialLayout: (await backend.diffLayout()) ?? "split",
   });

@@ -5,7 +5,12 @@ import {
   type Result,
   type ReviewBackend,
 } from "@mihiraki/core";
-import { createThreadStore, type DiffLayout, type Locale } from "@mihiraki/ui";
+import {
+  createThreadStore,
+  type DiagramRenderer,
+  type DiffLayout,
+  type Locale,
+} from "@mihiraki/ui";
 import type { HostSyncClient } from "../host-sync/client";
 import { watchDocument } from "./document-watch";
 import { fileContainerId } from "./file-anchor";
@@ -26,6 +31,8 @@ export interface InlineReviewOptions {
   readonly locale: Locale;
   /** GitHub's split / unified setting at start; host sync reports later changes. */
   readonly initialLayout: DiffLayout;
+  /** Draws diagrams as GitHub does; without it they stay code blocks. */
+  readonly renderDiagram?: DiagramRenderer;
 }
 
 /** GitHub updates several stores per comment; reload our threads once they settle. */
@@ -116,7 +123,7 @@ function restoreAll(document: Document, targets: readonly FileTarget[]) {
 export async function startInlineReview(
   options: InlineReviewOptions,
 ): Promise<Result<() => void, HostError>> {
-  const { document, backend, cssText, hostSync, locale } = options;
+  const { document, backend, cssText, hostSync, locale, renderDiagram } = options;
   let layout = options.initialLayout;
   const located = await locateFiles(backend);
   if (!located.ok) return located;
@@ -137,6 +144,7 @@ export async function startInlineReview(
     locale,
     layout: () => layout,
     onViewShown: threads.loadOnce,
+    renderDiagram,
   });
 
   installPageStyle(document);

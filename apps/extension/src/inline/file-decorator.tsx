@@ -1,5 +1,11 @@
 import type { ChangedFile, ReviewBackend } from "@mihiraki/core";
-import { type DiffLayout, InlineFileReview, type Locale, type ThreadStore } from "@mihiraki/ui";
+import {
+  type DiagramRenderer,
+  type DiffLayout,
+  InlineFileReview,
+  type Locale,
+  type ThreadStore,
+} from "@mihiraki/ui";
 import { render } from "preact";
 import { isRichDiffShown, REVIEW_VIEW_TAG, setRenderedViewActive } from "./github-file-dom";
 import { createShadowHost, type ShadowHost } from "./shadow-host";
@@ -16,6 +22,8 @@ export interface FileDecoratorContext {
   readonly layout: () => DiffLayout;
   /** Called whenever a file starts showing the rendered view. */
   readonly onViewShown: () => void;
+  /** Draws diagrams as GitHub does; without it they stay code blocks. */
+  readonly renderDiagram?: DiagramRenderer;
 }
 
 interface RenderedView extends ShadowHost {
@@ -43,6 +51,7 @@ function renderView(context: FileDecoratorContext, host: ShadowHost, file: Chang
       pendingReviewNotice={notice}
       locale={context.locale}
       layout={layout}
+      renderDiagram={context.renderDiagram}
     />,
     host.mount,
   );
