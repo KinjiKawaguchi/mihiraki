@@ -428,4 +428,114 @@ describe("createGitHubBackend", () => {
 
     expect(await createGitHubBackend(pr, offlineFetch).diffLayout()).toBeNull();
   });
+
+  describe("threads", () => {
+    const resolveUrl = "https://github.com/acme/docs/pull/7/page_data/resolve_thread";
+    const unresolveUrl = "https://github.com/acme/docs/pull/7/page_data/unresolve_thread";
+    const withThread = (extra: Record<string, unknown> = {}) =>
+      routeJson(
+        {
+          "5": {
+            id: 5,
+            subjectType: "LINE",
+            isResolved: false,
+            viewerCanReply: true,
+            commentsData: {
+              comments: [
+                { databaseId: 4115, body: "First", author: { login: "bob" } },
+                { databaseId: 4116, body: "Second" },
+              ],
+            },
+            ...extra,
+          },
+        },
+        { R3: { threads: [{ id: 5 }] } },
+      );
+
+    async function loadThread(backend: ReviewBackend) {
+      const [thread] = (await loadSnapshot(backend)).threads;
+      if (!thread) throw new Error("no thread");
+      return thread;
+    }
+
+    it("replies in a thread, pointing GitHub at the thread's last comment as GitHub's own reply box does", async () => {
+      const { fetchFn, requests } = fakeGitHub({
+        [changesUrl]: json(withThread()),
+        [postUrl]: json({ thread: {} }),
+      });
+      const backend = createGitHubBackend(pr, fetchFn);
+
+      const result = await backend.replyToThread(await loadThread(backend), "Agreed", "single");
+
+      expect(result).toEqual(ok(undefined));
+      const post = requests.find((request) => request.url === postUrl);
+      expect(JSON.parse(String(post?.init?.body))).toEqual({
+        text: "Agreed",
+        submitBatch: true,
+        inReplyTo: 4116,
+        path: "docs/a.md",
+      });
+    });
+
+    it("refuses a single reply while a review is pending, instead of publishing that review", async () => {
+      const route = withThread();
+      (route.payload.pullRequestsChangesRoute as Record<string, unknown>).viewerPendingReview = {
+        id: 9,
+        comments: [],
+      };
+      const { fetchFn, requests } = fakeGitHub({
+        [changesUrl]: json(route),
+        [postUrl]: json({ thread: {} }),
+      });
+      const backend = createGitHubBackend(pr, fetchFn);
+
+      expect(await backend.replyToThread(await loadThread(backend), "x", "single")).toEqual(
+        err({ kind: "pendingReviewConflict" }),
+      );
+      expect(requests.some((request) => request.url === postUrl)).toBe(false);
+    });
+
+    it("resolves a thread and opens it again through GitHub's endpoints", async () => {
+      const done = json({ message: "ok" });
+      const { fetchFn, requests } = fakeGitHub({
+        [changesUrl]: json(withThread()),
+        [resolveUrl]: done,
+        [unresolveUrl]: done,
+      });
+      const backend = createGitHubBackend(pr, fetchFn);
+      const thread = await loadThread(backend);
+
+      expect(await backend.setThreadResolved(thread, true)).toEqual(ok(undefined));
+      expect(await backend.setThreadResolved(thread, false)).toEqual(ok(undefined));
+
+      const bodies = requests
+        .filter((request) => request.url === resolveUrl || request.url === unresolveUrl)
+        .map((request) => [request.url.split("/").pop(), JSON.parse(String(request.init?.body))]);
+      expect(bodies).toEqual([
+        ["resolve_thread", { threadId: "5" }],
+        ["unresolve_thread", { threadId: "5" }],
+      ]);
+    });
+
+    it("reports a thread GitHub refuses to resolve with the HTTP status", async () => {
+      const { fetchFn } = fakeGitHub({ [changesUrl]: json(withThread()) });
+      const backend = createGitHubBackend(pr, fetchFn);
+
+      expect(await backend.setThreadResolved(await loadThread(backend), true)).toEqual(
+        err({ kind: "rejected", detail: "HTTP 404" }),
+      );
+    });
+
+    it("tells whether the viewer may reply, assuming so when GitHub does not say", async () => {
+      const { fetchFn: denied } = fakeGitHub({
+        [changesUrl]: json(withThread({ viewerCanReply: false })),
+      });
+      const { fetchFn: unsaid } = fakeGitHub({
+        [changesUrl]: json(withThread({ viewerCanReply: undefined })),
+      });
+
+      expect((await loadThread(createGitHubBackend(pr, denied))).canReply).toBe(false);
+      expect((await loadThread(createGitHubBackend(pr, unsaid))).canReply).toBe(true);
+    });
+  });
 });

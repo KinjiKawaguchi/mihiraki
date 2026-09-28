@@ -10,20 +10,22 @@ import {
   type PostCommentError,
   type Result,
   type ReviewBackend,
+  type ReviewThread,
 } from "@mihiraki/core";
 import type { DiffLayout } from "@mihiraki/ui";
 import type { ThreadCreatedMessage } from "../host-sync/protocol";
-import { buildCreateCommentPayload } from "./comment-payload";
+import { buildCreateCommentPayload, buildReplyPayload } from "./comment-payload";
 import {
   type FetchFn,
   fetchFileSource,
   fetchRouteData,
   guardRequests,
   postReviewComment,
+  sendThreadResolution,
 } from "./github-client";
 import { isMarkdownPath } from "./markdown-path";
 import type { PullRequestLocation } from "./pr-location";
-import { settleRequest, toHostError } from "./request-errors";
+import { settleRequest, toHostError, UnexpectedResponseError } from "./request-errors";
 import type { RouteData } from "./route-data";
 
 const DEFAULT_TIMEOUT_MS = 20_000;
@@ -41,18 +43,20 @@ interface PostContext {
   readonly onThreadCreated: GitHubBackendOptions["onThreadCreated"];
 }
 
+/** Whether `mode` still fits: the review may have been started in GitHub's own UI since our data was loaded. */
+async function isModeAvailable(context: PostContext, mode: CommentMode): Promise<boolean> {
+  if (mode !== "single") return true;
+  const { hasPendingReview } = await context.refreshRoute();
+  return availableCommentModes(hasPendingReview).includes(mode);
+}
+
 async function postComment(
   context: PostContext,
   target: CommentTarget,
   body: string,
   mode: CommentMode,
 ): Promise<Result<void, PostCommentError>> {
-  // The review may have been started in GitHub's own UI since our data was loaded.
-  if (mode === "single") {
-    const { hasPendingReview } = await context.refreshRoute();
-    if (!availableCommentModes(hasPendingReview).includes(mode))
-      return err({ kind: "pendingReviewConflict" });
-  }
+  if (!(await isModeAvailable(context, mode))) return err({ kind: "pendingReviewConflict" });
   // Lines were chosen in the text of target.revision; the payload anchors to exactly that.
   const payload = buildCreateCommentPayload(target, body, mode);
   const posted = await postReviewComment(context.request, context.pr, payload);
@@ -65,6 +69,21 @@ async function postComment(
     }
   }
   return ok(undefined);
+}
+
+async function replyToThread(
+  context: PostContext,
+  thread: ReviewThread,
+  body: string,
+  mode: CommentMode,
+): Promise<Result<void, PostCommentError>> {
+  const lastCommentId = Number(thread.comments.at(-1)?.id);
+  if (!Number.isSafeInteger(lastCommentId))
+    throw new UnexpectedResponseError(`no database id for the last comment of thread ${thread.id}`);
+  if (!(await isModeAvailable(context, mode))) return err({ kind: "pendingReviewConflict" });
+  const payload = buildReplyPayload(thread, lastCommentId, body, mode);
+  const posted = await postReviewComment(context.request, context.pr, payload);
+  return posted.ok ? ok(undefined) : posted;
 }
 
 /** The ReviewBackend for GitHub, plus what only the Files changed page itself needs. */
@@ -142,5 +161,13 @@ export function createGitHubBackend(
       postComment(postContext, target, body, mode).catch((error: unknown) =>
         err(toHostError(error)),
       ),
+
+    replyToThread: (thread, body, mode) =>
+      replyToThread(postContext, thread, body, mode).catch((error: unknown) =>
+        err(toHostError(error)),
+      ),
+
+    setThreadResolved: (thread, isResolved) =>
+      settleRequest(() => sendThreadResolution(request, pr, thread.id, isResolved)),
   };
 }

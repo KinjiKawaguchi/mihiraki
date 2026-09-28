@@ -146,6 +146,7 @@ describe("startInlineReview", () => {
       lines: { start: 1, end: 1 },
       isResolved: false,
       isOutdated: false,
+      canReply: true,
       comments: [
         {
           id: "p1-1",

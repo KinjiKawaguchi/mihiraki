@@ -49,4 +49,9 @@ export interface Messages {
   readonly referenceInNewIssue: string;
   readonly commentCount: (count: number) => string;
   readonly unplacedThreads: string;
+  readonly reply: string;
+  readonly resolveConversation: string;
+  readonly unresolveConversation: string;
+  readonly couldNotResolve: string;
+  readonly couldNotUnresolve: string;
 }

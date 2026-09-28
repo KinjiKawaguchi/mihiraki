@@ -148,3 +148,20 @@ export async function postReviewComment(
   }
   return result.isOk ? ok(result.thread) : err(toPostFailure(result.status, result.message));
 }
+
+/** `POST /pull/:n/page_data/(un)resolve_thread`, what GitHub's own Resolve buttons send. */
+export async function sendThreadResolution(
+  fetchFn: FetchFn,
+  pr: PullRequestLocation,
+  threadId: string,
+  isResolved: boolean,
+): Promise<void> {
+  const route = isResolved ? "page_data/resolve_thread" : "page_data/unresolve_thread";
+  const response = await fetchFn(pullRequestUrl(pr, route), {
+    method: "POST",
+    credentials: "include",
+    headers: { ...ROUTE_HEADERS, "Content-Type": "application/json" },
+    body: JSON.stringify({ threadId }),
+  });
+  if (!response.ok) throw new HttpStatusError(response.status);
+}
