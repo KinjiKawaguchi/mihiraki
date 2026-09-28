@@ -56,6 +56,10 @@ const thread: ReviewThread = {
       bodyHtml: "<p>Why ten?</p>",
       createdAt: "2026-09-01T00:00:00Z",
       url: "",
+      isByChangeAuthor: false,
+      bodyMarkdown: "",
+      reactions: [],
+      newIssueUrl: null,
     },
   ],
 };

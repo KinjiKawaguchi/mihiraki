@@ -41,6 +41,11 @@ export const en: Messages = {
   resolved: "Resolved",
   outdated: "Outdated",
   openOnGitHub: "Open on GitHub",
+  authorBadge: "Author",
+  moreActions: "More actions",
+  copyLink: "Copy link",
+  copyMarkdown: "Copy Markdown",
+  referenceInNewIssue: "Reference in a new issue",
   commentCount: (count) => (count === 1 ? "1 comment" : `${count} comments`),
   unplacedThreads: "Comments that cannot be shown beside the text",
 };

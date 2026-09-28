@@ -41,6 +41,11 @@ export const ja: Messages = {
   resolved: "解決済み",
   outdated: "古い差分",
   openOnGitHub: "GitHubで開く",
+  authorBadge: "作成者",
+  moreActions: "その他の操作",
+  copyLink: "リンクをコピー",
+  copyMarkdown: "Markdownをコピー",
+  referenceInNewIssue: "新しいIssueで参照",
   commentCount: (count) => `${count}件`,
   unplacedThreads: "本文の横に表示できないコメント",
 };
