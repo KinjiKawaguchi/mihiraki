@@ -140,9 +140,6 @@
 .mhr-unified .mhr-row {
   grid-template-columns: minmax(0, 1fr);
 }
-.mhr-unified .mhr-cell {
-  border-right: 0;
-}
 .mhr-split__header {
   position: sticky;
   top: 0;
@@ -163,6 +160,9 @@
   position: relative;
   min-width: 0;
   padding: 0 16px 0 36px;
+}
+.mhr-unified .mhr-cell {
+  border-right: 0;
 }
 .mhr-cell--added {
   background: var(--mhr-added-line);
