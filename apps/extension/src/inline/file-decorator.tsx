@@ -15,7 +15,8 @@ export interface FileDecoratorContext {
   readonly backend: ReviewBackend;
   readonly store: ThreadStore;
   readonly cssText: string;
-  readonly locale: Locale;
+  /** Language of the views, which follow its changes. */
+  readonly locale: () => Locale;
   /** Shown in the views while a review is pending; none while GitHub's UI is kept in sync. */
   readonly pendingReviewNotice: () => string | undefined;
   /** GitHub's split / unified setting, which the views follow. */
@@ -30,6 +31,7 @@ interface RenderedView extends ShadowHost {
   /** What it was rendered with, so it is rendered again only when that changes. */
   readonly notice: string | undefined;
   readonly layout: DiffLayout;
+  readonly locale: Locale;
 }
 
 type ViewsByPath = Map<string, RenderedView>;
@@ -43,23 +45,28 @@ function unmount(view: ShadowHost | undefined): void {
 function renderView(context: FileDecoratorContext, host: ShadowHost, file: ChangedFile) {
   const notice = context.pendingReviewNotice();
   const layout = context.layout();
+  const locale = context.locale();
   render(
     <InlineFileReview
       backend={context.backend}
       file={file}
       store={context.store}
       pendingReviewNotice={notice}
-      locale={context.locale}
+      locale={locale}
       layout={layout}
       renderDiagram={context.renderDiagram}
     />,
     host.mount,
   );
-  return { ...host, notice, layout };
+  return { ...host, notice, layout, locale };
 }
 
 function isUpToDate(context: FileDecoratorContext, view: RenderedView): boolean {
-  return view.notice === context.pendingReviewNotice() && view.layout === context.layout();
+  return (
+    view.notice === context.pendingReviewNotice() &&
+    view.layout === context.layout() &&
+    view.locale === context.locale()
+  );
 }
 
 /**
