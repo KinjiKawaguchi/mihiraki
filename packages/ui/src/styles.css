@@ -137,6 +137,12 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
+.mhr-unified .mhr-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+.mhr-unified .mhr-cell {
+  border-right: 0;
+}
 .mhr-split__header {
   position: sticky;
   top: 0;

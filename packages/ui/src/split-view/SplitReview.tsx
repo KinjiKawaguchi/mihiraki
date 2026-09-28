@@ -61,25 +61,16 @@ export function SplitReview({
         <div class="mhr-row" key={rowIndex}>
           {SIDES.map((side) => {
             const cellKey = `${rowIndex}:${side}`;
-            const isSelectionSide = comment.selectedSide === side;
             return (
               <SplitCellView
                 key={side}
                 side={side}
-                row={row}
+                cell={row[side]}
+                kind={row.kind}
                 threads={placement.byRow[rowIndex]?.[side] ?? []}
                 isActive={activeCell === cellKey}
                 onActivate={() => setActiveCell(cellKey)}
-                highlightedLines={isSelectionSide ? comment.range : null}
-                formAfterLines={
-                  isSelectionSide && comment.formAt?.rowIndex === rowIndex
-                    ? comment.formAt.lines
-                    : null
-                }
-                form={comment.form}
-                onSelectionStart={(lines) => comment.selection.start(side, { rowIndex, lines })}
-                onRequestComment={(lines) => comment.selection.open(side, { rowIndex, lines })}
-                onPointerOverLines={(lines) => comment.selection.extend(side, { rowIndex, lines })}
+                {...comment.cellProps(side, rowIndex)}
               />
             );
           })}
