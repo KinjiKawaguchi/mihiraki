@@ -37,6 +37,7 @@ pnpm build:extension    # apps/extension/.output/chrome-mv3 に出力
 2. GitHubにログインした状態でPRの Files changed を開く
 3. Markdownファイルの見出しにある、ソース/rich diffの切り替えでrich diffを選ぶ。GitHubの表示設定がSplitなら左右分割、Unifiedなら1列のレンダリング表示に置き換わり、どちらでもコメントできる（ソース表示に戻すと元に戻る）
 4. ブロックにマウスを乗せると左端に「+」が出る。左（変更前）に付けたコメントは削除側、右（変更後）は追加側の行に付く
+5. GitHub本来のrich diffで見たいファイルは、表示の右上の「GitHub の表示に戻す」で切り替える（そのファイルだけ。ソース表示を経てrich diffに戻すと、Mihirakiの表示に戻る）
 
 ## 仕組みと制約
 

@@ -124,6 +124,64 @@ describe("startInlineReview", () => {
     await waitFor(() => expect(viewText(late)).toContain("Bravo changed."));
   });
 
+  describe("going back to GitHub's own rich diff", () => {
+    function hostViewButton(container: Element): HTMLButtonElement {
+      const button = Array.from(viewRoot(container)?.querySelectorAll("button") ?? []).find(
+        (candidate) => candidate.textContent === "GitHub の表示に戻す",
+      );
+      if (!button) throw new Error("no button back to GitHub's view");
+      return button;
+    }
+
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
+
+    it("shows GitHub's rich diff for the file once asked, leaving other files as they are", async () => {
+      const a = await appendFileBlock(document, "docs/a.md");
+      const b = await appendFileBlock(document, "docs/b.md");
+      await start();
+      showRichDiff(a, true);
+      showRichDiff(b, true);
+      await waitFor(() => expect(viewText(a)).toContain("Alpha version two."));
+      await waitFor(() => expect(viewText(b)).toContain("Bravo changed."));
+
+      hostViewButton(a).click();
+
+      await waitFor(() => expect(a.querySelector(REVIEW_VIEW_TAG)).toBeNull());
+      expect(isRenderedViewActive(a)).toBe(false);
+      expect(isRenderedViewActive(b)).toBe(true);
+    });
+
+    it("keeps GitHub's rich diff while GitHub re-renders the file", async () => {
+      const container = await appendFileBlock(document, "docs/a.md");
+      await start();
+      showRichDiff(container, true);
+      await waitFor(() => expect(viewText(container)).toContain("Alpha version two."));
+      hostViewButton(container).click();
+      await waitFor(() => expect(container.querySelector(REVIEW_VIEW_TAG)).toBeNull());
+
+      container.append(document.createElement("div"));
+      await settle();
+
+      expect(container.querySelector(REVIEW_VIEW_TAG)).toBeNull();
+    });
+
+    it("shows Mihiraki's view again once the file goes through the source diff", async () => {
+      const container = await appendFileBlock(document, "docs/a.md");
+      await start();
+      showRichDiff(container, true);
+      await waitFor(() => expect(viewText(container)).toContain("Alpha version two."));
+      hostViewButton(container).click();
+      await waitFor(() => expect(container.querySelector(REVIEW_VIEW_TAG)).toBeNull());
+
+      showRichDiff(container, false);
+      await settle();
+      showRichDiff(container, true);
+
+      await waitFor(() => expect(viewText(container)).toContain("Alpha version two."));
+      expect(isRenderedViewActive(container)).toBe(true);
+    });
+  });
+
   it("removes every trace when stopped", async () => {
     const container = await appendFileBlock(document, "docs/a.md");
     await start();

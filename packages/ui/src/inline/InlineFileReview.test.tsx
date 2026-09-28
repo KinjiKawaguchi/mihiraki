@@ -1,7 +1,7 @@
 import { commitId, err, ok, type ReviewBackend, type ReviewThread } from "@mihiraki/core";
 import { createMemoryBackend } from "@mihiraki/core/memory";
 import { fireEvent, render, screen, waitFor } from "@testing-library/preact";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createThreadStore } from "../threads/thread-store";
 import { InlineFileReview } from "./InlineFileReview";
 
@@ -229,6 +229,26 @@ describe("InlineFileReview", () => {
         "Could not load docs/a.md. There was no response. Try again in a moment.",
       ),
     ).toBeTruthy();
+  });
+
+  it("offers a way back to the host's own view of the file when given one", async () => {
+    const onSelect = vi.fn();
+    const backend = createMemoryBackend(files);
+    render(
+      <InlineFileReview
+        locale="ja"
+        backend={backend}
+        file={fileA}
+        store={createThreadStore(backend)}
+        hostViewSwitch={{ label: "元の表示", description: "元の表示に戻します", onSelect }}
+      />,
+    );
+
+    const button = await screen.findByRole("button", { name: "元の表示" });
+    fireEvent.click(button);
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(button.title).toBe("元の表示に戻します");
   });
 
   it("shows the file in one column when the layout is unified", async () => {

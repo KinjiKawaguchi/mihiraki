@@ -8,6 +8,14 @@ import type { Locale } from "../i18n/locale";
 import type { DiffLayout } from "../split-view/layout";
 import { type ThreadStore, useThreadStore } from "../threads/thread-store";
 
+/** A way back to the host's own view of the file, e.g. GitHub's rich diff. */
+export interface HostViewSwitch {
+  readonly label: string;
+  /** What the switch does and how to come back, shown as its tooltip. */
+  readonly description: string;
+  readonly onSelect: () => void;
+}
+
 export interface InlineFileReviewProps {
   readonly backend: ReviewBackend;
   readonly file: ChangedFile;
@@ -20,6 +28,23 @@ export interface InlineFileReviewProps {
   readonly layout?: DiffLayout;
   /** Draws diagrams as the host does; without it they stay code blocks. */
   readonly renderDiagram?: DiagramRenderer;
+  /** Offered above the view when given. */
+  readonly hostViewSwitch?: HostViewSwitch;
+}
+
+function HostViewBar({ label, description, onSelect }: HostViewSwitch) {
+  return (
+    <div class="mhr-inline__bar">
+      <button
+        type="button"
+        class="mhr-button mhr-button--small"
+        title={description}
+        onClick={onSelect}
+      >
+        {label}
+      </button>
+    </div>
+  );
 }
 
 function InlineFileReviewBody({
@@ -28,6 +53,7 @@ function InlineFileReviewBody({
   store,
   pendingReviewNotice,
   layout,
+  hostViewSwitch,
 }: Omit<InlineFileReviewProps, "locale" | "renderDiagram">) {
   const t = useMessages();
   const { snapshot, error } = useThreadStore(store);
@@ -41,6 +67,7 @@ function InlineFileReviewBody({
 
   return (
     <div class="mhr-root mhr-inline">
+      {hostViewSwitch && <HostViewBar {...hostViewSwitch} />}
       {error !== null && (
         <p class="mhr-message mhr-message--error">
           {describeLoadFailure(t, t.couldNotLoadComments, error)}
