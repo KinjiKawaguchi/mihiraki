@@ -1,3 +1,4 @@
+export type { Diagram, DiagramDrawing, DiagramRenderer } from "./diagrams/diagrams";
 export { FileSplitReview, type FileSplitReviewProps } from "./file-review/FileSplitReview";
 export { I18nProvider } from "./i18n/i18n";
 export { type Locale, resolveLocale } from "./i18n/locale";

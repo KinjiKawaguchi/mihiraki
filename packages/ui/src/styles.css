@@ -228,6 +228,23 @@
   border-radius: 2px;
 }
 
+/* ---- Diagrams (drawn by the host; the code is the fallback) ---- */
+.mhr-diagram[data-mhr-diagram-state="loading"] > pre,
+.mhr-diagram[data-mhr-diagram-state="ready"] > pre,
+.mhr-diagram[data-mhr-diagram-state="failed"] > :not(pre) {
+  display: none;
+}
+.mhr-diagram[data-mhr-diagram-state] > :not(pre) {
+  display: block;
+  width: 100%;
+  margin-bottom: 16px;
+  border: 0;
+}
+.mhr-diagram[data-mhr-diagram-state="loading"] > :not(pre) {
+  border-radius: 6px;
+  background: var(--mhr-bg-muted);
+}
+
 /* ---- Inline (embedded in a host page's file diff) ---- */
 .mhr-inline {
   border-top: 1px solid var(--mhr-border);

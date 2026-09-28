@@ -2,6 +2,7 @@ import type { LineRange } from "@mihiraki/core";
 import type { ComponentChild } from "preact";
 import { createPortal } from "preact/compat";
 import { useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
+import { useDiagram } from "../diagrams/diagrams";
 import { useMessages } from "../i18n/i18n";
 import { SafeHtml } from "../safe-html/SafeHtml";
 import { type SanitizedHtml, sanitizeHtml } from "../safe-html/sanitize";
@@ -14,6 +15,8 @@ interface HoveredElement {
 
 interface RenderedBlockProps {
   readonly html: string;
+  /** A diagram block, drawn by the host's renderer when there is one. */
+  readonly isDiagram: boolean;
   /** Only the most recently hovered block shows its button, since mouseleave is not guaranteed. */
   readonly isActive: boolean;
   readonly onActivate: () => void;
@@ -76,6 +79,7 @@ function AddCommentButton({ hovered, onSelectionStart, onRequestComment }: AddCo
 export function RenderedBlock(props: RenderedBlockProps) {
   const {
     html,
+    isDiagram,
     isActive,
     onActivate,
     onSelectionStart,
@@ -90,6 +94,7 @@ export function RenderedBlock(props: RenderedBlockProps) {
   const [hovered, setHovered] = useState<HoveredElement | null>(null);
   const safeHtml = useMemo(() => sanitizeHtml(html), [html]);
   const slot = useFormSlot(contentRef, safeHtml, formAfterLines);
+  useDiagram(contentRef, safeHtml, isDiagram);
 
   useLayoutEffect(() => {
     if (contentRef.current) markSelectedElements(contentRef.current, highlightedLines);
