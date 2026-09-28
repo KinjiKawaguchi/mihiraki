@@ -6,6 +6,7 @@ import { describeLoadFailure } from "../host-errors/describe";
 import type { LoadFailure } from "../host-errors/load-failure";
 import { I18nProvider, useMessages } from "../i18n/i18n";
 import type { Locale } from "../i18n/locale";
+import type { DiffLayout } from "../split-view/layout";
 import { createThreadStore, useThreadStore } from "../threads/thread-store";
 import { FileList } from "./FileList";
 import { type AsyncState, useAsync } from "./use-async";
@@ -15,6 +16,8 @@ export interface ReviewAppProps {
   readonly onClose?: () => void;
   /** Language of the UI; English by default. */
   readonly locale?: Locale;
+  /** Two columns (base | head) or one; split by default. */
+  readonly layout?: DiffLayout;
 }
 
 interface AppHeaderProps {
@@ -55,9 +58,11 @@ interface AppBodyProps {
   readonly onSelect: (path: string) => void;
   readonly threads: ThreadSnapshot | null;
   readonly onSubmitComment: SubmitComment;
+  readonly layout: DiffLayout | undefined;
 }
 
-function AppBody({ backend, files, selected, onSelect, threads, onSubmitComment }: AppBodyProps) {
+function AppBody(props: AppBodyProps) {
+  const { backend, files, selected, onSelect, threads, onSubmitComment, layout } = props;
   const t = useMessages();
   if (files.status === "failure")
     return (
@@ -79,13 +84,14 @@ function AppBody({ backend, files, selected, onSelect, threads, onSubmitComment 
           file={selected}
           threads={threads}
           onSubmitComment={onSubmitComment}
+          layout={layout}
         />
       </main>
     </>
   );
 }
 
-function ReviewAppBody({ backend, onClose }: Omit<ReviewAppProps, "locale">) {
+function ReviewAppBody({ backend, onClose, layout }: Omit<ReviewAppProps, "locale">) {
   const files = useAsync(() => backend.listChangedMarkdownFiles(), [backend]);
   const store = useMemo(() => createThreadStore(backend), [backend]);
   const threads = useThreadStore(store);
@@ -116,6 +122,7 @@ function ReviewAppBody({ backend, onClose }: Omit<ReviewAppProps, "locale">) {
           onSelect={setSelectedPath}
           threads={threads.snapshot}
           onSubmitComment={submitComment}
+          layout={layout}
         />
       </div>
     </div>

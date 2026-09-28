@@ -1,14 +1,10 @@
-import type { LineRange, ReviewThread, Side, SplitRow } from "@mihiraki/core";
+import type { LineRange, ReviewThread, RowKind, Side, SplitCell } from "@mihiraki/core";
 import type { ComponentChild } from "preact";
 import { ThreadList } from "../threads/ThreadList";
 import { RenderedBlock } from "./RenderedBlock";
 
-export interface SplitCellViewProps {
-  readonly side: Side;
-  readonly row: SplitRow;
-  readonly threads: readonly ReviewThread[];
-  readonly isActive: boolean;
-  readonly onActivate: () => void;
+/** What a cell needs to take part in selecting blocks and commenting on them. */
+export interface CommentCellProps {
   readonly highlightedLines: LineRange | null;
   readonly formAfterLines: LineRange | null;
   readonly form: ComponentChild;
@@ -17,11 +13,20 @@ export interface SplitCellViewProps {
   readonly onPointerOverLines: (lines: LineRange) => void;
 }
 
-/** One side of one aligned row: the rendered block (if that side has one) and its threads. */
-export function SplitCellView({ side, row, threads, ...blockProps }: SplitCellViewProps) {
-  const cell = row[side];
+export interface SplitCellViewProps extends CommentCellProps {
+  readonly side: Side;
+  /** The block shown, or null where this side has none in a split view. */
+  readonly cell: SplitCell | null;
+  readonly kind: RowKind;
+  readonly threads: readonly ReviewThread[];
+  readonly isActive: boolean;
+  readonly onActivate: () => void;
+}
+
+/** One cell of an aligned row: the rendered block (if there is one) and its threads. */
+export function SplitCellView({ side, cell, kind, threads, ...blockProps }: SplitCellViewProps) {
   return (
-    <div class={`mhr-cell mhr-cell--${cell ? row.kind : "empty"}`} data-side={side}>
+    <div class={`mhr-cell mhr-cell--${cell ? kind : "empty"}`} data-side={side}>
       {cell && <RenderedBlock html={cell.html} {...blockProps} />}
       <ThreadList threads={threads} />
     </div>

@@ -226,4 +226,22 @@ describe("InlineFileReview", () => {
       ),
     ).toBeTruthy();
   });
+
+  it("shows the file in one column when the layout is unified", async () => {
+    const backend = createMemoryBackend(files);
+    const { container } = render(
+      <InlineFileReview
+        locale="en"
+        layout="unified"
+        backend={backend}
+        file={fileA}
+        store={createThreadStore(backend)}
+      />,
+    );
+
+    await waitFor(() => expect(container.querySelector(".mhr-unified")).not.toBeNull());
+    expect(container.querySelector(".mhr-split__header")).toBeNull();
+    expect(container.querySelector("del.mhr-del")?.textContent).toBe("one");
+    expect(container.querySelector("ins.mhr-ins")?.textContent).toBe("two");
+  });
 });

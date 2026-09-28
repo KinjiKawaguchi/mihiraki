@@ -9,7 +9,9 @@ import type { SubmitComment } from "../comment-form/submit-comment";
 import { describeLoadFailure } from "../host-errors/describe";
 import { useMessages } from "../i18n/i18n";
 import { useAsync } from "../review-app/use-async";
+import type { DiffLayout } from "../split-view/layout";
 import { SplitReview } from "../split-view/SplitReview";
+import { UnifiedReview } from "../split-view/UnifiedReview";
 
 export interface FileSplitReviewProps {
   readonly backend: ReviewBackend;
@@ -17,6 +19,8 @@ export interface FileSplitReviewProps {
   /** Threads of the whole pull request (only this file's are shown); null until loaded. */
   readonly threads: ThreadSnapshot | null;
   readonly onSubmitComment: SubmitComment;
+  /** Two columns (base | head) or one; split by default. */
+  readonly layout?: DiffLayout;
 }
 
 function StaleRevisionNotice({ onReload }: { readonly onReload: () => void }) {
@@ -35,7 +39,13 @@ function StaleRevisionNotice({ onReload }: { readonly onReload: () => void }) {
  * Loads both versions of one file and shows them as a split review. Mount one per file
  * (keyed by its path), so a view never shows another file's text while loading.
  */
-export function FileSplitReview({ backend, file, threads, onSubmitComment }: FileSplitReviewProps) {
+export function FileSplitReview({
+  backend,
+  file,
+  threads,
+  onSubmitComment,
+  layout = "split",
+}: FileSplitReviewProps) {
   const t = useMessages();
   const [reloads, setReloads] = useState(0);
   const loaded = useAsync(() => backend.loadFileVersions(file), [backend, file, reloads]);
@@ -52,12 +62,13 @@ export function FileSplitReview({ backend, file, threads, onSubmitComment }: Fil
     );
   if (!loaded.value) return <p class="mhr-message">{t.loading}</p>;
   const versions = loaded.value;
+  const Review = layout === "unified" ? UnifiedReview : SplitReview;
   // Unknown until the threads are loaded; nothing is claimed about them before that.
   const isStale = threads !== null && !isSameRevision(threads.revision, versions.revision);
   return (
     <>
       {isStale && <StaleRevisionNotice onReload={() => setReloads((count) => count + 1)} />}
-      <SplitReview
+      <Review
         path={file.path}
         base={versions.base}
         head={versions.head}

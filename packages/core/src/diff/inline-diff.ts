@@ -66,3 +66,51 @@ export function diffBlockHtml(baseHtml: string, headHtml: string): BlockHtmlDiff
     head: renderWithMarkers(headTokens, changedFlags(changes, "head"), "ins"),
   };
 }
+
+/** Removed text to put back into the head version; whitespace alone is left out, the head has its own. */
+function removedText(tokens: readonly HtmlToken[]): string {
+  const text = tokens
+    .filter((token) => token.kind === "text")
+    .map((token) => token.value)
+    .join("");
+  return text.trim() === "" ? "" : `<del class="${MARKER_CLASS.del}">${text}</del>`;
+}
+
+/**
+ * One rendering of a modified block for a single-column view: the head version, with
+ * inserted text marked and removed text put back where it was. Only the head's tags are
+ * emitted, so the result keeps the head's structure and source lines.
+ */
+export function mergeBlockHtml(baseHtml: string, headHtml: string): string {
+  const baseTokens = tokenizeHtml(baseHtml);
+  const headTokens = tokenizeHtml(headHtml);
+  const changes = diffArrays(
+    baseTokens.map((token) => token.key),
+    headTokens.map((token) => token.key),
+  );
+  const parts: string[] = [];
+  let baseIndex = 0;
+  let headIndex = 0;
+  for (const change of changes) {
+    const count = change.value.length;
+    if (change.removed) {
+      parts.push(removedText(baseTokens.slice(baseIndex, baseIndex + count)));
+      baseIndex += count;
+    } else if (change.added) {
+      const added = headTokens.slice(headIndex, headIndex + count);
+      parts.push(
+        renderWithMarkers(
+          added,
+          added.map(() => true),
+          "ins",
+        ),
+      );
+      headIndex += count;
+    } else {
+      parts.push(...headTokens.slice(headIndex, headIndex + count).map((token) => token.value));
+      baseIndex += count;
+      headIndex += count;
+    }
+  }
+  return parts.join("");
+}

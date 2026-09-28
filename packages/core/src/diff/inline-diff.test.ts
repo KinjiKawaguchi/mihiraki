@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diffBlockHtml } from "./inline-diff";
+import { diffBlockHtml, mergeBlockHtml } from "./inline-diff";
 
 describe("diffBlockHtml", () => {
   it("leaves identical html untouched", () => {
@@ -43,5 +43,52 @@ describe("diffBlockHtml", () => {
 
     expect(result.base).toBe('<p data-line-start="1" data-line-end="1">x</p>');
     expect(result.head).toBe('<p data-line-start="5" data-line-end="5">x</p>');
+  });
+});
+
+describe("mergeBlockHtml", () => {
+  it("leaves identical html untouched", () => {
+    const html = "<p>same text</p>";
+
+    expect(mergeBlockHtml(html, html)).toBe(html);
+  });
+
+  it("shows a replaced word as deleted then inserted, in place", () => {
+    expect(mergeBlockHtml("<p>the old value</p>", "<p>the new value</p>")).toBe(
+      '<p>the <del class="mhr-del">old</del><ins class="mhr-ins">new</ins> value</p>',
+    );
+  });
+
+  it("marks an inserted Japanese character", () => {
+    expect(mergeBlockHtml("<p>仕様を確認する</p>", "<p>仕様を再確認する</p>")).toBe(
+      '<p>仕様を<ins class="mhr-ins">再</ins>確認する</p>',
+    );
+  });
+
+  it("shows removed words where they used to be", () => {
+    expect(mergeBlockHtml("<p>keep this and more</p>", "<p>keep this</p>")).toBe(
+      '<p>keep this<del class="mhr-del"> and more</del></p>',
+    );
+  });
+
+  it("marks text inside tags without wrapping the tags", () => {
+    expect(mergeBlockHtml("<p>a <strong>b</strong></p>", "<p>a <strong>c</strong></p>")).toBe(
+      '<p>a <strong><del class="mhr-del">b</del><ins class="mhr-ins">c</ins></strong></p>',
+    );
+  });
+
+  it("keeps the head's structure, dropping tags only the base had", () => {
+    expect(mergeBlockHtml("<p>see <em>this</em> now</p>", "<p>see now</p>")).toBe(
+      '<p>see <del class="mhr-del">this </del>now</p>',
+    );
+  });
+
+  it("keeps the head's source line attributes", () => {
+    expect(
+      mergeBlockHtml(
+        '<p data-line-start="1" data-line-end="1">x</p>',
+        '<p data-line-start="5" data-line-end="5">x</p>',
+      ),
+    ).toBe('<p data-line-start="5" data-line-end="5">x</p>');
   });
 });

@@ -4,6 +4,7 @@ import { FileSplitReview } from "../file-review/FileSplitReview";
 import { describeLoadFailure } from "../host-errors/describe";
 import { I18nProvider, useMessages } from "../i18n/i18n";
 import type { Locale } from "../i18n/locale";
+import type { DiffLayout } from "../split-view/layout";
 import { type ThreadStore, useThreadStore } from "../threads/thread-store";
 
 export interface InlineFileReviewProps {
@@ -14,6 +15,8 @@ export interface InlineFileReviewProps {
   readonly pendingReviewNotice?: string;
   /** Language of the UI; English by default. */
   readonly locale?: Locale;
+  /** Two columns (base | head) or one, as the host shows diffs; split by default. */
+  readonly layout?: DiffLayout;
 }
 
 function InlineFileReviewBody({
@@ -21,6 +24,7 @@ function InlineFileReviewBody({
   file,
   store,
   pendingReviewNotice,
+  layout,
 }: Omit<InlineFileReviewProps, "locale">) {
   const t = useMessages();
   const { snapshot, error } = useThreadStore(store);
@@ -46,6 +50,7 @@ function InlineFileReviewBody({
         backend={backend}
         file={file}
         threads={snapshot}
+        layout={layout}
         onSubmitComment={submitComment}
       />
     </div>

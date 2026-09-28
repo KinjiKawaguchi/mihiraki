@@ -10,6 +10,9 @@ if (root) {
     <ReviewApp
       backend={createMemoryBackend(sampleFiles, sampleThreads)}
       locale={resolveLocale(navigator.languages)}
+      layout={
+        new URLSearchParams(location.search).get("layout") === "unified" ? "unified" : "split"
+      }
     />,
     root,
   );
