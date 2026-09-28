@@ -2,7 +2,7 @@
 
 | Role  | Timeout    |
 | ----- | ---------- |
-| User  | **30 min** |
+| User  | **24 h**   |
 | Admin | 30 min     |
 
-- Tokens are rotated.
+- Tokens are rotated every hour.
