@@ -7,6 +7,8 @@ GitHub標準のrich diffは、変更前後を1つの文書に重ねたunified表
 コメントはGitHubの通常のレビューコメントとして投稿されるので、PRの会話にそのまま残ります。
 表示言語はブラウザの言語設定に従います（日本語と英語。それ以外の言語では英語）。
 
+[Chrome ウェブストアで入手](https://chromewebstore.google.com/detail/aonhhghpakchakdddehflcpdobnhofij)
+
 ## 構成
 
 | パス | 役割 |
@@ -31,11 +33,10 @@ pnpm build:extension    # apps/extension/.output/chrome-mv3 に出力
 
 ## 拡張の使い方
 
-1. `pnpm build:extension` を実行する
-2. `chrome://extensions` で「デベロッパーモード」を有効にし、「パッケージ化されていない拡張機能を読み込む」で `apps/extension/.output/chrome-mv3` を選ぶ
-3. GitHubにログインした状態でPRの Files changed を開く
-4. Markdownファイルの見出しにある、ソース/rich diffの切り替えでrich diffを選ぶ。GitHubの表示設定がSplitなら左右分割、Unifiedなら1列のレンダリング表示に置き換わり、どちらでもコメントできる（ソース表示に戻すと元に戻る）
-5. ブロックにマウスを乗せると左端に「+」が出る。左（変更前）に付けたコメントは削除側、右（変更後）は追加側の行に付く
+1. [Chrome ウェブストア](https://chromewebstore.google.com/detail/aonhhghpakchakdddehflcpdobnhofij)から追加する（開発版を試すときは、`pnpm build:extension` のあと `chrome://extensions` の「パッケージ化されていない拡張機能を読み込む」で `apps/extension/.output/chrome-mv3` を選ぶ）
+2. GitHubにログインした状態でPRの Files changed を開く
+3. Markdownファイルの見出しにある、ソース/rich diffの切り替えでrich diffを選ぶ。GitHubの表示設定がSplitなら左右分割、Unifiedなら1列のレンダリング表示に置き換わり、どちらでもコメントできる（ソース表示に戻すと元に戻る）
+4. ブロックにマウスを乗せると左端に「+」が出る。左（変更前）に付けたコメントは削除側、右（変更後）は追加側の行に付く
 
 ## 仕組みと制約
 

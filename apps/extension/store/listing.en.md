@@ -13,7 +13,7 @@ For Markdown, GitHub's rich diff overlays both versions in a single view and doe
 • Comments are ordinary GitHub review comments: post one right away, or add it to your pending review
 • Existing review threads are shown beside the text they refer to
 • Mermaid diagrams are drawn as GitHub draws them, the old and new versions side by side
-• Uses the GitHub session you are already signed in with: no token, no extra browser permissions
+• Uses the GitHub session you are already signed in with: no token, and the only permission is access to github.com
 • No data collection: the extension talks only to GitHub (github.com, and GitHub's own diagram renderer)
 • English and Japanese
 
