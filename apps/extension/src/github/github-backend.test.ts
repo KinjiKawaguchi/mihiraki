@@ -313,10 +313,15 @@ describe("createGitHubBackend", () => {
       [changesUrl]: json(routeJson()),
       [postUrl]: json({ thread }),
     });
-    const onThreadCreated = vi.fn();
-    await createGitHubBackend(pr, fetchFn, { onThreadCreated }).postComment(target, "x", "review");
+    const onHostChanged = vi.fn();
+    await createGitHubBackend(pr, fetchFn, { onHostChanged }).postComment(target, "x", "review");
 
-    expect(onThreadCreated).toHaveBeenCalledWith({ target, mode: "review", thread });
+    expect(onHostChanged).toHaveBeenCalledWith({
+      kind: "threadCreated",
+      target,
+      mode: "review",
+      thread,
+    });
   });
 
   it("keeps a successful post successful even if showing it in GitHub UI fails", async () => {
@@ -324,10 +329,10 @@ describe("createGitHubBackend", () => {
       [changesUrl]: json(routeJson()),
       [postUrl]: json({ thread: { id: "1" } }),
     });
-    const onThreadCreated = vi.fn().mockRejectedValue(new Error("bridge gone"));
+    const onHostChanged = vi.fn().mockRejectedValue(new Error("bridge gone"));
 
     await expect(
-      createGitHubBackend(pr, fetchFn, { onThreadCreated }).postComment(target, "x", "single"),
+      createGitHubBackend(pr, fetchFn, { onHostChanged }).postComment(target, "x", "single"),
     ).resolves.toEqual(ok(undefined));
   });
 

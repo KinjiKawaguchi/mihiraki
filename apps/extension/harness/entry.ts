@@ -24,7 +24,7 @@ if (pr) {
   installHostBridge(document);
   const hostSync = createHostSyncClient(document);
   const backend = createGitHubBackend(pr, undefined, {
-    onThreadCreated: (created) => hostSync.announceThreadCreated(created),
+    onHostChanged: (change) => hostSync.announceChange(change),
   });
   window.mihiraki = backend.diffLayout().then((layout) =>
     startInlineReview({

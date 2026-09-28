@@ -13,14 +13,16 @@ export type ThreadPosition = Omit<CommentTarget, "revision">;
 export const HOST_SYNC_EVENTS = {
   ping: "mihiraki:host-ping",
   pong: "mihiraki:host-pong",
-  threadCreated: "mihiraki:thread-created",
-  threadRegistered: "mihiraki:thread-registered",
+  change: "mihiraki:host-change",
+  changeApplied: "mihiraki:host-change-applied",
   hostThreadsChanged: "mihiraki:host-threads-changed",
   diffLayoutRequest: "mihiraki:diff-layout-request",
   diffLayout: "mihiraki:diff-layout",
 } as const;
 
-export interface ThreadCreatedMessage {
+/** A change made through GitHub's endpoints, which GitHub's own UI should show too. */
+export interface HostChange {
+  readonly kind: "threadCreated";
   readonly target: ThreadPosition;
   readonly mode: CommentMode;
   /** The `thread` object GitHub returned from create_review_comment. */
@@ -65,10 +67,8 @@ export function parseJson(json: unknown): unknown {
   }
 }
 
-/** A ThreadCreatedMessage checked by the bridge, with the id GitHub's stores key threads by. */
-export interface ThreadRegistration extends ThreadCreatedMessage {
-  readonly threadId: number;
-}
+/** A HostChange checked by the bridge, with the id GitHub's stores key its thread by. */
+export type CheckedHostChange = HostChange & { readonly threadId: number };
 
 /** GitHub's stores use numeric thread ids; anything else (e.g. a node id) cannot be registered. */
 function parseThreadId(value: unknown): number | null {
@@ -77,17 +77,17 @@ function parseThreadId(value: unknown): number | null {
 }
 
 /** Validates a message; page scripts can dispatch the same events, so nothing is trusted. */
-export function toThreadRegistration(value: unknown): ThreadRegistration | null {
+export function toCheckedHostChange(value: unknown): CheckedHostChange | null {
   const record = asRecord(value);
   const target = parseTarget(record?.target);
   const mode = record?.mode;
   const thread = asRecord(record?.thread);
   const threadId = parseThreadId(thread?.id);
-  if (!target || (mode !== "single" && mode !== "review") || !thread || threadId === null)
-    return null;
-  return { target, mode, thread, threadId };
+  if (record?.kind !== "threadCreated" || !target || !thread || threadId === null) return null;
+  if (mode !== "single" && mode !== "review") return null;
+  return { kind: "threadCreated", target, mode, thread, threadId };
 }
 
-export function parseThreadCreatedMessage(json: string): ThreadRegistration | null {
-  return toThreadRegistration(parseJson(json));
+export function parseHostChange(json: string): CheckedHostChange | null {
+  return toCheckedHostChange(parseJson(json));
 }

@@ -13,7 +13,7 @@ import {
   type ReviewThread,
 } from "@mihiraki/core";
 import type { DiffLayout } from "@mihiraki/ui";
-import type { ThreadCreatedMessage } from "../host-sync/protocol";
+import type { HostChange } from "../host-sync/protocol";
 import { buildCreateCommentPayload, buildReplyPayload } from "./comment-payload";
 import {
   type FetchFn,
@@ -31,8 +31,8 @@ import type { RouteData } from "./route-data";
 const DEFAULT_TIMEOUT_MS = 20_000;
 
 export interface GitHubBackendOptions {
-  /** Called after a comment is stored, e.g. to show the new thread in GitHub's own UI too. */
-  readonly onThreadCreated?: (created: ThreadCreatedMessage) => unknown;
+  /** Called after a change is stored, e.g. to show it in GitHub's own UI too. */
+  readonly onHostChanged?: (change: HostChange) => unknown;
   readonly timeoutMs?: number;
 }
 
@@ -40,7 +40,15 @@ interface PostContext {
   readonly request: FetchFn;
   readonly pr: PullRequestLocation;
   readonly refreshRoute: () => Promise<RouteData>;
-  readonly onThreadCreated: GitHubBackendOptions["onThreadCreated"];
+  readonly onHostChanged: GitHubBackendOptions["onHostChanged"];
+}
+
+async function notifyHost(context: PostContext, change: HostChange): Promise<void> {
+  try {
+    await context.onHostChanged?.(change);
+  } catch {
+    // The change is stored; GitHub's own UI just stays stale until reloaded.
+  }
 }
 
 /** Whether `mode` still fits: the review may have been started in GitHub's own UI since our data was loaded. */
@@ -61,13 +69,8 @@ async function postComment(
   const payload = buildCreateCommentPayload(target, body, mode);
   const posted = await postReviewComment(context.request, context.pr, payload);
   if (!posted.ok) return posted;
-  if (posted.value && context.onThreadCreated) {
-    try {
-      await context.onThreadCreated({ target, mode, thread: posted.value });
-    } catch {
-      // The comment is stored; GitHub's own UI just stays stale until reloaded.
-    }
-  }
+  if (posted.value)
+    await notifyHost(context, { kind: "threadCreated", target, mode, thread: posted.value });
   return ok(undefined);
 }
 
@@ -99,7 +102,7 @@ export interface GitHubBackend extends ReviewBackend {
 export function createGitHubBackend(
   pr: PullRequestLocation,
   fetchFn: FetchFn = (input, init) => fetch(input, init),
-  { onThreadCreated, timeoutMs = DEFAULT_TIMEOUT_MS }: GitHubBackendOptions = {},
+  { onHostChanged, timeoutMs = DEFAULT_TIMEOUT_MS }: GitHubBackendOptions = {},
 ): GitHubBackend {
   const request = guardRequests(fetchFn, timeoutMs);
   let cachedRoute: Promise<RouteData> | null = null;
@@ -124,7 +127,7 @@ export function createGitHubBackend(
     return pending;
   };
   const currentRoute = (): Promise<RouteData> => cachedRoute ?? refreshRoute();
-  const postContext: PostContext = { request, pr, refreshRoute, onThreadCreated };
+  const postContext: PostContext = { request, pr, refreshRoute, onHostChanged };
 
   return {
     listChangedMarkdownFiles: () =>

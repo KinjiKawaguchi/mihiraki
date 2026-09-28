@@ -7,7 +7,7 @@
 import type { DiffLayout } from "@mihiraki/ui";
 import { parseDiffLayout } from "../github/diff-layout";
 import { asRecord } from "../github/json";
-import { diffLineKeyOf, type ThreadRegistration, threadSubjectOf } from "./protocol";
+import { type CheckedHostChange, diffLineKeyOf, threadSubjectOf } from "./protocol";
 
 export interface ZustandStore {
   getState(): unknown;
@@ -88,7 +88,7 @@ function actionOf(state: unknown, slice: string, name: string): Action | null {
 }
 
 /** Replays the store updates GitHub performs after its own comment form posts a comment. */
-export function registerCreatedThread(stores: ReviewStores, message: ThreadRegistration): boolean {
+export function registerCreatedThread(stores: ReviewStores, message: CheckedHostChange): boolean {
   const layout = stores.layout.getState();
   const addPendingComment = actionOf(layout, "pendingReviewActions", "addPendingComment");
   const updateThread = actionOf(layout, "markersActions", "updateThread");
@@ -122,6 +122,14 @@ export function registerCreatedThread(stores: ReviewStores, message: ThreadRegis
     return true;
   } catch {
     return false;
+  }
+}
+
+/** Shows a change made through GitHub's endpoints in GitHub's own UI; false when it cannot. */
+export function applyHostChange(stores: ReviewStores, change: CheckedHostChange): boolean {
+  switch (change.kind) {
+    case "threadCreated":
+      return registerCreatedThread(stores, change);
   }
 }
 

@@ -78,6 +78,7 @@ function storesWith(actions: ReturnType<typeof createActions>) {
 }
 
 const message = {
+  kind: "threadCreated" as const,
   target: { path: "docs/a.md", side: "head" as const, lines: { start: 18, end: 20 } },
   mode: "review" as const,
   thread: { id: "2791962937", subjectType: "line" },

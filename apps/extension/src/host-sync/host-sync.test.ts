@@ -2,9 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { installHostBridge } from "./bridge";
 import { createHostSyncClient } from "./client";
 import type { ReviewStores } from "./github-stores";
-import type { ThreadCreatedMessage } from "./protocol";
+import type { HostChange } from "./protocol";
 
-const message: ThreadCreatedMessage = {
+const message: HostChange = {
+  kind: "threadCreated",
   target: { path: "docs/a.md", side: "head", lines: { start: 3, end: 3 } },
   mode: "review",
   thread: { id: "42" },
@@ -61,13 +62,13 @@ function install(options: Parameters<typeof installHostBridge>[1]) {
 
 describe("host sync between the extension and the page bridge", () => {
   it("reports the host as available when the bridge reaches GitHub stores", async () => {
-    install({ findStores: () => fakeStores().stores, register: vi.fn() });
+    install({ findStores: () => fakeStores().stores, apply: vi.fn() });
 
     expect(await createHostSyncClient(document, { timeoutMs: 50 }).isHostAvailable()).toBe(true);
   });
 
   it("reports the host as unavailable when the stores cannot be found", async () => {
-    install({ findStores: () => null, register: vi.fn() });
+    install({ findStores: () => null, apply: vi.fn() });
 
     expect(await createHostSyncClient(document, { timeoutMs: 50 }).isHostAvailable()).toBe(false);
   });
@@ -76,43 +77,43 @@ describe("host sync between the extension and the page bridge", () => {
     expect(await createHostSyncClient(document, { timeoutMs: 20 }).isHostAvailable()).toBe(false);
   });
 
-  it("has the bridge register a created thread and reports the outcome", async () => {
-    const register = vi.fn().mockReturnValue(true);
-    install({ findStores: () => fakeStores().stores, register });
+  it("has the bridge apply a change and reports the outcome", async () => {
+    const apply = vi.fn().mockReturnValue(true);
+    install({ findStores: () => fakeStores().stores, apply });
 
-    const isRegistered = await createHostSyncClient(document, {
+    const isApplied = await createHostSyncClient(document, {
       timeoutMs: 50,
-    }).announceThreadCreated(message);
+    }).announceChange(message);
 
-    expect(isRegistered).toBe(true);
-    expect(register).toHaveBeenCalledWith(expect.anything(), { ...message, threadId: 42 });
+    expect(isApplied).toBe(true);
+    expect(apply).toHaveBeenCalledWith(expect.anything(), { ...message, threadId: 42 });
   });
 
-  it("tells listeners when a created thread could not be shown in GitHub UI", async () => {
-    install({ findStores: () => fakeStores().stores, register: vi.fn().mockReturnValue(false) });
+  it("tells listeners when a change could not be shown in GitHub UI", async () => {
+    install({ findStores: () => fakeStores().stores, apply: vi.fn().mockReturnValue(false) });
     const client = createHostSyncClient(document, { timeoutMs: 50 });
     const onSyncLost = vi.fn();
     cleanups.push(client.onSyncLost(onSyncLost));
 
-    await client.announceThreadCreated(message);
+    await client.announceChange(message);
 
     expect(onSyncLost).toHaveBeenCalledTimes(1);
   });
 
-  it("does not bother listeners while created threads are shown in GitHub UI", async () => {
-    install({ findStores: () => fakeStores().stores, register: vi.fn().mockReturnValue(true) });
+  it("does not bother listeners while changes are shown in GitHub UI", async () => {
+    install({ findStores: () => fakeStores().stores, apply: vi.fn().mockReturnValue(true) });
     const client = createHostSyncClient(document, { timeoutMs: 50 });
     const onSyncLost = vi.fn();
     cleanups.push(client.onSyncLost(onSyncLost));
 
-    await client.announceThreadCreated(message);
+    await client.announceChange(message);
 
     expect(onSyncLost).not.toHaveBeenCalled();
   });
 
   it("forwards changes made to GitHub threads to the extension", async () => {
     const { stores, emitChange } = fakeStores();
-    install({ findStores: () => stores, register: vi.fn() });
+    install({ findStores: () => stores, apply: vi.fn() });
     const client = createHostSyncClient(document, { timeoutMs: 50 });
     const onChange = vi.fn();
     cleanups.push(client.onHostThreadsChanged(onChange));
@@ -123,22 +124,22 @@ describe("host sync between the extension and the page bridge", () => {
     expect(onChange).toHaveBeenCalledTimes(1);
   });
 
-  it("ignores thread messages that do not validate", async () => {
-    const register = vi.fn().mockReturnValue(true);
-    install({ findStores: () => fakeStores().stores, register });
+  it("ignores change messages that do not validate", async () => {
+    const apply = vi.fn().mockReturnValue(true);
+    install({ findStores: () => fakeStores().stores, apply });
 
     document.dispatchEvent(
-      new CustomEvent("mihiraki:thread-created", {
-        detail: '{"requestId":"x","message":{"target":1}}',
+      new CustomEvent("mihiraki:host-change", {
+        detail: '{"requestId":"x","change":{"target":1}}',
       }),
     );
 
-    expect(register).not.toHaveBeenCalled();
+    expect(apply).not.toHaveBeenCalled();
   });
 
   it("tells the extension GitHub's diff layout, and again whenever it changes", async () => {
     const { stores, changeLayout } = fakeStores();
-    install({ findStores: () => stores, register: vi.fn() });
+    install({ findStores: () => stores, apply: vi.fn() });
     const client = createHostSyncClient(document, { timeoutMs: 50 });
     const layouts: string[] = [];
     cleanups.push(client.watchDiffLayout((layout) => layouts.push(layout)));

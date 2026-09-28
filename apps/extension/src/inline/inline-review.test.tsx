@@ -170,7 +170,7 @@ describe("startInlineReview", () => {
       let notifyLayout: ((layout: DiffLayout) => void) | null = null;
       const client: HostSyncClient = {
         isHostAvailable: async () => isAvailable,
-        announceThreadCreated: async () => isAvailable,
+        announceChange: async () => isAvailable,
         onHostThreadsChanged: (listener) => {
           notify = listener;
           return () => {
