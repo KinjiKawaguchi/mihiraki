@@ -30,6 +30,8 @@ jobs:
           name: extension-zip
           path: apps/extension/.output/mihiraki-*-chrome.zip
           if-no-files-found: error
+          # WXT writes the package under .output/, which the action skips unless told.
+          include-hidden-files: true
           retention-days: 1
 
   # Uploads the same package to the store. Keyless: GitHub's OIDC token is exchanged for a
