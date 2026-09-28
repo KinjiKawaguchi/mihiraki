@@ -1,5 +1,5 @@
 import type { Token } from "markdown-it";
-import { createMarkdownRenderer, toLineRange } from "./renderer";
+import { createMarkdownRenderer, diagramLanguageOf, toLineRange } from "./renderer";
 import type { BlockKind, SourceBlock } from "./types";
 
 const KIND_BY_TOKEN_TYPE: Readonly<Record<string, BlockKind>> = {
@@ -18,6 +18,12 @@ const KIND_BY_TOKEN_TYPE: Readonly<Record<string, BlockKind>> = {
 };
 
 const md = createMarkdownRenderer();
+
+function kindOf(token: Token): BlockKind {
+  return diagramLanguageOf(token) !== null
+    ? "diagram"
+    : (KIND_BY_TOKEN_TYPE[token.type] ?? "other");
+}
 
 /** Index of the token that closes the top-level block opened at `openIndex`. */
 function findBlockEnd(tokens: readonly Token[], openIndex: number): number {
@@ -44,7 +50,7 @@ export function parseBlocks(source: string): SourceBlock[] {
     const endIndex = findBlockEnd(tokens, i);
     const lines = toLineRange(token.map, sourceLines);
     blocks.push({
-      kind: KIND_BY_TOKEN_TYPE[token.type] ?? "other",
+      kind: kindOf(token),
       lines,
       source: sourceLines.slice(lines.start - 1, lines.end).join("\n"),
       html: md.renderer.render(tokens.slice(i, endIndex + 1), md.options, env),

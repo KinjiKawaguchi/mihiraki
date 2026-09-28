@@ -56,4 +56,22 @@ describe("parseBlocks", () => {
   it("returns no blocks for an empty document", () => {
     expect(parseBlocks("")).toEqual([]);
   });
+
+  it("makes a top-level mermaid fence a diagram block, keeping its code as the fallback", () => {
+    const [block] = parseBlocks("```mermaid\nflowchart LR\n  a --> b\n```\n");
+
+    expect(block?.kind).toBe("diagram");
+    expect(block?.html).toContain('data-mhr-diagram="mermaid"');
+    expect(block?.html).toContain('data-line-start="1" data-line-end="4"');
+    expect(block?.html).toContain("a --&gt; b");
+  });
+
+  it("leaves other fences, and mermaid nested in other blocks, as code", () => {
+    const blocks = parseBlocks(
+      "```ts\nconst a = 1;\n```\n\n- item\n\n  ```mermaid\n  graph\n  ```\n",
+    );
+
+    expect(blocks.map((block) => block.kind)).toEqual(["code", "list"]);
+    expect(blocks.map((block) => block.html).join("")).not.toContain("data-mhr-diagram");
+  });
 });

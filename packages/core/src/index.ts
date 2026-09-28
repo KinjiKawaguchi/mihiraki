@@ -7,6 +7,7 @@ export { type UnifiedCell, unifiedCell } from "./document/unified-cell";
 export { parseBlocks } from "./markdown/blocks";
 export { parseLineRange } from "./markdown/line-range";
 export { renderMarkdown } from "./markdown/render";
+export { DIAGRAM_ATTR } from "./markdown/renderer";
 export type { BlockKind, LineRange, SourceBlock } from "./markdown/types";
 export { err, mapResult, ok, type Result } from "./result";
 export type {

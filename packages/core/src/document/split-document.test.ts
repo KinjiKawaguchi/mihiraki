@@ -105,4 +105,15 @@ describe("placeThreads", () => {
     expect(placement.unplaced).toEqual([orphan]);
     expect(placement.byRow).toEqual([{ base: [], head: [] }]);
   });
+
+  it("shows a changed diagram as two whole versions, without word highlights", () => {
+    const [row] = buildSplitRows(
+      "```mermaid\nflowchart LR\n  a --> b\n```\n",
+      "```mermaid\nflowchart LR\n  a --> c\n```\n",
+    );
+
+    expect(row?.kind).toBe("modified");
+    expect(row?.base?.html).toBe(row?.base?.block.html);
+    expect(row?.head?.html).toBe(row?.head?.block.html);
+  });
 });

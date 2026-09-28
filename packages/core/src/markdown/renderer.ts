@@ -7,6 +7,21 @@ import taskLists from "markdown-it-task-lists";
 
 export const LINE_START_ATTR = "data-line-start";
 export const LINE_END_ATTR = "data-line-end";
+/** Marks a diagram's placeholder, valued with the diagram's language. */
+export const DIAGRAM_ATTR = "data-mhr-diagram";
+
+/** Languages of fenced blocks that hosts can draw as diagrams. */
+const DIAGRAM_LANGUAGES: ReadonlySet<string> = new Set(["mermaid"]);
+
+/**
+ * The diagram language of a top-level fence, else null. Nested fences stay code: a
+ * diagram is compared as a whole, which only a block of its own allows.
+ */
+export function diagramLanguageOf(token: Token): string | null {
+  if (token.type !== "fence" || token.level !== 0) return null;
+  const language = token.info.trim().split(/\s+/)[0] ?? "";
+  return DIAGRAM_LANGUAGES.has(language) ? language : null;
+}
 
 /**
  * markdown-it maps are 0-based and end-exclusive. Converts to a 1-based inclusive
@@ -85,6 +100,15 @@ export function createMarkdownRenderer(): MarkdownIt {
   md.renderer.rules.front_matter = (tokens, idx) => {
     const token = tokens[idx];
     return token ? renderFrontMatter(md, token) : "";
+  };
+  const renderFence = md.renderer.rules.fence;
+  md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+    const code = renderFence?.(tokens, idx, options, env, self) ?? "";
+    const token = tokens[idx];
+    const language = token ? diagramLanguageOf(token) : null;
+    if (!token || language === null) return code;
+    const lines = lineAttrs(token.attrGet(LINE_START_ATTR), token.attrGet(LINE_END_ATTR));
+    return `<div class="mhr-diagram" ${DIAGRAM_ATTR}="${language}"${lines}>${code}</div>\n`;
   };
   return md;
 }

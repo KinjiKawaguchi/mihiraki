@@ -35,4 +35,16 @@ describe("unifiedCell", () => {
     expect(cell.block).toBe(row.head?.block);
     expect(cell.html).toContain('<del class="mhr-del">ten</del><ins class="mhr-ins">five</ins>');
   });
+
+  it("shows the new version of a changed diagram whole", () => {
+    const row = onlyRow(
+      "```mermaid\nflowchart LR\n  a --> b\n```\n",
+      "```mermaid\nflowchart LR\n  a --> c\n```\n",
+    );
+
+    const { side, cell } = unifiedCell(row);
+
+    expect(side).toBe("head");
+    expect(cell.html).toBe(row.head?.block.html);
+  });
 });

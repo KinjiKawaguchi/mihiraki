@@ -33,9 +33,16 @@ function plainCell(block: SourceBlock): SplitCell {
   return { block, html: block.html };
 }
 
+/** Diagrams are compared whole: highlights inside their code would break the drawing. */
+export function isComparedWhole(row: { readonly base: SourceBlock; readonly head: SourceBlock }) {
+  return row.base.kind === "diagram" || row.head.kind === "diagram";
+}
+
 function toSplitRow(row: AlignedRow): SplitRow {
   switch (row.kind) {
     case "modified": {
+      if (isComparedWhole(row))
+        return { kind: row.kind, base: plainCell(row.base), head: plainCell(row.head) };
       const highlighted = diffBlockHtml(row.base.html, row.head.html);
       return {
         kind: row.kind,
