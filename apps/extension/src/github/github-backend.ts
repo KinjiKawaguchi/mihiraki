@@ -21,11 +21,11 @@ import {
   guardRequests,
   postReviewComment,
 } from "./github-client";
+import { isMarkdownPath } from "./markdown-path";
 import type { PullRequestLocation } from "./pr-location";
 import { settleRequest, toHostError } from "./request-errors";
 import type { RouteData } from "./route-data";
 
-const MARKDOWN_PATH = /\.(?:md|markdown)$/i;
 const DEFAULT_TIMEOUT_MS = 20_000;
 
 export interface GitHubBackendOptions {
@@ -110,7 +110,7 @@ export function createGitHubBackend(
   return {
     listChangedMarkdownFiles: () =>
       settleRequest(async () =>
-        (await currentRoute()).files.filter((file) => MARKDOWN_PATH.test(file.path)),
+        (await currentRoute()).files.filter((file) => isMarkdownPath(file.path)),
       ),
 
     loadFileVersions: (file: ChangedFile) =>
