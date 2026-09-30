@@ -48,7 +48,7 @@ export function SettingsPopup({ slot, preferredLanguages }: SettingsPopupProps) 
   const browserLanguage = LANGUAGE_NAMES[resolveLocale(preferredLanguages)];
   return (
     <main class="popup" lang={locale}>
-      <h1 class="popup__title">Mihiraki for GitHub</h1>
+      <h1 class="popup__title">Mihiraki</h1>
       <fieldset class="popup__field">
         <legend>{t.language}</legend>
         {LANGUAGE_SETTINGS.map((option) => (
