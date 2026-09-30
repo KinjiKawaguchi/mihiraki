@@ -68,7 +68,8 @@ export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: Co
   const t = useMessages();
   const draft = useCommentDraft(onSubmit);
   const [isPreview, setIsPreview] = useState(false);
-  const shortcutMode: CommentMode = hasPendingReview ? "review" : "single";
+  // As in GitHub's own form, the shortcut keeps the comment for the review; publishing is a click.
+  const shortcutMode: CommentMode = "review";
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key === "Escape" && !draft.isSubmitting) onCancel();
@@ -85,7 +86,7 @@ export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: Co
         <textarea
           class="mhr-form__body"
           value={draft.body}
-          placeholder={t.bodyPlaceholder}
+          placeholder={t.bodyPlaceholder(modeLabel(t, shortcutMode, hasPendingReview))}
           onInput={(event) => draft.setBody((event.target as HTMLTextAreaElement).value)}
           onKeyDown={handleKeyDown}
           // biome-ignore lint/a11y/noAutofocus: the form opens because the reviewer asked to write, as on GitHub
