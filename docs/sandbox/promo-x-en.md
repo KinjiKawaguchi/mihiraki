@@ -2,7 +2,7 @@
 
 | Role  | Timeout    |
 | ----- | ---------- |
-| Guest | 10 min     |
+| Guest | 15 min     |
 | User  | **30 min** |
 | Admin | 30 min     |
 
