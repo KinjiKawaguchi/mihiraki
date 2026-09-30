@@ -4,6 +4,7 @@ import {
   type ChangedFile,
   type CommentMode,
   type CommentTarget,
+  type CommitId,
   err,
   headPathOf,
   ok,
@@ -105,6 +106,21 @@ export function createGitHubBackend(
     return pending;
   };
   const currentRoute = (): Promise<RouteData> => cachedRoute ?? refreshRoute();
+
+  // The text of a file at a commit never changes, so each version is fetched once per page
+  // (a failed fetch is forgotten, so the next attempt asks again).
+  let sources: ReadonlyMap<string, Promise<string>> = new Map();
+  const sourceAt = (oid: CommitId, path: string): Promise<string> => {
+    const key = `${oid}:${path}`;
+    const cached = sources.get(key);
+    if (cached) return cached;
+    const pending = fetchFileSource(request, pr, oid, path);
+    sources = new Map([...sources, [key, pending]]);
+    pending.catch(() => {
+      if (sources.get(key) === pending) sources = new Map([...sources].filter(([k]) => k !== key));
+    });
+    return pending;
+  };
   const postContext: PostContext = { request, pr, refreshRoute, onThreadCreated };
 
   return {
@@ -119,8 +135,8 @@ export function createGitHubBackend(
         const basePath = basePathOf(file);
         const headPath = headPathOf(file);
         const [base, head] = await Promise.all([
-          basePath === null ? null : fetchFileSource(request, pr, revision.base, basePath),
-          headPath === null ? null : fetchFileSource(request, pr, revision.head, headPath),
+          basePath === null ? null : sourceAt(revision.base, basePath),
+          headPath === null ? null : sourceAt(revision.head, headPath),
         ]);
         return { revision, base, head };
       }),

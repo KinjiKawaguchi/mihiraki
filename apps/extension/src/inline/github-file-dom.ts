@@ -45,6 +45,7 @@ export function isRenderedViewActive(container: Element): boolean {
 const PAGE_STYLE = `
 [${VIEW_ATTR}] > :not(${HEADER_SELECTOR}):not(${REVIEW_VIEW_TAG}) { display: none !important; }
 ${REVIEW_VIEW_TAG} { display: block; }
+${REVIEW_VIEW_TAG}[hidden] { display: none !important; }
 `;
 
 export function installPageStyle(document: Document): void {
