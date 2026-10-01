@@ -4,6 +4,8 @@
  */
 
 export const REVIEW_VIEW_TAG = "mhr-review";
+/** The strip that leads back to the rendered view while a file shows GitHub's own rich diff. */
+export const RETURN_BAR_TAG = "mhr-return";
 
 const HEADER_SELECTOR = "[data-diff-header-wrapper]";
 const VIEW_SWITCHER_SELECTOR = `${HEADER_SELECTOR} [data-component="SegmentedControl"]`;
@@ -42,9 +44,16 @@ export function isRenderedViewActive(container: Element): boolean {
   return container.hasAttribute(VIEW_ATTR);
 }
 
+/** Puts `element` right under the file's header, where it is seen however long the file is. */
+export function insertBelowHeader(container: Element, element: Element): void {
+  const header = container.querySelector(`:scope > ${HEADER_SELECTOR}`);
+  if (header) header.after(element);
+  else container.prepend(element);
+}
+
 const PAGE_STYLE = `
 [${VIEW_ATTR}] > :not(${HEADER_SELECTOR}):not(${REVIEW_VIEW_TAG}) { display: none !important; }
-${REVIEW_VIEW_TAG} { display: block; }
+${REVIEW_VIEW_TAG}, ${RETURN_BAR_TAG} { display: block; }
 `;
 
 export function installPageStyle(document: Document): void {

@@ -7,7 +7,13 @@ import {
   type ThreadStore,
 } from "@mihiraki/ui";
 import { render } from "preact";
-import { isRichDiffShown, REVIEW_VIEW_TAG, setRenderedViewActive } from "./github-file-dom";
+import {
+  insertBelowHeader,
+  isRichDiffShown,
+  RETURN_BAR_TAG,
+  REVIEW_VIEW_TAG,
+  setRenderedViewActive,
+} from "./github-file-dom";
 import { INLINE_MESSAGES } from "./messages";
 import { createShadowHost, type ShadowHost } from "./shadow-host";
 
@@ -57,6 +63,67 @@ type HostViewChoices = ReturnType<typeof createHostViewChoices>;
 interface DecoratorState {
   readonly views: ViewsByPath;
   readonly hostViewChoices: HostViewChoices;
+  /** The strips leading back to the rendered view, for files showing GitHub's own rich diff. */
+  readonly returnBars: Map<string, ShadowHost>;
+}
+
+function ReturnBar({
+  label,
+  description,
+  onSelect,
+}: {
+  readonly label: string;
+  readonly description: string;
+  readonly onSelect: () => void;
+}) {
+  return (
+    <div class="mhr-root mhr-inline">
+      <div class="mhr-inline__bar">
+        <button
+          type="button"
+          class="mhr-button mhr-button--small"
+          title={description}
+          onClick={onSelect}
+        >
+          {label}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Shows the strip back to the rendered view while the viewer has chosen GitHub's own rich diff. */
+function syncReturnBar(
+  context: FileDecoratorContext,
+  state: DecoratorState,
+  container: HTMLElement,
+  file: ChangedFile,
+  isWanted: boolean,
+) {
+  const bar = state.returnBars.get(file.path);
+  if (!isWanted) {
+    unmount(bar);
+    state.returnBars.delete(file.path);
+    return;
+  }
+  if (bar && container.contains(bar.host)) return;
+  unmount(bar);
+  const created = createShadowHost(context.document, RETURN_BAR_TAG, context.cssText);
+  insertBelowHeader(container, created.host);
+  const t = INLINE_MESSAGES[context.locale];
+  const showMihirakiView = () => {
+    state.hostViewChoices.forget(file.path);
+    syncView(context, state, container, file);
+  };
+  render(
+    <ReturnBar
+      label={t.showMihirakiView}
+      description={t.showMihirakiViewDescription}
+      onSelect={showMihirakiView}
+    />,
+    created.mount,
+  );
+  state.returnBars.set(file.path, created);
 }
 
 function unmount(view: ShadowHost | undefined): void {
@@ -115,6 +182,7 @@ function syncView(
   if (!isRichDiff) hostViewChoices.forget(file.path);
   const isShown = isRichDiff && !hostViewChoices.has(file.path);
   setRenderedViewActive(container, isShown);
+  syncReturnBar(context, state, container, file, isRichDiff && !isShown);
   if (!isShown) {
     unmount(view);
     views.delete(file.path);
@@ -139,12 +207,17 @@ function syncView(
 
 /** Puts the rendered view in place of GitHub's rich diff for changed Markdown files. */
 export function createFileDecorator(context: FileDecoratorContext) {
-  const state: DecoratorState = { views: new Map(), hostViewChoices: createHostViewChoices() };
+  const state: DecoratorState = {
+    views: new Map(),
+    hostViewChoices: createHostViewChoices(),
+    returnBars: new Map(),
+  };
   return {
     sync: (container: HTMLElement, file: ChangedFile) => syncView(context, state, container, file),
     dispose: () => {
-      for (const view of state.views.values()) unmount(view);
+      for (const view of [...state.views.values(), ...state.returnBars.values()]) unmount(view);
       state.views.clear();
+      state.returnBars.clear();
     },
   };
 }

@@ -5,7 +5,7 @@ import { waitFor } from "@testing-library/preact";
 import { afterEach, describe, expect, it } from "vitest";
 import type { HostSyncClient } from "../host-sync/client";
 import { appendFileBlock, showRichDiff } from "./fixture";
-import { isRenderedViewActive, REVIEW_VIEW_TAG } from "./github-file-dom";
+import { isRenderedViewActive, RETURN_BAR_TAG, REVIEW_VIEW_TAG } from "./github-file-dom";
 import { startInlineReview } from "./inline-review";
 
 const backend = createMemoryBackend({
@@ -163,6 +163,29 @@ describe("startInlineReview", () => {
       await settle();
 
       expect(container.querySelector(REVIEW_VIEW_TAG)).toBeNull();
+    });
+
+    it("offers a way back right under the file header, and takes it in one click", async () => {
+      const container = await appendFileBlock(document, "docs/a.md");
+      await start();
+      showRichDiff(container, true);
+      await waitFor(() => expect(viewText(container)).toContain("Alpha version two."));
+      hostViewButton(container).click();
+
+      const bar = await waitFor(() => {
+        const found = container.querySelector(RETURN_BAR_TAG);
+        if (!found) throw new Error("no way back");
+        return found;
+      });
+      expect(bar.previousElementSibling?.hasAttribute("data-diff-header-wrapper")).toBe(true);
+      const back = Array.from(bar.shadowRoot?.querySelectorAll("button") ?? []).find(
+        (button) => button.textContent === "Mihiraki で表示",
+      );
+      back?.click();
+
+      await waitFor(() => expect(viewText(container)).toContain("Alpha version two."));
+      expect(isRenderedViewActive(container)).toBe(true);
+      expect(container.querySelector(RETURN_BAR_TAG)).toBeNull();
     });
 
     it("shows Mihiraki's view again once the file goes through the source diff", async () => {
