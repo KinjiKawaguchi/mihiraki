@@ -5,7 +5,7 @@ Mihiraki（見開き）は、GitHubのPull Requestで、Markdownを**レンダ�
 GitHub標準のrich diffは、変更前後を1つの文書に重ねたunified表示で、しかもコメントを付けられません。
 このツールはbase/headをそれぞれ描画してブロック単位で左右に揃え、変更されたブロックの中は語単位（日本語は文字単位）で差分をハイライトします。
 コメントはGitHubの通常のレビューコメントとして投稿されるので、PRの会話にそのまま残ります。
-表示言語はブラウザの言語設定に従います（日本語と英語。それ以外の言語では英語）。
+表示言語は、はじめはブラウザの言語設定に従います（日本語と英語。それ以外の言語では英語）。ツールバーのMihirakiのアイコンから、日本語か英語に固定することもできます。
 
 [Chrome ウェブストアで入手](https://chromewebstore.google.com/detail/aonhhghpakchakdddehflcpdobnhofij)
 

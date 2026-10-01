@@ -14,6 +14,7 @@ export default defineConfig({
     description: "__MSG_extDescription__",
     default_locale: "en",
     homepage_url: "https://github.com/KinjiKawaguchi/mihiraki",
-    permissions: [],
+    // Keeps the display language chosen in the popup.
+    permissions: ["storage"],
   },
 });
