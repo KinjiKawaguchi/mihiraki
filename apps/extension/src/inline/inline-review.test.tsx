@@ -5,7 +5,7 @@ import { waitFor } from "@testing-library/preact";
 import { afterEach, describe, expect, it } from "vitest";
 import type { HostSyncClient } from "../host-sync/client";
 import { appendFileBlock, showRichDiff } from "./fixture";
-import { isRenderedViewActive, REVIEW_VIEW_TAG } from "./github-file-dom";
+import { isRenderedViewActive, RETURN_BAR_TAG, REVIEW_VIEW_TAG } from "./github-file-dom";
 import { startInlineReview } from "./inline-review";
 
 const backend = createMemoryBackend({
@@ -122,6 +122,87 @@ describe("startInlineReview", () => {
     showRichDiff(late, true);
 
     await waitFor(() => expect(viewText(late)).toContain("Bravo changed."));
+  });
+
+  describe("going back to GitHub's own rich diff", () => {
+    function hostViewButton(container: Element): HTMLButtonElement {
+      const button = Array.from(viewRoot(container)?.querySelectorAll("button") ?? []).find(
+        (candidate) => candidate.textContent === "GitHub の表示に戻す",
+      );
+      if (!button) throw new Error("no button back to GitHub's view");
+      return button;
+    }
+
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
+
+    it("shows GitHub's rich diff for the file once asked, leaving other files as they are", async () => {
+      const a = await appendFileBlock(document, "docs/a.md");
+      const b = await appendFileBlock(document, "docs/b.md");
+      await start();
+      showRichDiff(a, true);
+      showRichDiff(b, true);
+      await waitFor(() => expect(viewText(a)).toContain("Alpha version two."));
+      await waitFor(() => expect(viewText(b)).toContain("Bravo changed."));
+
+      hostViewButton(a).click();
+
+      await waitFor(() => expect(a.querySelector(REVIEW_VIEW_TAG)).toBeNull());
+      expect(isRenderedViewActive(a)).toBe(false);
+      expect(isRenderedViewActive(b)).toBe(true);
+    });
+
+    it("keeps GitHub's rich diff while GitHub re-renders the file", async () => {
+      const container = await appendFileBlock(document, "docs/a.md");
+      await start();
+      showRichDiff(container, true);
+      await waitFor(() => expect(viewText(container)).toContain("Alpha version two."));
+      hostViewButton(container).click();
+      await waitFor(() => expect(container.querySelector(REVIEW_VIEW_TAG)).toBeNull());
+
+      container.append(document.createElement("div"));
+      await settle();
+
+      expect(container.querySelector(REVIEW_VIEW_TAG)).toBeNull();
+    });
+
+    it("offers a way back right under the file header, and takes it in one click", async () => {
+      const container = await appendFileBlock(document, "docs/a.md");
+      await start();
+      showRichDiff(container, true);
+      await waitFor(() => expect(viewText(container)).toContain("Alpha version two."));
+      hostViewButton(container).click();
+
+      const bar = await waitFor(() => {
+        const found = container.querySelector(RETURN_BAR_TAG);
+        if (!found) throw new Error("no way back");
+        return found;
+      });
+      expect(bar.previousElementSibling?.hasAttribute("data-diff-header-wrapper")).toBe(true);
+      const back = Array.from(bar.shadowRoot?.querySelectorAll("button") ?? []).find(
+        (button) => button.textContent === "Mihiraki で表示",
+      );
+      back?.click();
+
+      await waitFor(() => expect(viewText(container)).toContain("Alpha version two."));
+      expect(isRenderedViewActive(container)).toBe(true);
+      expect(container.querySelector(RETURN_BAR_TAG)).toBeNull();
+    });
+
+    it("shows Mihiraki's view again once the file goes through the source diff", async () => {
+      const container = await appendFileBlock(document, "docs/a.md");
+      await start();
+      showRichDiff(container, true);
+      await waitFor(() => expect(viewText(container)).toContain("Alpha version two."));
+      hostViewButton(container).click();
+      await waitFor(() => expect(container.querySelector(REVIEW_VIEW_TAG)).toBeNull());
+
+      showRichDiff(container, false);
+      await settle();
+      showRichDiff(container, true);
+
+      await waitFor(() => expect(viewText(container)).toContain("Alpha version two."));
+      expect(isRenderedViewActive(container)).toBe(true);
+    });
   });
 
   it("removes every trace when stopped", async () => {
