@@ -48,4 +48,5 @@ export const ja: Messages = {
   referenceInNewIssue: "新しいIssueで参照",
   commentCount: (count) => `${count}件`,
   unplacedThreads: "本文の横に表示できないコメント",
+  showExternalImage: (host) => `外部の画像を表示（${host}）`,
 };
