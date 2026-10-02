@@ -7,7 +7,12 @@ import {
   type ThreadStore,
 } from "@mihiraki/ui";
 import { render } from "preact";
-import { isRichDiffShown, REVIEW_VIEW_TAG, setRenderedViewActive } from "./github-file-dom";
+import {
+  isRichDiffShown,
+  REVIEW_VIEW_TAG,
+  setRenderedViewActive,
+  viewSlotOf,
+} from "./github-file-dom";
 import { createShadowHost, type ShadowHost } from "./shadow-host";
 
 export interface FileDecoratorContext {
@@ -87,7 +92,7 @@ function syncView(
   }
   unmount(view);
   const created = createShadowHost(context.document, REVIEW_VIEW_TAG, context.cssText);
-  container.append(created.host);
+  viewSlotOf(container).append(created.host);
   views.set(file.path, renderView(context, created, file));
   context.onViewShown();
 }

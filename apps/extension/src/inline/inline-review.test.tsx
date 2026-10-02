@@ -124,6 +124,36 @@ describe("startInlineReview", () => {
     await waitFor(() => expect(viewText(late)).toContain("Bravo changed."));
   });
 
+  it("keeps GitHub's own file comments in view, above the rendered view", async () => {
+    const container = await appendFileBlock(document, "docs/a.md");
+    const body = container.children[1] as HTMLElement;
+    body.insertAdjacentHTML(
+      "afterbegin",
+      '<div id="composer"><textarea></textarea></div><div id="threads"><div data-marker-id="7"></div></div>',
+    );
+    body.insertAdjacentHTML(
+      "beforeend",
+      '<div id="prose"><div><article itemprop="text"></article></div></div>',
+    );
+    await start();
+
+    showRichDiff(container, true);
+    await waitFor(() => expect(viewText(container)).toContain("Alpha version two."));
+
+    // An element is hidden when it or any ancestor up to the file block is not displayed.
+    const isShown = (selector: string) => {
+      let element = container.querySelector(selector);
+      for (; element && element !== container; element = element.parentElement)
+        if (getComputedStyle(element).display === "none") return false;
+      return true;
+    };
+    expect(isShown("#composer")).toBe(true);
+    expect(isShown("#threads")).toBe(true);
+    expect(isShown("#prose")).toBe(false);
+    expect(isShown("table")).toBe(false);
+    expect(container.querySelector(REVIEW_VIEW_TAG)?.parentElement).toBe(body);
+  });
+
   it("removes every trace when stopped", async () => {
     const container = await appendFileBlock(document, "docs/a.md");
     await start();
