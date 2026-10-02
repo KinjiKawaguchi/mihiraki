@@ -13,19 +13,24 @@ export type ThreadPosition = Omit<CommentTarget, "revision">;
 export const HOST_SYNC_EVENTS = {
   ping: "mihiraki:host-ping",
   pong: "mihiraki:host-pong",
-  threadCreated: "mihiraki:thread-created",
-  threadRegistered: "mihiraki:thread-registered",
+  change: "mihiraki:host-change",
+  changeApplied: "mihiraki:host-change-applied",
   hostThreadsChanged: "mihiraki:host-threads-changed",
   diffLayoutRequest: "mihiraki:diff-layout-request",
   diffLayout: "mihiraki:diff-layout",
 } as const;
 
-export interface ThreadCreatedMessage {
+interface ThreadChange {
   readonly target: ThreadPosition;
-  readonly mode: CommentMode;
-  /** The `thread` object GitHub returned from create_review_comment. */
+  /** The `thread` object GitHub returned, or for a resolution just its `id`. */
   readonly thread: Readonly<Record<string, unknown>>;
 }
+
+/** A change made through GitHub's endpoints, which GitHub's own UI should show too. */
+export type HostChange =
+  | (ThreadChange & { readonly kind: "threadCreated"; readonly mode: CommentMode })
+  | (ThreadChange & { readonly kind: "threadReplied"; readonly mode: CommentMode })
+  | (ThreadChange & { readonly kind: "threadResolved"; readonly isResolved: boolean });
 
 /** GitHub's description of a thread's position (its `subject` / `positioning`). */
 export function threadSubjectOf(target: ThreadPosition) {
@@ -65,10 +70,8 @@ export function parseJson(json: unknown): unknown {
   }
 }
 
-/** A ThreadCreatedMessage checked by the bridge, with the id GitHub's stores key threads by. */
-export interface ThreadRegistration extends ThreadCreatedMessage {
-  readonly threadId: number;
-}
+/** A HostChange checked by the bridge, with the id GitHub's stores key its thread by. */
+export type CheckedHostChange = HostChange & { readonly threadId: number };
 
 /** GitHub's stores use numeric thread ids; anything else (e.g. a node id) cannot be registered. */
 function parseThreadId(value: unknown): number | null {
@@ -76,18 +79,37 @@ function parseThreadId(value: unknown): number | null {
   return Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 
-/** Validates a message; page scripts can dispatch the same events, so nothing is trusted. */
-export function toThreadRegistration(value: unknown): ThreadRegistration | null {
-  const record = asRecord(value);
-  const target = parseTarget(record?.target);
-  const mode = record?.mode;
-  const thread = asRecord(record?.thread);
-  const threadId = parseThreadId(thread?.id);
-  if (!target || (mode !== "single" && mode !== "review") || !thread || threadId === null)
-    return null;
-  return { target, mode, thread, threadId };
+function parseMode(value: unknown): CommentMode | null {
+  return value === "single" || value === "review" ? value : null;
 }
 
-export function parseThreadCreatedMessage(json: string): ThreadRegistration | null {
-  return toThreadRegistration(parseJson(json));
+/** The kind-specific part of a change, or null when it does not validate. */
+function parseChangeKind(record: Readonly<Record<string, unknown>>) {
+  const mode = parseMode(record.mode);
+  switch (record.kind) {
+    case "threadCreated":
+    case "threadReplied":
+      return mode ? { kind: record.kind, mode } : null;
+    case "threadResolved":
+      return typeof record.isResolved === "boolean"
+        ? { kind: record.kind, isResolved: record.isResolved }
+        : null;
+    default:
+      return null;
+  }
+}
+
+/** Validates a message; page scripts can dispatch the same events, so nothing is trusted. */
+export function toCheckedHostChange(value: unknown): CheckedHostChange | null {
+  const record = asRecord(value);
+  const target = parseTarget(record?.target);
+  const thread = asRecord(record?.thread);
+  const threadId = parseThreadId(thread?.id);
+  const kind = record ? parseChangeKind(record) : null;
+  if (!kind || !target || !thread || threadId === null) return null;
+  return { ...kind, target, thread, threadId };
+}
+
+export function parseHostChange(json: string): CheckedHostChange | null {
+  return toCheckedHostChange(parseJson(json));
 }

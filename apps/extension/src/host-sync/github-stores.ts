@@ -6,8 +6,8 @@
  */
 import type { DiffLayout } from "@mihiraki/ui";
 import { parseDiffLayout } from "../github/diff-layout";
-import { asRecord } from "../github/json";
-import { diffLineKeyOf, type ThreadRegistration, threadSubjectOf } from "./protocol";
+import { asRecord, asString } from "../github/json";
+import { type CheckedHostChange, diffLineKeyOf, threadSubjectOf } from "./protocol";
 
 export interface ZustandStore {
   getState(): unknown;
@@ -87,8 +87,16 @@ function actionOf(state: unknown, slice: string, name: string): Action | null {
   return typeof action === "function" ? (action as Action) : null;
 }
 
+type CheckedChangeOf<K extends CheckedHostChange["kind"]> = Extract<
+  CheckedHostChange,
+  { readonly kind: K }
+>;
+
 /** Replays the store updates GitHub performs after its own comment form posts a comment. */
-export function registerCreatedThread(stores: ReviewStores, message: ThreadRegistration): boolean {
+export function registerCreatedThread(
+  stores: ReviewStores,
+  message: CheckedChangeOf<"threadCreated">,
+): boolean {
   const layout = stores.layout.getState();
   const addPendingComment = actionOf(layout, "pendingReviewActions", "addPendingComment");
   const updateThread = actionOf(layout, "markersActions", "updateThread");
@@ -122,6 +130,95 @@ export function registerCreatedThread(stores: ReviewStores, message: ThreadRegis
     return true;
   } catch {
     return false;
+  }
+}
+
+/** Replays the store updates GitHub performs after its own reply box posts a comment. */
+function registerReply(stores: ReviewStores, change: CheckedChangeOf<"threadReplied">): boolean {
+  const layout = stores.layout.getState();
+  const addPendingComment = actionOf(layout, "pendingReviewActions", "addPendingComment");
+  const updateThread = actionOf(layout, "markersActions", "updateThread");
+  const isReview = change.mode === "review";
+  if (!updateThread || (isReview && !addPendingComment)) return false;
+  try {
+    if (isReview) addPendingComment?.(change.threadId);
+    updateThread(
+      change.threadId,
+      change.target.path,
+      diffLineKeyOf(change.target),
+      (previous: unknown) => ({ ...asRecord(previous), ...change.thread }),
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Replays the store updates GitHub performs after its own Resolve / Unresolve buttons. */
+function registerResolution(
+  stores: ReviewStores,
+  change: CheckedChangeOf<"threadResolved">,
+  viewerLogin: string | null,
+): boolean {
+  const layout = stores.layout.getState();
+  const updateThread = actionOf(layout, "markersActions", "updateThread");
+  const updateCount = actionOf(
+    layout,
+    "markerCountsActions",
+    change.isResolved
+      ? "decrementUnresolvedConversationCount"
+      : "incrementUnresolvedConversationCount",
+  );
+  if (!updateThread) return false;
+  const resolution = {
+    isResolved: change.isResolved,
+    resolvedBy: change.isResolved ? (viewerLogin ?? undefined) : undefined,
+    resolutionReason: undefined,
+  };
+  try {
+    updateThread(
+      change.threadId,
+      change.target.path,
+      diffLineKeyOf(change.target),
+      (previous: unknown) => {
+        const thread = asRecord(previous);
+        return thread ? { ...thread, ...resolution } : undefined;
+      },
+    );
+    updateCount?.();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Shows a change made through GitHub's endpoints in GitHub's own UI; false when it cannot.
+ * `viewerLogin` is who resolves a thread, as GitHub records it.
+ */
+export function applyHostChange(
+  stores: ReviewStores,
+  change: CheckedHostChange,
+  viewerLogin: string | null,
+): boolean {
+  switch (change.kind) {
+    case "threadCreated":
+      return registerCreatedThread(stores, change);
+    case "threadReplied":
+      return registerReply(stores, change);
+    case "threadResolved":
+      return registerResolution(stores, change, viewerLogin);
+  }
+}
+
+/** The signed-in viewer's login, from the client environment GitHub embeds in every page. */
+export function viewerLoginOf(document: Document): string | null {
+  const json = document.getElementById("client-env")?.textContent;
+  if (!json) return null;
+  try {
+    return asString(asRecord(JSON.parse(json))?.login);
+  } catch {
+    return null;
   }
 }
 

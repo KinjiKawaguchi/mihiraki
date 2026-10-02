@@ -1,13 +1,13 @@
-import { availableCommentModes, type CommentMode, type CommentTarget } from "@mihiraki/core";
+import { availableCommentModes, type CommentMode } from "@mihiraki/core";
 import { useState } from "preact/hooks";
-import { formatLineRange } from "../format";
 import { useMessages } from "../i18n/i18n";
 import type { Messages } from "../i18n/messages";
 import { CommentPreview } from "./CommentPreview";
 import { type SubmitDraft, useCommentDraft } from "./use-comment-draft";
 
 interface CommentFormProps {
-  readonly target: CommentTarget;
+  /** What the comment is about, e.g. "Comment on R3"; a reply needs none. */
+  readonly heading?: string;
   readonly hasPendingReview: boolean;
   /** On success the parent closes the form; a failure is shown in it. */
   readonly onSubmit: SubmitDraft;
@@ -64,7 +64,7 @@ function SubmitButtons({ hasPendingReview, canSubmit, onSubmit }: SubmitButtonsP
   );
 }
 
-export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: CommentFormProps) {
+export function CommentForm({ heading, hasPendingReview, onSubmit, onCancel }: CommentFormProps) {
   const t = useMessages();
   const draft = useCommentDraft(onSubmit);
   const [isPreview, setIsPreview] = useState(false);
@@ -78,7 +78,7 @@ export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: Co
 
   return (
     <form class="mhr-form" onSubmit={(event) => event.preventDefault()}>
-      <div class="mhr-form__target">{t.commentOn(formatLineRange(target.side, target.lines))}</div>
+      {heading && <div class="mhr-form__target">{heading}</div>}
       <EditorTabs isPreview={isPreview} onChange={setIsPreview} />
       {isPreview ? (
         <CommentPreview body={draft.body} />
