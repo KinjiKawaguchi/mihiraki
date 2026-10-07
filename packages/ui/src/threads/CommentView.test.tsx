@@ -16,6 +16,10 @@ const comment: ReviewComment = {
   url: "https://github.com/acme/docs/pull/1#discussion_r1",
   reactions: [],
   newIssueUrl: "https://github.com/acme/docs/issues/new?body=quote",
+  version: null,
+  canEdit: false,
+  canDelete: false,
+  canReact: false,
 };
 
 const writeText = vi.fn().mockResolvedValue(undefined);
