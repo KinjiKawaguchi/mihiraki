@@ -47,6 +47,7 @@ const thread: ReviewThread = {
   lines: { start: 3, end: 3 },
   isResolved: false,
   isOutdated: false,
+  canReply: true,
   comments: [
     {
       id: "c1",
@@ -60,6 +61,10 @@ const thread: ReviewThread = {
       bodyMarkdown: "",
       reactions: [],
       newIssueUrl: null,
+      version: null,
+      canEdit: false,
+      canDelete: false,
+      canReact: false,
     },
   ],
 };

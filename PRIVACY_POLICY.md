@@ -1,14 +1,14 @@
-# Privacy Policy — Mihiraki for GitHub
+# Privacy Policy — Mihiraki
 
-Effective: September 28, 2026 ([日本語](#プライバシーポリシー--mihiraki-for-github))
+Effective: September 28, 2026 ([日本語](#プライバシーポリシー--mihiraki))
 
-Mihiraki for GitHub (the "extension") does not collect, store or share any personal data.
+Mihiraki – Markdown Diff & Review for GitHub (the "extension") does not collect, store or share any personal data.
 
 ## What the extension does with data
 
 - **Where it runs**: only on pages of `https://github.com`. The only browser permission it requests is storage, to keep the display language you choose.
 - **What it reads**: on a pull request's "Files changed" page, it reads the changed files, their contents and the review threads from github.com, using the GitHub session already signed in in your browser — the same requests GitHub's own page makes.
-- **What it sends**: when you post a comment from the extension, it sends the comment to github.com, as GitHub's own comment form does. To draw a mermaid diagram in a Markdown file, it sends the diagram's code to `viewscreen.githubusercontent.com`, GitHub's rendering service, which GitHub's own rich diff uses for the same diagram. It sends nothing to the developer or to any other party.
+- **What it sends**: when you post, reply to, edit or delete a comment, react to one, or resolve a thread from the extension, it sends that to github.com, as GitHub's own comment form and buttons do. To draw a mermaid diagram in a Markdown file, it sends the diagram's code to `viewscreen.githubusercontent.com`, GitHub's rendering service, which GitHub's own rich diff uses for the same diagram. It sends nothing to the developer or to any other party.
 - **What it stores**: only the display language you choose in its toolbar popup, in the browser's extension storage (Chrome syncs it to your other browsers when Chrome sync is on). It keeps nothing else on your device or elsewhere after you leave the page.
 - **Tracking**: none. No analytics, advertising or telemetry.
 
@@ -22,17 +22,17 @@ Changes to this policy are published in this file, and its history is kept in th
 
 ---
 
-# プライバシーポリシー — Mihiraki for GitHub
+# プライバシーポリシー — Mihiraki
 
 施行日: 2026年9月28日
 
-Mihiraki for GitHub（以下「本拡張機能」）は、個人情報を収集・保存・共有しません。
+Mihiraki – GitHub の Markdown 差分レビュー（以下「本拡張機能」）は、個人情報を収集・保存・共有しません。
 
 ## 本拡張機能によるデータの扱い
 
 - **動作する場所**: `https://github.com` のページだけです。要求するブラウザの権限は、選んだ表示言語を保存するための storage だけです。
 - **読み取るもの**: プルリクエストの「Files changed」ページで、変更されたファイル、その内容、レビューのスレッドを github.com から読み取ります。ブラウザでサインイン済みのGitHubのセッションを使い、GitHub自身のページと同じリクエストを送ります。
-- **送信するもの**: 本拡張機能からコメントを投稿すると、GitHub自身のコメント欄と同じように、そのコメントを github.com に送ります。Markdownファイル中のmermaidの図を描くときは、図のコードをGitHubの描画サービス `viewscreen.githubusercontent.com` に送ります。GitHub自身のrich diffが同じ図を描くときに使うサービスです。開発者やその他の第三者には何も送りません。
+- **送信するもの**: 本拡張機能からコメントの投稿・返信・編集・削除、リアクション、スレッドの解決をすると、GitHub自身のコメント欄やボタンと同じように、その内容を github.com に送ります。Markdownファイル中のmermaidの図を描くときは、図のコードをGitHubの描画サービス `viewscreen.githubusercontent.com` に送ります。GitHub自身のrich diffが同じ図を描くときに使うサービスです。開発者やその他の第三者には何も送りません。
 - **保存するもの**: ツールバーのポップアップで選んだ表示言語だけを、ブラウザの拡張機能用ストレージに保存します（Chromeの同期が有効なら、Chromeがほかのブラウザにも同期します）。それ以外は、ページを離れた後、端末にもどこにも残しません。
 - **追跡**: 行いません。アクセス解析、広告、テレメトリはありません。
 

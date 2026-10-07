@@ -1,4 +1,4 @@
-import type { FileChangeType, Side } from "@mihiraki/core";
+import type { FileChangeType, ReactionKind, Side } from "@mihiraki/core";
 import type { Locale } from "./locale";
 
 /** Every text the UI shows. Each language provides all of them, so none can be missed. */
@@ -15,7 +15,8 @@ export interface Messages {
   readonly write: string;
   readonly preview: string;
   readonly nothingToPreview: string;
-  readonly bodyPlaceholder: string;
+  /** The empty comment box, naming what ⌘/Ctrl+Enter does (e.g. "Start a review"). */
+  readonly bodyPlaceholder: (shortcutAction: string) => string;
   readonly cancel: string;
   readonly loading: string;
   readonly staleRevision: string;
@@ -49,4 +50,24 @@ export interface Messages {
   readonly referenceInNewIssue: string;
   readonly commentCount: (count: number) => string;
   readonly unplacedThreads: string;
+  readonly reply: string;
+  readonly resolveConversation: string;
+  readonly unresolveConversation: string;
+  readonly couldNotResolve: string;
+  readonly couldNotUnresolve: string;
+  readonly quoteReply: string;
+  readonly editComment: string;
+  readonly deleteComment: string;
+  readonly updateComment: string;
+  readonly confirmDeleteComment: string;
+  /** The button that carries out a confirmed deletion. */
+  readonly confirmDelete: string;
+  readonly couldNotEditComment: string;
+  readonly editConflict: string;
+  readonly couldNotDeleteComment: string;
+  readonly addReaction: string;
+  readonly reactionName: Readonly<Record<ReactionKind, string>>;
+  /** A reaction's button, e.g. "Heart 2". */
+  readonly reactionLabel: (name: string, count: number) => string;
+  readonly couldNotReact: string;
 }

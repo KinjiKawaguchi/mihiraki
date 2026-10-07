@@ -11,6 +11,7 @@ function thread(side: Side, lines: LineRange): ReviewThread {
     lines,
     isResolved: false,
     isOutdated: false,
+    canReply: true,
     comments: [],
   };
 }
@@ -77,10 +78,11 @@ describe("placeThreads", () => {
     expect(byRow[2]?.base.map((t) => t.id)).toEqual(["base5-5"]);
   });
 
-  it("anchors a multi-line thread at its first line", () => {
+  it("anchors a multi-line thread at its last line, below the range as GitHub and the comment form do", () => {
     const { byRow } = placeThreads(rows, [thread("head", line(1, 6))]);
 
-    expect(byRow[0]?.head.map((t) => t.id)).toEqual(["head1-6"]);
+    expect(byRow[2]?.head.map((t) => t.id)).toEqual(["head1-6"]);
+    expect(byRow[0]?.head).toEqual([]);
   });
 
   it("attaches a thread on a blank line to the preceding block", () => {

@@ -307,6 +307,20 @@
   text-align: left;
   cursor: pointer;
 }
+.mhr-thread__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--mhr-border);
+}
+.mhr-thread__actions {
+  display: flex;
+  gap: 8px;
+}
+.mhr-thread__resolve {
+  margin-left: auto;
+}
 .mhr-badge {
   padding: 0 6px;
   border: 1px solid var(--mhr-border);
@@ -372,6 +386,10 @@
   background: var(--mhr-bg);
   box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
 }
+.mhr-menu__list[data-placement="above"] {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
 .mhr-menu__list > * {
   padding: 6px 14px;
   border: 0;
@@ -386,6 +404,16 @@
 .mhr-menu__list > *:hover,
 .mhr-menu__list > *:focus-visible {
   background: var(--mhr-bg-muted);
+}
+.mhr-menu__list > .mhr-menu__divider {
+  height: 0;
+  margin: 6px 0;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--mhr-border);
+}
+.mhr-menu__list > .mhr-menu__item--danger {
+  color: var(--mhr-danger);
 }
 .mhr-reactions {
   display: flex;
@@ -410,6 +438,29 @@
   border-color: var(--mhr-accent);
   color: var(--mhr-accent);
 }
+button.mhr-reaction {
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
+button.mhr-reaction:hover {
+  background: var(--mhr-bg-muted);
+}
+.mhr-reaction--add {
+  padding: 0 6px;
+}
+.mhr-reaction-picker {
+  left: 0;
+  right: auto;
+  flex-direction: row;
+  min-width: 0;
+  padding: 4px;
+}
+.mhr-menu__list.mhr-reaction-picker > * {
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: 16px;
+}
 .mhr-comment__body {
   margin-top: 4px;
 }
@@ -432,6 +483,10 @@
   border: 1px solid var(--mhr-accent);
   border-radius: 6px;
   background: var(--mhr-bg);
+}
+/* Inside a thread the footer already spaces the form. */
+.mhr-thread__footer .mhr-form {
+  margin-bottom: 0;
 }
 .mhr-form__target {
   font-size: 12px;
@@ -502,6 +557,22 @@
   border-color: transparent;
   background: var(--mhr-accent-emphasis);
   color: #ffffff;
+}
+.mhr-button--danger {
+  color: var(--mhr-danger);
+}
+.mhr-confirm {
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid var(--mhr-danger);
+  border-radius: 6px;
+  font-size: 14px;
+}
+.mhr-confirm__question {
+  margin: 0 0 8px;
+}
+.mhr-comment .mhr-form--edit {
+  margin: 4px 0 0;
 }
 .mhr-button:disabled {
   opacity: 0.5;

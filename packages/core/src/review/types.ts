@@ -48,6 +48,15 @@ export interface ReviewComment {
   readonly reactions: readonly Reaction[];
   /** Where to start a new issue quoting this comment; null when the host has none. */
   readonly newIssueUrl: string | null;
+  /**
+   * Changes whenever the text does. An edit names the version it started from, so a newer
+   * text written elsewhere is not overwritten; null when the host does not track versions.
+   */
+  readonly version: string | null;
+  /** What the viewer may do with the comment. */
+  readonly canEdit: boolean;
+  readonly canDelete: boolean;
+  readonly canReact: boolean;
 }
 
 export interface ReviewThread {
@@ -58,6 +67,8 @@ export interface ReviewThread {
   readonly lines: LineRange;
   readonly isResolved: boolean;
   readonly isOutdated: boolean;
+  /** Whether the viewer may reply in this thread. */
+  readonly canReply: boolean;
   readonly comments: readonly ReviewComment[];
 }
 
