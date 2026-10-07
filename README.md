@@ -22,6 +22,8 @@ GitHub標準のrich diffは、変更前後を1つの文書に重ねたunified表
 
 ## 開発
 
+pnpm 12 を使います。pnpm 12 はプラットフォームごとのネイティブバイナリで配布され、Corepack からは起動できません。pnpm 本体は `brew install pnpm` か `npm install -g pnpm` などで入れてください。どのバージョンを入れても、`package.json` の `packageManager` に書かれたバージョンに pnpm が自分で切り替えます。
+
 ```sh
 pnpm install
 pnpm test               # 全パッケージのテスト

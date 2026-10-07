@@ -10,8 +10,8 @@ minimumReleaseAge: 4320
 trustPolicy: no-downgrade
 # Transitive dependencies may only come from the registry (pnpm default, kept explicit).
 blockExoticSubdeps: true
-# Dependency install scripts stay blocked unless listed here, and an unlisted one fails the install.
-onlyBuiltDependencies: []
+# Dependency install scripts stay blocked unless allowed here, and an unlisted one fails the install.
+allowBuilds: {}
 strictDepBuilds: true
 # Verified false positives: published by the packages' own maintainers from their tagged
 # sources, but without the provenance an earlier-dated release had (checked 2026-09-28).
