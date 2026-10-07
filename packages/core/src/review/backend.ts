@@ -47,4 +47,12 @@ export interface ReviewBackend {
     body: string,
     mode: CommentMode,
   ): Promise<Result<void, PostCommentError>>;
+  /** Adds a comment at the end of a thread, posted now or added to the pending review. */
+  replyToThread(
+    thread: ReviewThread,
+    body: string,
+    mode: CommentMode,
+  ): Promise<Result<void, PostCommentError>>;
+  /** Marks a thread resolved, or opens it again. */
+  setThreadResolved(thread: ReviewThread, isResolved: boolean): Promise<Result<void, HostError>>;
 }

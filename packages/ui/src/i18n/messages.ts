@@ -52,4 +52,9 @@ export interface Messages {
   readonly unplacedThreads: string;
   /** Stands in for an image that would load from another site, naming that site. */
   readonly showExternalImage: (host: string) => string;
+  readonly reply: string;
+  readonly resolveConversation: string;
+  readonly unresolveConversation: string;
+  readonly couldNotResolve: string;
+  readonly couldNotUnresolve: string;
 }

@@ -92,6 +92,7 @@ export const sampleThreads: readonly ReviewThread[] = [
     lines: { start: 10, end: 11 },
     isResolved: false,
     isOutdated: false,
+    canReply: true,
     comments: [
       {
         id: "sample-1-1",

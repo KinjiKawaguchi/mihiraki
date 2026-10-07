@@ -317,6 +317,20 @@
   font-size: 13px;
   cursor: pointer;
 }
+.mhr-thread__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--mhr-border);
+}
+.mhr-thread__actions {
+  display: flex;
+  gap: 8px;
+}
+.mhr-thread__resolve {
+  margin-left: auto;
+}
 .mhr-badge {
   padding: 0 6px;
   border: 1px solid var(--mhr-border);
@@ -442,6 +456,10 @@
   border: 1px solid var(--mhr-accent);
   border-radius: 6px;
   background: var(--mhr-bg);
+}
+/* Inside a thread the footer already spaces the form. */
+.mhr-thread__footer .mhr-form {
+  margin-bottom: 0;
 }
 .mhr-form__target {
   font-size: 12px;

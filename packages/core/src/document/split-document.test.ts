@@ -11,6 +11,7 @@ function thread(side: Side, lines: LineRange): ReviewThread {
     lines,
     isResolved: false,
     isOutdated: false,
+    canReply: true,
     comments: [],
   };
 }

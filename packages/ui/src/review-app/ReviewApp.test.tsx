@@ -17,6 +17,7 @@ function threadOn(path: string, text: string): ReviewThread {
     lines: { start: 1, end: 1 },
     isResolved: false,
     isOutdated: false,
+    canReply: true,
     comments: [
       {
         id: path,
@@ -98,6 +99,21 @@ describe("ReviewApp", () => {
     fireEvent.click(screen.getByRole("button", { name: "コメント" }));
 
     expect(await screen.findByText("Nice change")).toBeTruthy();
+  });
+
+  it("replies in a thread and shows the reply after posting", async () => {
+    render(
+      <ReviewApp
+        locale="ja"
+        backend={createMemoryBackend(files, [threadOn("docs/a.md", "Why?")])}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "返信" }));
+    fireEvent.input(screen.getByRole("textbox"), { target: { value: "See ADR-7" } });
+    fireEvent.click(screen.getByRole("button", { name: "コメント" }));
+
+    expect(await screen.findByText("See ADR-7")).toBeTruthy();
   });
 
   it("tells the reviewer when the pull request has no Markdown changes", async () => {

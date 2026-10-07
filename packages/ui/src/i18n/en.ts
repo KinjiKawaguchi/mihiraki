@@ -49,4 +49,9 @@ export const en: Messages = {
   commentCount: (count) => (count === 1 ? "1 comment" : `${count} comments`),
   unplacedThreads: "Comments that cannot be shown beside the text",
   showExternalImage: (host) => `Show external image (${host})`,
+  reply: "Reply",
+  resolveConversation: "Resolve conversation",
+  unresolveConversation: "Unresolve conversation",
+  couldNotResolve: "Could not resolve the conversation",
+  couldNotUnresolve: "Could not unresolve the conversation",
 };

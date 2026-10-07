@@ -1,4 +1,5 @@
 import type { ChangedFile, ReviewBackend } from "@mihiraki/core";
+import { useMemo } from "preact/hooks";
 import type { SubmitComment } from "../comment-form/submit-comment";
 import { type DiagramRenderer, DiagramRendererContext } from "../diagrams/diagrams";
 import { FileSplitReview } from "../file-review/FileSplitReview";
@@ -7,6 +8,7 @@ import { I18nProvider, useMessages } from "../i18n/i18n";
 import type { Locale } from "../i18n/locale";
 import { ImagePolicyProvider, type ImageSource } from "../safe-html/images";
 import type { DiffLayout } from "../split-view/layout";
+import { createThreadActions, ThreadActionsContext } from "../threads/thread-actions";
 import { type ThreadStore, useThreadStore } from "../threads/thread-store";
 
 export interface InlineFileReviewProps {
@@ -34,6 +36,11 @@ function InlineFileReviewBody({
 }: Omit<InlineFileReviewProps, "locale" | "renderDiagram" | "imageSource">) {
   const t = useMessages();
   const { snapshot, error } = useThreadStore(store);
+  const hasPendingReview = snapshot?.hasPendingReview === true;
+  const threadActions = useMemo(
+    () => createThreadActions(backend, store, hasPendingReview),
+    [backend, store, hasPendingReview],
+  );
 
   const submitComment: SubmitComment = async (target, body, mode) => {
     const result = await backend.postComment(target, body, mode);
@@ -49,16 +56,16 @@ function InlineFileReviewBody({
           {describeLoadFailure(t, t.couldNotLoadComments, error)}
         </p>
       )}
-      {snapshot?.hasPendingReview && pendingReviewNotice && (
-        <p class="mhr-notice">{pendingReviewNotice}</p>
-      )}
-      <FileSplitReview
-        backend={backend}
-        file={file}
-        threads={snapshot}
-        layout={layout}
-        onSubmitComment={submitComment}
-      />
+      {hasPendingReview && pendingReviewNotice && <p class="mhr-notice">{pendingReviewNotice}</p>}
+      <ThreadActionsContext.Provider value={threadActions}>
+        <FileSplitReview
+          backend={backend}
+          file={file}
+          threads={snapshot}
+          layout={layout}
+          onSubmitComment={submitComment}
+        />
+      </ThreadActionsContext.Provider>
     </div>
   );
 }

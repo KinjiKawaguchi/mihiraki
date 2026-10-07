@@ -47,6 +47,7 @@ const thread: ReviewThread = {
   lines: { start: 3, end: 3 },
   isResolved: false,
   isOutdated: false,
+  canReply: true,
   comments: [
     {
       id: "c1",

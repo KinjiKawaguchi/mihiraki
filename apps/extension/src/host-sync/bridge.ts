@@ -4,27 +4,32 @@
  */
 import { asRecord, asString } from "../github/json";
 import {
+  applyHostChange,
   findReviewStores,
   type ReviewStores,
   readDiffLayout,
-  registerCreatedThread,
+  viewerLoginOf,
   watchDiffLayout,
   watchReviewThreads,
 } from "./github-stores";
 import {
+  type CheckedHostChange,
   HOST_SYNC_EVENTS,
   parseJson,
-  type ThreadRegistration,
-  toThreadRegistration,
+  toCheckedHostChange,
 } from "./protocol";
 
 export interface HostBridgeOptions {
   readonly findStores?: (document: Document) => ReviewStores | null;
-  readonly register?: (stores: ReviewStores, registration: ThreadRegistration) => boolean;
+  readonly apply?: (
+    stores: ReviewStores,
+    change: CheckedHostChange,
+    viewerLogin: string | null,
+  ) => boolean;
 }
 
 export function installHostBridge(document: Document, options: HostBridgeOptions = {}): () => void {
-  const { findStores = findReviewStores, register = registerCreatedThread } = options;
+  const { findStores = findReviewStores, apply = applyHostChange } = options;
   let watched: { readonly stores: ReviewStores; readonly stop: () => void } | null = null;
 
   const reply = (type: string, payload: Record<string, unknown>) =>
@@ -64,24 +69,24 @@ export function installHostBridge(document: Document, options: HostBridgeOptions
     if (layout) reply(HOST_SYNC_EVENTS.diffLayout, { layout });
   };
 
-  const onThreadCreated = (event: Event) => {
+  const onChange = (event: Event) => {
     const detail = asRecord(parseJson((event as CustomEvent<unknown>).detail));
     const requestId = asString(detail?.requestId);
-    const message = toThreadRegistration(detail?.message);
-    if (!requestId || !message) return;
+    const change = toCheckedHostChange(detail?.change);
+    if (!requestId || !change) return;
     const stores = currentStores();
-    reply(HOST_SYNC_EVENTS.threadRegistered, {
+    reply(HOST_SYNC_EVENTS.changeApplied, {
       requestId,
-      isRegistered: stores !== null && register(stores, message),
+      isApplied: stores !== null && apply(stores, change, viewerLoginOf(document)),
     });
   };
 
   document.addEventListener(HOST_SYNC_EVENTS.ping, onPing);
-  document.addEventListener(HOST_SYNC_EVENTS.threadCreated, onThreadCreated);
+  document.addEventListener(HOST_SYNC_EVENTS.change, onChange);
   document.addEventListener(HOST_SYNC_EVENTS.diffLayoutRequest, onDiffLayoutRequest);
   return () => {
     document.removeEventListener(HOST_SYNC_EVENTS.ping, onPing);
-    document.removeEventListener(HOST_SYNC_EVENTS.threadCreated, onThreadCreated);
+    document.removeEventListener(HOST_SYNC_EVENTS.change, onChange);
     document.removeEventListener(HOST_SYNC_EVENTS.diffLayoutRequest, onDiffLayoutRequest);
     watched?.stop();
   };

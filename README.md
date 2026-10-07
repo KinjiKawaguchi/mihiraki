@@ -37,16 +37,18 @@ pnpm build:extension    # apps/extension/.output/chrome-mv3 に出力
 2. GitHubにログインした状態でPRの Files changed を開く
 3. Markdownファイルの見出しにある、ソース/rich diffの切り替えでrich diffを選ぶ。GitHubの表示設定がSplitなら左右分割、Unifiedなら1列のレンダリング表示に置き換わり、どちらでもコメントできる（ソース表示に戻すと元に戻る）
 4. ブロックにマウスを乗せると左端に「+」が出る。左（変更前）に付けたコメントは削除側、右（変更後）は追加側の行に付く
+5. 既存のスレッドには、その下の「返信」「解決済みにする」から返信と解決ができる（解決済みのスレッドは折りたたまれ、見出しを押すと開いて「未解決に戻す」を選べる）
 
 ## 仕組みと制約
 
 - **認証**: ログイン中のgithub.comのセッションで、GitHub自身のUIと同じ内部エンドポイントを呼ぶ。トークンは不要で、権限もGitHubの画面と同じになる。
   - `GET /:owner/:repo/pull/:n/changes`（JSON）: 比較対象のコミット、変更ファイル、レビュースレッド
   - `GET /:owner/:repo/blob/:sha/:path`: ファイルの生テキスト（ページに埋め込まれたJSONから取り出す）
-  - `POST /:owner/:repo/pull/:n/page_data/create_review_comment`: コメント投稿
+  - `POST /:owner/:repo/pull/:n/page_data/create_review_comment`: コメント投稿（返信は `inReplyTo` にスレッドの最後のコメントのIDを付ける。GitHub自身の返信欄と同じ）
+  - `POST /:owner/:repo/pull/:n/page_data/resolve_thread` / `unresolve_thread`: スレッドの解決と取り消し
   - 非公開の仕様なので、GitHub側の変更で壊れうる。直す場所は `apps/extension/src/github/` に閉じている。
-- **GitHub本体の表示との同期**: 拡張から投稿したコメントを、再読み込みせずにGitHub本体の表示（Submit reviewの件数、差分内のスレッド、ファイルツリーのコメント数）に反映する。GitHub本体で付いたコメントは分割ビューに反映する。
-  - ページのmain worldで動く小さなスクリプト（`apps/extension/src/host-sync/`）が、Reactの内部構造から `PullRequestStoreProvider` と `LayoutStoreProvider` のZustandストアを見つける。そのうえで、GitHub自身がコメント投稿後に呼ぶ更新関数（`addPendingComment` / `updateThread` / `onCommentThreadAdded` / `incrementUnresolvedConversationCount`）を同じ引数で呼ぶ。
+- **GitHub本体の表示との同期**: 拡張から投稿したコメント・返信と、スレッドの解決を、再読み込みせずにGitHub本体の表示（Submit reviewの件数、差分内のスレッド、ファイルツリーのコメント数、未解決の数）に反映する。GitHub本体で付いたコメントは分割ビューに反映する。
+  - ページのmain worldで動く小さなスクリプト（`apps/extension/src/host-sync/`）が、Reactの内部構造から `PullRequestStoreProvider` と `LayoutStoreProvider` のZustandストアを見つける。そのうえで、GitHub自身がコメント投稿・返信・解決の後に呼ぶ更新関数（`addPendingComment` / `updateThread` / `onCommentThreadAdded` / `increment`・`decrementUnresolvedConversationCount`）を同じ引数で呼ぶ。
   - GitHub内部の仕様に依存するため、見つからない・形が違うときは何もせず、再読み込みを促す案内を出す方式に自動で戻る。
 - **組み込み先のDOM**: ファイル枠 `div#diff-<パスのSHA-256>`、見出し `[data-diff-header-wrapper]`、切り替え `[data-component="SegmentedControl"]` だけに依存する（ハッシュ化されたクラス名は使わない）。前提は `apps/extension/src/inline/github-file-dom.ts` に集約している。GitHub側が変わったときは `apps/extension/harness/` のスクリプトをPlaywrightで注入して確かめられる。
 - **配色**: github.com上ではGitHubのテーマ変数をそのまま使うので、dark dimmedやハイコントラストにも追従する。

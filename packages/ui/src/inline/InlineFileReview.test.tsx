@@ -19,6 +19,7 @@ function threadOn(path: string, text: string): ReviewThread {
     lines: { start: 1, end: 1 },
     isResolved: false,
     isOutdated: false,
+    canReply: true,
     comments: [
       {
         id: path,

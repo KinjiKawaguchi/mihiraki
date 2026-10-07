@@ -49,4 +49,9 @@ export const ja: Messages = {
   commentCount: (count) => `${count}件`,
   unplacedThreads: "本文の横に表示できないコメント",
   showExternalImage: (host) => `外部の画像を表示（${host}）`,
+  reply: "返信",
+  resolveConversation: "解決済みにする",
+  unresolveConversation: "未解決に戻す",
+  couldNotResolve: "スレッドを解決済みにできませんでした",
+  couldNotUnresolve: "スレッドを未解決に戻せませんでした",
 };
