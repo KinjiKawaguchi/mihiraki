@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createStore } from "./fake-stores";
 import {
   applyHostChange,
   findReviewStores,
@@ -8,27 +9,6 @@ import {
   watchReviewThreads,
   type ZustandStore,
 } from "./github-stores";
-
-type State = Record<string, unknown>;
-
-function createStore(initial: State): ZustandStore {
-  let state = initial;
-  let listeners: ((next: State, previous: State) => void)[] = [];
-  return {
-    getState: () => state,
-    setState: (partial: Partial<State>) => {
-      const previous = state;
-      state = { ...state, ...partial };
-      for (const listener of listeners) listener(state, previous);
-    },
-    subscribe: (listener) => {
-      listeners = [...listeners, listener];
-      return () => {
-        listeners = listeners.filter((l) => l !== listener);
-      };
-    },
-  };
-}
 
 function providerFiber(name: string, store: ZustandStore, parent: object | null) {
   return {

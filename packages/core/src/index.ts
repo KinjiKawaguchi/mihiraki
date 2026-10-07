@@ -20,6 +20,7 @@ export type {
 export { basePathOf, headPathOf } from "./review/changed-file";
 export { availableCommentModes } from "./review/comment-modes";
 export { type CommitId, commitId, parseCommitId } from "./review/commit-id";
+export type { EditCommentError } from "./review/edit-comment-error";
 export type { HostError } from "./review/host-error";
 export type { PostCommentError } from "./review/post-comment-error";
 export { isSameRevision } from "./review/revision";
