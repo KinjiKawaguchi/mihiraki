@@ -21,11 +21,6 @@
       "matchDepTypes": ["devDependencies"],
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "devDependencies (non-major)"
-    },
-    {
-      "description": "pnpm 11+ ships bin/pnpm.mjs, which Corepack cannot start; stay on 10 until the toolchain moves off Corepack.",
-      "matchPackageNames": ["pnpm"],
-      "allowedVersions": "<11"
     }
   ]
 }
