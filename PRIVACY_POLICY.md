@@ -6,15 +6,15 @@ Mihiraki – Markdown Diff & Review for GitHub (the "extension") does not collec
 
 ## What the extension does with data
 
-- **Where it runs**: only on pages of `https://github.com`. It requests no browser permissions.
+- **Where it runs**: only on pages of `https://github.com`. The only browser permission it requests is storage, to keep the display language you choose.
 - **What it reads**: on a pull request's "Files changed" page, it reads the changed files, their contents and the review threads from github.com, using the GitHub session already signed in in your browser — the same requests GitHub's own page makes.
 - **What it sends**: when you post, reply to, edit or delete a comment, react to one, or resolve a thread from the extension, it sends that to github.com, as GitHub's own comment form and buttons do. To draw a mermaid diagram in a Markdown file, it sends the diagram's code to `viewscreen.githubusercontent.com`, GitHub's rendering service, which GitHub's own rich diff uses for the same diagram. It sends nothing to the developer or to any other party.
-- **What it stores**: nothing. It keeps no data on your device or elsewhere after you leave the page.
+- **What it stores**: only the display language you choose in its toolbar popup, in the browser's extension storage (Chrome syncs it to your other browsers when Chrome sync is on). It keeps nothing else on your device or elsewhere after you leave the page.
 - **Tracking**: none. No analytics, advertising or telemetry.
 
 ## Images in the Markdown being reviewed
 
-Images referenced by a Markdown file (for example `![](https://example.com/a.png)`) are loaded from the address written in the file when the extension shows it, as when the file is opened anywhere else. The site hosting such an image can see your IP address, as with any image on the web.
+Images that a Markdown file takes from another site (for example `![](https://example.com/a.png)`) are not loaded from that site. As on GitHub's own page, the extension shows them through GitHub's image proxy, using the proxied address GitHub gave the same image. If GitHub has given none, the image is held back behind a button that names the site, and it loads from that site only if you press it; that site can then see your IP address, as with any image on the web. Images served by GitHub itself load as on GitHub.
 
 ## Changes and contact
 
@@ -30,15 +30,15 @@ Mihiraki – GitHub の Markdown 差分レビュー（以下「本拡張機能�
 
 ## 本拡張機能によるデータの扱い
 
-- **動作する場所**: `https://github.com` のページだけです。ブラウザの権限は要求しません。
+- **動作する場所**: `https://github.com` のページだけです。要求するブラウザの権限は、選んだ表示言語を保存するための storage だけです。
 - **読み取るもの**: プルリクエストの「Files changed」ページで、変更されたファイル、その内容、レビューのスレッドを github.com から読み取ります。ブラウザでサインイン済みのGitHubのセッションを使い、GitHub自身のページと同じリクエストを送ります。
 - **送信するもの**: 本拡張機能からコメントの投稿・返信・編集・削除、リアクション、スレッドの解決をすると、GitHub自身のコメント欄やボタンと同じように、その内容を github.com に送ります。Markdownファイル中のmermaidの図を描くときは、図のコードをGitHubの描画サービス `viewscreen.githubusercontent.com` に送ります。GitHub自身のrich diffが同じ図を描くときに使うサービスです。開発者やその他の第三者には何も送りません。
-- **保存するもの**: ありません。ページを離れた後、端末にもどこにもデータを残しません。
+- **保存するもの**: ツールバーのポップアップで選んだ表示言語だけを、ブラウザの拡張機能用ストレージに保存します（Chromeの同期が有効なら、Chromeがほかのブラウザにも同期します）。それ以外は、ページを離れた後、端末にもどこにも残しません。
 - **追跡**: 行いません。アクセス解析、広告、テレメトリはありません。
 
 ## レビュー中のMarkdownに含まれる画像
 
-Markdownファイルが参照している画像（例: `![](https://example.com/a.png)`）は、本拡張機能で表示するとき、ファイルに書かれたアドレスから読み込まれます。ほかの場所でそのファイルを開いた場合と同じです。画像を置いているサイトには、ウェブ上のほかの画像と同様に、あなたのIPアドレスが伝わります。
+Markdownファイルがほかのサイトから参照している画像（例: `![](https://example.com/a.png)`）を、そのサイトから直接は読み込みません。GitHub自身のページと同じく、GitHubが同じ画像に付けた画像プロキシ経由のアドレスで表示します。GitHubがアドレスを付けていない画像は、サイト名を書いたボタンに置き換えます。押したときに限り、そのサイトから読み込みます（そのサイトには、ウェブ上のほかの画像と同様に、あなたのIPアドレスが伝わります）。GitHub自身が配信する画像は、GitHub上と同じように読み込みます。
 
 ## 変更と問い合わせ
 

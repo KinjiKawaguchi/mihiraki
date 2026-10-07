@@ -13,7 +13,9 @@ import {
   RETURN_BAR_TAG,
   REVIEW_VIEW_TAG,
   setRenderedViewActive,
+  viewSlotOf,
 } from "./github-file-dom";
+import { githubImageSource, imageKeyOf } from "./github-images";
 import { INLINE_MESSAGES } from "./messages";
 import { createShadowHost, type ShadowHost } from "./shadow-host";
 
@@ -22,7 +24,8 @@ export interface FileDecoratorContext {
   readonly backend: ReviewBackend;
   readonly store: ThreadStore;
   readonly cssText: string;
-  readonly locale: Locale;
+  /** Language of the views, which follow its changes. */
+  readonly locale: () => Locale;
   /** Shown in the views while a review is pending; none while GitHub's UI is kept in sync. */
   readonly pendingReviewNotice: () => string | undefined;
   /** GitHub's split / unified setting, which the views follow. */
@@ -37,6 +40,9 @@ interface RenderedView extends ShadowHost {
   /** What it was rendered with, so it is rendered again only when that changes. */
   readonly notice: string | undefined;
   readonly layout: DiffLayout;
+  readonly locale: Locale;
+  /** GitHub's proxied images in the file block when rendered; images switch to them as they arrive. */
+  readonly imageKey: string;
 }
 
 type ViewsByPath = Map<string, RenderedView>;
@@ -110,7 +116,7 @@ function syncReturnBar(
   unmount(bar);
   const created = createShadowHost(context.document, RETURN_BAR_TAG, context.cssText);
   insertBelowHeader(container, created.host);
-  const t = INLINE_MESSAGES[context.locale];
+  const t = INLINE_MESSAGES[context.locale()];
   const showMihirakiView = () => {
     state.hostViewChoices.forget(file.path);
     syncView(context, state, container, file);
@@ -136,20 +142,24 @@ function renderView(
   context: FileDecoratorContext,
   host: ShadowHost,
   file: ChangedFile,
+  container: HTMLElement,
   onShowGitHubView: () => void,
 ) {
   const notice = context.pendingReviewNotice();
   const layout = context.layout();
-  const t = INLINE_MESSAGES[context.locale];
+  const locale = context.locale();
+  const imageKey = imageKeyOf(container);
+  const t = INLINE_MESSAGES[locale];
   render(
     <InlineFileReview
       backend={context.backend}
       file={file}
       store={context.store}
       pendingReviewNotice={notice}
-      locale={context.locale}
+      locale={locale}
       layout={layout}
       renderDiagram={context.renderDiagram}
+      imageSource={githubImageSource(container)}
       hostViewSwitch={{
         label: t.showGitHubView,
         description: t.showGitHubViewDescription,
@@ -158,11 +168,20 @@ function renderView(
     />,
     host.mount,
   );
-  return { ...host, notice, layout };
+  return { ...host, notice, layout, locale, imageKey };
 }
 
-function isUpToDate(context: FileDecoratorContext, view: RenderedView): boolean {
-  return view.notice === context.pendingReviewNotice() && view.layout === context.layout();
+function isUpToDate(
+  context: FileDecoratorContext,
+  view: RenderedView,
+  container: HTMLElement,
+): boolean {
+  return (
+    view.notice === context.pendingReviewNotice() &&
+    view.layout === context.layout() &&
+    view.locale === context.locale() &&
+    view.imageKey === imageKeyOf(container)
+  );
 }
 
 /**
@@ -184,8 +203,8 @@ function syncView(
   setRenderedViewActive(container, isShown);
   syncReturnBar(context, state, container, file, isRichDiff && !isShown);
   if (!isShown) {
-    unmount(view);
-    views.delete(file.path);
+    // Hidden, not removed: switching back to the rich diff shows it at once, as it was left.
+    if (view) view.host.hidden = true;
     return;
   }
   const showGitHubView = () => {
@@ -193,15 +212,16 @@ function syncView(
     syncView(context, state, container, file);
   };
   if (view && container.contains(view.host)) {
+    view.host.hidden = false;
     // Rendering again keeps the view's state; only needed when its inputs changed.
-    if (!isUpToDate(context, view))
-      views.set(file.path, renderView(context, view, file, showGitHubView));
+    if (!isUpToDate(context, view, container))
+      views.set(file.path, renderView(context, view, file, container, showGitHubView));
     return;
   }
   unmount(view);
   const created = createShadowHost(context.document, REVIEW_VIEW_TAG, context.cssText);
-  container.append(created.host);
-  views.set(file.path, renderView(context, created, file, showGitHubView));
+  viewSlotOf(container).append(created.host);
+  views.set(file.path, renderView(context, created, file, container, showGitHubView));
   context.onViewShown();
 }
 

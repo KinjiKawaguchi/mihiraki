@@ -27,8 +27,10 @@ export interface InlineReviewOptions {
    * Keeps GitHub's own UI and the views in step (threads, layout setting), when available.
    */
   readonly hostSync?: HostSyncClient;
-  /** Language of everything added to the page. */
+  /** Language of everything added to the page, at start. */
   readonly locale: Locale;
+  /** Reports later changes of the language, e.g. from the extension's settings. */
+  readonly watchLocale?: (listener: (locale: Locale) => void) => () => void;
   /** GitHub's split / unified setting at start; host sync reports later changes. */
   readonly initialLayout: DiffLayout;
   /** Draws diagrams as GitHub does; without it they stay code blocks. */
@@ -123,8 +125,9 @@ function restoreAll(document: Document, targets: readonly FileTarget[]) {
 export async function startInlineReview(
   options: InlineReviewOptions,
 ): Promise<Result<() => void, HostError>> {
-  const { document, backend, cssText, hostSync, locale, renderDiagram } = options;
+  const { document, backend, cssText, hostSync, renderDiagram } = options;
   let layout = options.initialLayout;
+  let locale = options.locale;
   const located = await locateFiles(backend);
   if (!located.ok) return located;
   const targets = located.value;
@@ -141,7 +144,7 @@ export async function startInlineReview(
     cssText,
     pendingReviewNotice: () =>
       isHostSynced ? undefined : INLINE_MESSAGES[locale].pendingReviewNotice,
-    locale,
+    locale: () => locale,
     layout: () => layout,
     onViewShown: threads.loadOnce,
     renderDiagram,
@@ -165,8 +168,14 @@ export async function startInlineReview(
     },
   });
 
+  const stopLocaleWatch =
+    options.watchLocale?.((next) => {
+      locale = next;
+      sync();
+    }) ?? (() => undefined);
+
   return ok(() => {
-    for (const stop of [stopWatching, stopHostWatch, decorator.dispose]) stop();
+    for (const stop of [stopWatching, stopHostWatch, stopLocaleWatch, decorator.dispose]) stop();
     restoreAll(document, targets);
     removePageStyle(document);
   });

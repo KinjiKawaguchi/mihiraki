@@ -260,6 +260,34 @@ describe("InlineFileReview", () => {
     ).toBeTruthy();
   });
 
+  it("holds back images the host cannot proxy until the reviewer asks for them", async () => {
+    const backend = createMemoryBackend({
+      "docs/a.md": { base: "Text.\n", head: "Text.\n\n![pixel](https://tracker.example/p.png)\n" },
+    });
+    const { container } = render(
+      <InlineFileReview
+        locale="ja"
+        backend={backend}
+        file={fileA}
+        store={createThreadStore(backend)}
+        imageSource={() => null}
+      />,
+    );
+
+    const button = await screen.findByRole("button", {
+      name: "外部の画像を表示（tracker.example）",
+    });
+    expect(container.querySelector("img")).toBeNull();
+
+    fireEvent.click(button);
+
+    await waitFor(() =>
+      expect(container.querySelector("img")?.getAttribute("src")).toBe(
+        "https://tracker.example/p.png",
+      ),
+    );
+  });
+
   it("offers a way back to the host's own view of the file when given one", async () => {
     const onSelect = vi.fn();
     const backend = createMemoryBackend(files);

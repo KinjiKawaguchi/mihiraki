@@ -50,6 +50,8 @@ export interface Messages {
   readonly referenceInNewIssue: string;
   readonly commentCount: (count: number) => string;
   readonly unplacedThreads: string;
+  /** Stands in for an image that would load from another site, naming that site. */
+  readonly showExternalImage: (host: string) => string;
   readonly reply: string;
   readonly resolveConversation: string;
   readonly unresolveConversation: string;

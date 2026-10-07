@@ -8,6 +8,7 @@ export {
   type InlineFileReviewProps,
 } from "./inline/InlineFileReview";
 export { ReviewApp, type ReviewAppProps } from "./review-app/ReviewApp";
+export type { ImageSource } from "./safe-html/images";
 export type { DiffLayout } from "./split-view/layout";
 export { SplitReview, type SplitReviewProps } from "./split-view/SplitReview";
 export { UnifiedReview, type UnifiedReviewProps } from "./split-view/UnifiedReview";
