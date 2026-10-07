@@ -252,6 +252,12 @@
 .mhr-inline .mhr-split__header {
   position: static;
 }
+.mhr-inline__bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 16px;
+  border-bottom: 1px solid var(--mhr-border);
+}
 .mhr-notice {
   margin: 0;
   padding: 6px 16px;
@@ -562,6 +568,10 @@ button.mhr-reaction:hover {
   color: inherit;
   font: inherit;
   cursor: pointer;
+}
+.mhr-button--small {
+  padding: 2px 8px;
+  font-size: 12px;
 }
 .mhr-button--primary {
   border-color: transparent;

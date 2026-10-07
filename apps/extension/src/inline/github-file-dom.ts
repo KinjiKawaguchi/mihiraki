@@ -4,6 +4,8 @@
  */
 
 export const REVIEW_VIEW_TAG = "mhr-review";
+/** The strip that leads back to the rendered view while a file shows GitHub's own rich diff. */
+export const RETURN_BAR_TAG = "mhr-return";
 
 const HEADER_SELECTOR = "[data-diff-header-wrapper]";
 const VIEW_SWITCHER_SELECTOR = `${HEADER_SELECTOR} [data-component="SegmentedControl"]`;
@@ -32,7 +34,9 @@ export function isRichDiffShown(container: Element): boolean {
 
 /** The file's body under its header: the diff, plus GitHub's file-level comments above it. */
 function bodyOf(container: Element): Element | null {
-  return container.querySelector(`:scope > :not(${HEADER_SELECTOR}):not(${REVIEW_VIEW_TAG})`);
+  return container.querySelector(
+    `:scope > :not(${HEADER_SELECTOR}):not(${REVIEW_VIEW_TAG}):not(${RETURN_BAR_TAG})`,
+  );
 }
 
 /**
@@ -62,6 +66,13 @@ export function isRenderedViewActive(container: Element): boolean {
   return container.hasAttribute(VIEW_ATTR);
 }
 
+/** Puts `element` right under the file's header, where it is seen however long the file is. */
+export function insertBelowHeader(container: Element, element: Element): void {
+  const header = container.querySelector(`:scope > ${HEADER_SELECTOR}`);
+  if (header) header.after(element);
+  else container.prepend(element);
+}
+
 /**
  * Only GitHub's diff is hidden. Its file-level comment form (it has a textarea) and file-level
  * threads (they have a data-marker-id) stay, since the rendered view has no file-level comments.
@@ -70,7 +81,7 @@ const FILE_COMMENTS = "textarea, [data-marker-id]";
 const PAGE_STYLE = `
 [${VIEW_ATTR}] > :not(${HEADER_SELECTOR}):not([${BODY_ATTR}]):not(${REVIEW_VIEW_TAG}) { display: none !important; }
 [${VIEW_ATTR}] > [${BODY_ATTR}] > :not(${REVIEW_VIEW_TAG}):not(:has(${FILE_COMMENTS})) { display: none !important; }
-${REVIEW_VIEW_TAG} { display: block; }
+${REVIEW_VIEW_TAG}, ${RETURN_BAR_TAG} { display: block; }
 ${REVIEW_VIEW_TAG}[hidden] { display: none !important; }
 `;
 
