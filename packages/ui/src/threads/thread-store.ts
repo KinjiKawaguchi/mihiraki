@@ -20,6 +20,7 @@ export function createThreadStore(backend: ReviewBackend): ThreadStore {
   let state: ThreadStoreState = { snapshot: null, error: null };
   let listeners: readonly (() => void)[] = [];
   let latestRequest = 0;
+  let latestRefresh: Promise<void> = Promise.resolve();
 
   return {
     getState: () => state,
@@ -29,16 +30,20 @@ export function createThreadStore(backend: ReviewBackend): ThreadStore {
         listeners = listeners.filter((existing) => existing !== listener);
       };
     },
-    refresh: async () => {
-      // Refreshes overlap (after a post, on host changes); only the newest may land.
+    refresh: () => {
+      // Refreshes overlap (after a post, on host changes); only the newest may land. One
+      // overtaken finishes with the newest, so whoever waits for it sees current threads.
       latestRequest += 1;
       const request = latestRequest;
-      const loaded = await settleLoad(backend.loadThreads());
-      if (request !== latestRequest) return;
-      state = loaded.ok
-        ? { snapshot: loaded.value, error: null }
-        : { snapshot: state.snapshot, error: loaded.error };
-      for (const listener of listeners) listener();
+      const refresh = settleLoad(backend.loadThreads()).then((loaded) => {
+        if (request !== latestRequest) return latestRefresh;
+        state = loaded.ok
+          ? { snapshot: loaded.value, error: null }
+          : { snapshot: state.snapshot, error: loaded.error };
+        for (const listener of listeners) listener();
+      });
+      latestRefresh = refresh;
+      return refresh;
     },
   };
 }

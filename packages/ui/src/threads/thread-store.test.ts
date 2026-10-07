@@ -121,4 +121,37 @@ describe("createThreadStore", () => {
 
     expect(store.getState().snapshot?.threads).toEqual([thread]);
   });
+
+  it("finishes a refresh overtaken by a newer one only once the newer one has landed", async () => {
+    const pending: ((threads: readonly ReviewThread[]) => void)[] = [];
+    const backend: ReviewBackend = {
+      ...createMemoryBackend({}),
+      loadThreads: () =>
+        new Promise((resolve) => {
+          pending.push((threads) =>
+            resolve(
+              ok({
+                revision: { base: commitId("b1b1b1b"), head: commitId("c1c1c1c") },
+                threads,
+                hasPendingReview: false,
+              }),
+            ),
+          );
+        }),
+    };
+    const store = createThreadStore(backend);
+    let isOlderDone = false;
+    const older = store.refresh().then(() => {
+      isOlderDone = true;
+    });
+    const newer = store.refresh();
+
+    pending[0]?.([]);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(isOlderDone).toBe(false);
+
+    pending[1]?.([thread]);
+    await Promise.all([older, newer]);
+    expect(store.getState().snapshot?.threads).toEqual([thread]);
+  });
 });
