@@ -260,6 +260,54 @@ describe("parseRouteData", () => {
     expect(second).toMatchObject({ isByChangeAuthor: false, reactions: [], newIssueUrl: null });
   });
 
+  it("reads what the viewer may change in a comment, allowing nothing GitHub does not grant", () => {
+    const route = parseRouteData({
+      payload: {
+        pullRequestsChangesRoute: {
+          ...response.payload.pullRequestsChangesRoute,
+          diffSummaries: [
+            { path: "docs/design.md", markersMap: { R12: { threads: [{ id: 7 }] } } },
+          ],
+          markers: {
+            threads: {
+              "7": {
+                id: 7,
+                subjectType: "LINE",
+                commentsData: {
+                  comments: [
+                    {
+                      databaseId: 1,
+                      body: "a",
+                      bodyVersion: "9f2c",
+                      viewerCanUpdate: true,
+                      viewerCanDelete: true,
+                      viewerCanReact: true,
+                    },
+                    { databaseId: 2, body: "b" },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    const [first, second] = route.threads[0]?.comments ?? [];
+
+    expect(first).toMatchObject({
+      version: "9f2c",
+      canEdit: true,
+      canDelete: true,
+      canReact: true,
+    });
+    expect(second).toMatchObject({
+      version: null,
+      canEdit: false,
+      canDelete: false,
+      canReact: false,
+    });
+  });
+
   it("maps comment authors and rendered bodies", () => {
     const [first] = parseRouteData(response).threads;
 

@@ -66,6 +66,32 @@ describe("host sync protocol", () => {
     expect(parseHostChange(change({ kind: "threadDeleted", isResolved: true }))).toBeNull();
   });
 
+  it("accepts edits, deletions and reaction changes of a comment", () => {
+    const target = { path: "a.md", side: "head", lines: { start: 3, end: 3 } };
+    const comment = { thread: { id: "7" }, target, commentId: 4115 };
+    const edit = {
+      ...comment,
+      kind: "commentEdited",
+      comment: { body: "b", bodyHTML: "<p>b</p>", bodyVersion: "v2" },
+    };
+    const deletion = { ...comment, kind: "commentDeleted" };
+    const reactions = { ...comment, kind: "reactionsChanged", reactionGroups: [] };
+
+    expect(parseHostChange(JSON.stringify(edit))).toEqual({ ...edit, threadId: 7 });
+    expect(parseHostChange(JSON.stringify(deletion))).toEqual({ ...deletion, threadId: 7 });
+    expect(parseHostChange(JSON.stringify(reactions))).toEqual({ ...reactions, threadId: 7 });
+  });
+
+  it("rejects a comment change without a database id or with malformed details", () => {
+    const target = { path: "a.md", side: "head", lines: { start: 3, end: 3 } };
+    const change = (extra: Record<string, unknown>) =>
+      JSON.stringify({ target, thread: { id: "7" }, commentId: 4115, ...extra });
+
+    expect(parseHostChange(change({ kind: "commentDeleted", commentId: "PRRC_kw" }))).toBeNull();
+    expect(parseHostChange(change({ kind: "commentEdited", comment: { body: "b" } }))).toBeNull();
+    expect(parseHostChange(change({ kind: "reactionsChanged", reactionGroups: {} }))).toBeNull();
+  });
+
   it("rejects anything else, since page scripts can dispatch the same events", () => {
     expect(parseHostChange('{"target":{"path":1}}')).toBeNull();
     expect(parseHostChange("not json")).toBeNull();

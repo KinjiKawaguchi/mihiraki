@@ -1,6 +1,13 @@
-import { type CommitId, err, ok, type PostCommentError, type Result } from "@mihiraki/core";
+import {
+  type CommitId,
+  type EditCommentError,
+  err,
+  ok,
+  type PostCommentError,
+  type Result,
+} from "@mihiraki/core";
 import { extractBlobSource, findBlobSource } from "./blob-source";
-import { asRecord, asString, type JsonRecord, pick } from "./json";
+import { asArray, asRecord, asString, type JsonRecord, pick } from "./json";
 import { type PullRequestLocation, pullRequestUrl } from "./pr-location";
 import {
   HttpStatusError,
@@ -36,6 +43,16 @@ const ROUTE_HEADERS = {
   "X-Requested-With": "XMLHttpRequest",
   "GitHub-Verified-Fetch": "true",
 } as const;
+
+/** A request with a JSON body to one of the page's `page_data` routes. */
+function jsonRequest(method: string, payload: unknown): RequestInit {
+  return {
+    method,
+    credentials: "include",
+    headers: { ...ROUTE_HEADERS, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  };
+}
 
 /** Seen when the compared commits are stale; GitHub itself accepts any line of a changed file. */
 const LINE_NOT_RESOLVED = /line could not be resolved/i;
@@ -109,12 +126,10 @@ export async function fetchFileSource(
 }
 
 async function sendReviewComment(fetchFn: FetchFn, pr: PullRequestLocation, payload: unknown) {
-  const response = await fetchFn(pullRequestUrl(pr, "page_data/create_review_comment"), {
-    method: "POST",
-    credentials: "include",
-    headers: { ...ROUTE_HEADERS, "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  const response = await fetchFn(
+    pullRequestUrl(pr, "page_data/create_review_comment"),
+    jsonRequest("POST", payload),
+  );
   if (!response.ok)
     return {
       status: response.status,
@@ -157,11 +172,64 @@ export async function sendThreadResolution(
   isResolved: boolean,
 ): Promise<void> {
   const route = isResolved ? "page_data/resolve_thread" : "page_data/unresolve_thread";
-  const response = await fetchFn(pullRequestUrl(pr, route), {
-    method: "POST",
+  const response = await fetchFn(pullRequestUrl(pr, route), jsonRequest("POST", { threadId }));
+  if (!response.ok) throw new HttpStatusError(response.status);
+}
+
+/** GitHub's answer when the comment changed after the version an edit started from. */
+const EDIT_CONFLICT = /updated since you started editing/i;
+
+/**
+ * `PUT /pull/:n/page_data/update_review_comment`, what GitHub's own edit form sends. Naming
+ * the version the edit started from makes GitHub refuse it if the comment changed since.
+ * Succeeds with GitHub's answer: the comment's new text, rendering and version.
+ */
+export async function updateReviewComment(
+  fetchFn: FetchFn,
+  pr: PullRequestLocation,
+  edit: { readonly commentId: number; readonly version: string | null; readonly body: string },
+): Promise<Result<JsonRecord | null, EditCommentError>> {
+  const query = edit.version === null ? "" : `?body_version=${encodeURIComponent(edit.version)}`;
+  const response = await fetchFn(
+    pullRequestUrl(pr, `page_data/update_review_comment${query}`),
+    jsonRequest("PUT", { body: edit.body, commentId: String(edit.commentId) }),
+  );
+  if (response.status === 422 && EDIT_CONFLICT.test(await readErrorMessage(response)))
+    return err({ kind: "editConflict" });
+  if (!response.ok) throw new HttpStatusError(response.status);
+  return ok(asRecord(await response.json().catch(() => null)));
+}
+
+/** `DELETE /pull/:n/page_data/review_comments/:id`, what GitHub's own Delete sends. */
+export async function deleteReviewComment(
+  fetchFn: FetchFn,
+  pr: PullRequestLocation,
+  commentId: number,
+): Promise<void> {
+  const response = await fetchFn(pullRequestUrl(pr, `page_data/review_comments/${commentId}`), {
+    method: "DELETE",
     credentials: "include",
-    headers: { ...ROUTE_HEADERS, "Content-Type": "application/json" },
-    body: JSON.stringify({ threadId }),
+    headers: ROUTE_HEADERS,
   });
   if (!response.ok) throw new HttpStatusError(response.status);
+}
+
+/**
+ * `POST /pull/:n/page_data/(add|remove)_comment_reaction`, what GitHub's reaction buttons
+ * send. Returns the comment's reaction groups as GitHub now counts them.
+ */
+export async function sendCommentReaction(
+  fetchFn: FetchFn,
+  pr: PullRequestLocation,
+  reaction: { readonly commentId: number; readonly content: string; readonly isOn: boolean },
+): Promise<readonly unknown[]> {
+  const route = reaction.isOn
+    ? "page_data/add_comment_reaction"
+    : "page_data/remove_comment_reaction";
+  const response = await fetchFn(
+    pullRequestUrl(pr, route),
+    jsonRequest("POST", { reaction: reaction.content, commentId: reaction.commentId }),
+  );
+  if (!response.ok) throw new HttpStatusError(response.status);
+  return asArray(pick(await response.json().catch(() => null), "reactionGroups"));
 }

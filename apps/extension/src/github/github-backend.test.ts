@@ -1,18 +1,20 @@
-import {
-  type ChangedFile,
-  type CommentTarget,
-  commitId,
-  err,
-  mapResult,
-  ok,
-  type ReviewBackend,
-} from "@mihiraki/core";
+import { type ChangedFile, type CommentTarget, commitId, err, mapResult, ok } from "@mihiraki/core";
 import { describe, expect, it, vi } from "vitest";
+import {
+  BASE,
+  changesUrl,
+  fakeGitHub,
+  HEAD,
+  json,
+  loadSnapshot,
+  loadThread,
+  postUrl,
+  pr,
+  routeJson,
+  routeWithThread,
+} from "./fake-github";
 import { createGitHubBackend } from "./github-backend";
 
-const pr = { owner: "acme", repo: "docs", number: 7 };
-const BASE = "b".repeat(40);
-const HEAD = "c".repeat(40);
 const NEWER_HEAD = "d".repeat(40);
 const revision = { base: commitId(BASE), head: commitId(HEAD) };
 const target: CommentTarget = {
@@ -21,28 +23,6 @@ const target: CommentTarget = {
   lines: { start: 3, end: 3 },
   revision,
 };
-
-function routeJson(
-  threads: Record<string, unknown> = {},
-  markersMap: Record<string, unknown> = {},
-  headOid = HEAD,
-) {
-  return {
-    payload: {
-      pullRequestsChangesRoute: {
-        comparison: { fullDiff: { baseOid: BASE, headOid } },
-        diffSummaries: [
-          { path: "docs/a.md", changeType: "MODIFIED", markersMap },
-          { path: "src/main.ts", changeType: "MODIFIED" },
-          { path: "docs/new.md", changeType: "ADDED" },
-          { path: "docs/moved.md", changeType: "RENAMED" },
-        ],
-        diffContents: [{ path: "docs/moved.md", oldTreeEntry: { path: "old/moved.md" } }],
-        markers: { threads },
-      },
-    },
-  };
-}
 
 function styledUrl(oid: string, path: string) {
   return `https://github.com/acme/docs/_styled/${oid}/${path}`;
@@ -54,35 +34,6 @@ function styledBlob(lines: string[]) {
 
 function blobPage(lines: string[]) {
   return `<script type="application/json">${JSON.stringify({ payload: { blob: { rawLines: lines } } })}</script>`;
-}
-
-interface RecordedRequest {
-  readonly url: string;
-  readonly init: RequestInit | undefined;
-}
-
-function fakeGitHub(handlers: Record<string, () => Response>) {
-  const requests: RecordedRequest[] = [];
-  const fetchFn = async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = String(input);
-    requests.push({ url, init });
-    const handler = handlers[url];
-    return handler ? handler() : new Response("not found", { status: 404 });
-  };
-  return { fetchFn, requests };
-}
-
-const changesUrl = "https://github.com/acme/docs/pull/7/changes";
-const postUrl = "https://github.com/acme/docs/pull/7/page_data/create_review_comment";
-const json =
-  (value: unknown, status = 200) =>
-  () =>
-    new Response(JSON.stringify(value), { status });
-
-async function loadSnapshot(backend: ReviewBackend) {
-  const loaded = await backend.loadThreads();
-  if (!loaded.ok) throw new Error(`Unexpected failure: ${loaded.error.kind}`);
-  return loaded.value;
 }
 
 describe("createGitHubBackend", () => {
@@ -437,35 +388,9 @@ describe("createGitHubBackend", () => {
   describe("threads", () => {
     const resolveUrl = "https://github.com/acme/docs/pull/7/page_data/resolve_thread";
     const unresolveUrl = "https://github.com/acme/docs/pull/7/page_data/unresolve_thread";
-    const withThread = (extra: Record<string, unknown> = {}) =>
-      routeJson(
-        {
-          "5": {
-            id: 5,
-            subjectType: "LINE",
-            isResolved: false,
-            viewerCanReply: true,
-            commentsData: {
-              comments: [
-                { databaseId: 4115, body: "First", author: { login: "bob" } },
-                { databaseId: 4116, body: "Second" },
-              ],
-            },
-            ...extra,
-          },
-        },
-        { R3: { threads: [{ id: 5 }] } },
-      );
-
-    async function loadThread(backend: ReviewBackend) {
-      const [thread] = (await loadSnapshot(backend)).threads;
-      if (!thread) throw new Error("no thread");
-      return thread;
-    }
-
     it("replies in a thread, pointing GitHub at the thread's last comment as GitHub's own reply box does", async () => {
       const { fetchFn, requests } = fakeGitHub({
-        [changesUrl]: json(withThread()),
+        [changesUrl]: json(routeWithThread()),
         [postUrl]: json({ thread: {} }),
       });
       const backend = createGitHubBackend(pr, fetchFn);
@@ -483,7 +408,7 @@ describe("createGitHubBackend", () => {
     });
 
     it("refuses a single reply while a review is pending, instead of publishing that review", async () => {
-      const route = withThread();
+      const route = routeWithThread();
       (route.payload.pullRequestsChangesRoute as Record<string, unknown>).viewerPendingReview = {
         id: 9,
         comments: [],
@@ -503,7 +428,7 @@ describe("createGitHubBackend", () => {
     it("resolves a thread and opens it again through GitHub's endpoints", async () => {
       const done = json({ message: "ok" });
       const { fetchFn, requests } = fakeGitHub({
-        [changesUrl]: json(withThread()),
+        [changesUrl]: json(routeWithThread()),
         [resolveUrl]: done,
         [unresolveUrl]: done,
       });
@@ -523,7 +448,7 @@ describe("createGitHubBackend", () => {
     });
 
     it("reports a thread GitHub refuses to resolve with the HTTP status", async () => {
-      const { fetchFn } = fakeGitHub({ [changesUrl]: json(withThread()) });
+      const { fetchFn } = fakeGitHub({ [changesUrl]: json(routeWithThread()) });
       const backend = createGitHubBackend(pr, fetchFn);
 
       expect(await backend.setThreadResolved(await loadThread(backend), true)).toEqual(
@@ -534,7 +459,7 @@ describe("createGitHubBackend", () => {
     it("tells GitHub's own UI about a reply, with the thread GitHub returned", async () => {
       const returned = { id: "5", isResolved: false };
       const { fetchFn } = fakeGitHub({
-        [changesUrl]: json(withThread()),
+        [changesUrl]: json(routeWithThread()),
         [postUrl]: json({ thread: returned }),
       });
       const onHostChanged = vi.fn();
@@ -552,7 +477,7 @@ describe("createGitHubBackend", () => {
 
     it("tells GitHub's own UI about a resolution once GitHub accepted it", async () => {
       const { fetchFn } = fakeGitHub({
-        [changesUrl]: json(withThread()),
+        [changesUrl]: json(routeWithThread()),
         [resolveUrl]: json({ message: "ok" }),
       });
       const onHostChanged = vi.fn();
@@ -570,10 +495,10 @@ describe("createGitHubBackend", () => {
 
     it("tells whether the viewer may reply, assuming so when GitHub does not say", async () => {
       const { fetchFn: denied } = fakeGitHub({
-        [changesUrl]: json(withThread({ viewerCanReply: false })),
+        [changesUrl]: json(routeWithThread({ viewerCanReply: false })),
       });
       const { fetchFn: unsaid } = fakeGitHub({
-        [changesUrl]: json(withThread({ viewerCanReply: undefined })),
+        [changesUrl]: json(routeWithThread({ viewerCanReply: undefined })),
       });
 
       expect((await loadThread(createGitHubBackend(pr, denied))).canReply).toBe(false);

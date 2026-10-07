@@ -86,7 +86,8 @@ export function placeThreads(
 ): ThreadPlacement {
   const anchors = threads.map((thread) => ({
     thread,
-    rowIndex: findAnchorRow(rows, thread.side, thread.lines.start),
+    // Below the last line of the range, where GitHub shows it and where the form was opened.
+    rowIndex: findAnchorRow(rows, thread.side, thread.lines.end),
   }));
   const byRow = rows.map((_, index) => {
     const here = anchors
