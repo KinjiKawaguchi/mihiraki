@@ -31,6 +31,10 @@ function threadOn(path: string, text: string): ReviewThread {
         bodyMarkdown: "",
         reactions: [],
         newIssueUrl: null,
+        version: null,
+        canEdit: false,
+        canDelete: false,
+        canReact: false,
       },
     ],
   };

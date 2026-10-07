@@ -1,21 +1,30 @@
 import type { Reaction, ReactionKind, ReviewComment } from "@mihiraki/core";
 import { asArray, asRecord, asString, pick } from "./json";
 
-const REACTION_KINDS: Readonly<Record<string, ReactionKind>> = {
-  THUMBS_UP: "thumbsUp",
-  THUMBS_DOWN: "thumbsDown",
-  LAUGH: "laugh",
-  HOORAY: "hooray",
-  CONFUSED: "confused",
-  HEART: "heart",
-  ROCKET: "rocket",
-  EYES: "eyes",
+/** GitHub's name for each reaction (its `ReactionContent`). */
+const REACTION_CONTENTS: Readonly<Record<ReactionKind, string>> = {
+  thumbsUp: "THUMBS_UP",
+  thumbsDown: "THUMBS_DOWN",
+  laugh: "LAUGH",
+  hooray: "HOORAY",
+  confused: "CONFUSED",
+  heart: "HEART",
+  rocket: "ROCKET",
+  eyes: "EYES",
 };
+
+const REACTION_KINDS: ReadonlyMap<string, ReactionKind> = new Map(
+  Object.entries(REACTION_CONTENTS).map(([kind, content]) => [content, kind as ReactionKind]),
+);
+
+export function reactionContentOf(kind: ReactionKind): string {
+  return REACTION_CONTENTS[kind];
+}
 
 /** Reactions somebody gave; GitHub lists every kind, with a count of zero for the rest. */
 function toReactions(groups: unknown): Reaction[] {
   return asArray(groups).flatMap((group) => {
-    const kind = REACTION_KINDS[asString(pick(group, "reaction", "content")) ?? ""];
+    const kind = REACTION_KINDS.get(asString(pick(group, "reaction", "content")) ?? "");
     const count = Number(pick(group, "totalCount"));
     if (!kind || !Number.isSafeInteger(count) || count <= 0) return [];
     return [{ kind, count, isByViewer: pick(group, "reaction", "viewerHasReacted") === true }];
@@ -62,5 +71,10 @@ export function toComment(raw: unknown, changeAuthor: string | null): ReviewComm
     url,
     reactions: toReactions(comment.reactionGroups),
     newIssueUrl: newIssueUrlOf(url, author, bodyMarkdown),
+    version: asString(comment.bodyVersion),
+    // Only what GitHub grants; its endpoints would refuse the rest anyway.
+    canEdit: comment.viewerCanUpdate === true,
+    canDelete: comment.viewerCanDelete === true,
+    canReact: comment.viewerCanReact === true,
   };
 }

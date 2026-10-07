@@ -160,6 +160,10 @@ describe("startInlineReview", () => {
           bodyMarkdown: "",
           reactions: [],
           newIssueUrl: null,
+          version: null,
+          canEdit: false,
+          canDelete: false,
+          canReact: false,
         },
       ],
     };
