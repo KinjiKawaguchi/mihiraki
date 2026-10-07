@@ -1,5 +1,4 @@
 import type { HostError, Result } from "@mihiraki/core";
-import { resolveLocale } from "@mihiraki/ui";
 import { createGitHubBackend } from "../../src/github/github-backend";
 import type { PullRequestLocation } from "../../src/github/pr-location";
 import { createViewscreenRenderer, hostColorMode } from "../../src/github/viewscreen";
@@ -7,6 +6,8 @@ import { createHostSyncClient } from "../../src/host-sync/client";
 import { inheritHostThemeColors } from "../../src/inline/host-theme";
 import { startInlineReview } from "../../src/inline/inline-review";
 import { followPullRequestPages } from "../../src/session/pull-request-pages";
+import { readLocale, watchLocale } from "../../src/settings/language-setting";
+import { languageSlot } from "../../src/settings/language-storage";
 import cssText from "./style.css?inline";
 
 async function startReview(pr: PullRequestLocation): Promise<Result<() => void, HostError>> {
@@ -19,7 +20,8 @@ async function startReview(pr: PullRequestLocation): Promise<Result<() => void, 
     backend,
     cssText: inheritHostThemeColors(cssText),
     hostSync,
-    locale: resolveLocale(navigator.languages),
+    locale: await readLocale(languageSlot, navigator.languages),
+    watchLocale: (listener) => watchLocale(languageSlot, navigator.languages, listener),
     renderDiagram: createViewscreenRenderer(window, () => hostColorMode(window)),
     // GitHub's own store reports later changes; the page data covers the start.
     initialLayout: (await backend.diffLayout()) ?? "split",

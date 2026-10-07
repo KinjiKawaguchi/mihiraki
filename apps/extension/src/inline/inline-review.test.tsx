@@ -151,6 +151,31 @@ describe("startInlineReview", () => {
     await waitFor(() => expect(viewText(late)).toContain("Bravo changed."));
   });
 
+  it("switches the language of the views when the setting changes", async () => {
+    const container = await appendFileBlock(document, "docs/a.md");
+    let changeLocale = (_locale: "ja" | "en") => {};
+    const started = await startInlineReview({
+      document,
+      backend,
+      cssText: "",
+      locale: "ja",
+      watchLocale: (listener) => {
+        changeLocale = listener;
+        return () => undefined;
+      },
+      initialLayout: "split",
+    });
+    if (!started.ok) throw new Error(`Unexpected failure: ${started.error.kind}`);
+    stop = started.value;
+    showRichDiff(container, true);
+    await waitFor(() => expect(viewText(container)).toContain("変更後"));
+
+    changeLocale("en");
+
+    await waitFor(() => expect(viewText(container)).toContain("After"));
+    expect(viewText(container)).toContain("Alpha version two.");
+  });
+
   it("loads an external image through GitHub's proxy once GitHub's own rendering has it", async () => {
     const withImage = createMemoryBackend({
       "docs/a.md": { base: "Text.\n", head: "Text.\n\n![pixel](https://tracker.example/p.png)\n" },

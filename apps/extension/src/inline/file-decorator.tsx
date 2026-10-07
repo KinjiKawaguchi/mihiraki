@@ -21,7 +21,8 @@ export interface FileDecoratorContext {
   readonly backend: ReviewBackend;
   readonly store: ThreadStore;
   readonly cssText: string;
-  readonly locale: Locale;
+  /** Language of the views, which follow its changes. */
+  readonly locale: () => Locale;
   /** Shown in the views while a review is pending; none while GitHub's UI is kept in sync. */
   readonly pendingReviewNotice: () => string | undefined;
   /** GitHub's split / unified setting, which the views follow. */
@@ -36,6 +37,7 @@ interface RenderedView extends ShadowHost {
   /** What it was rendered with, so it is rendered again only when that changes. */
   readonly notice: string | undefined;
   readonly layout: DiffLayout;
+  readonly locale: Locale;
   /** GitHub's proxied images in the file block when rendered; images switch to them as they arrive. */
   readonly imageKey: string;
 }
@@ -56,6 +58,7 @@ function renderView(
 ) {
   const notice = context.pendingReviewNotice();
   const layout = context.layout();
+  const locale = context.locale();
   const imageKey = imageKeyOf(container);
   render(
     <InlineFileReview
@@ -63,14 +66,14 @@ function renderView(
       file={file}
       store={context.store}
       pendingReviewNotice={notice}
-      locale={context.locale}
+      locale={locale}
       layout={layout}
       renderDiagram={context.renderDiagram}
       imageSource={githubImageSource(container)}
     />,
     host.mount,
   );
-  return { ...host, notice, layout, imageKey };
+  return { ...host, notice, layout, locale, imageKey };
 }
 
 function isUpToDate(
@@ -81,6 +84,7 @@ function isUpToDate(
   return (
     view.notice === context.pendingReviewNotice() &&
     view.layout === context.layout() &&
+    view.locale === context.locale() &&
     view.imageKey === imageKeyOf(container)
   );
 }
