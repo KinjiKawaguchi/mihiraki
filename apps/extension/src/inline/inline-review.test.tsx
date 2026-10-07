@@ -173,6 +173,7 @@ describe("startInlineReview", () => {
       lines: { start: 1, end: 1 },
       isResolved: false,
       isOutdated: false,
+      canReply: true,
       comments: [
         {
           id: "p1-1",
@@ -186,6 +187,10 @@ describe("startInlineReview", () => {
           bodyMarkdown: "",
           reactions: [],
           newIssueUrl: null,
+          version: null,
+          canEdit: false,
+          canDelete: false,
+          canReact: false,
         },
       ],
     };
@@ -196,7 +201,7 @@ describe("startInlineReview", () => {
       let notifyLayout: ((layout: DiffLayout) => void) | null = null;
       const client: HostSyncClient = {
         isHostAvailable: async () => isAvailable,
-        announceThreadCreated: async () => isAvailable,
+        announceChange: async () => isAvailable,
         onHostThreadsChanged: (listener) => {
           notify = listener;
           return () => {

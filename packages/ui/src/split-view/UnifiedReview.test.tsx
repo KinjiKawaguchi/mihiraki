@@ -41,6 +41,7 @@ function thread(side: "base" | "head", line: number, text: string): ReviewThread
     lines: { start: line, end: line },
     isResolved: false,
     isOutdated: false,
+    canReply: true,
     comments: [
       {
         id: `${side}${line}c`,
@@ -54,6 +55,10 @@ function thread(side: "base" | "head", line: number, text: string): ReviewThread
         bodyMarkdown: "",
         reactions: [],
         newIssueUrl: null,
+        version: null,
+        canEdit: false,
+        canDelete: false,
+        canReact: false,
       },
     ],
   };

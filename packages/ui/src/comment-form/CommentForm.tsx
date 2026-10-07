@@ -1,13 +1,20 @@
-import { availableCommentModes, type CommentMode, type CommentTarget } from "@mihiraki/core";
-import { useState } from "preact/hooks";
-import { formatLineRange } from "../format";
+import { availableCommentModes, type CommentMode } from "@mihiraki/core";
+import { useEffect, useState } from "preact/hooks";
 import { useMessages } from "../i18n/i18n";
 import type { Messages } from "../i18n/messages";
 import { CommentPreview } from "./CommentPreview";
+import { EditorTabs } from "./EditorTabs";
 import { type SubmitDraft, useCommentDraft } from "./use-comment-draft";
 
+/** Text to add to the draft, such as a quote; a new object for each addition. */
+export interface TextInsertion {
+  readonly text: string;
+}
+
 interface CommentFormProps {
-  readonly target: CommentTarget;
+  /** What the comment is about, e.g. "Comment on R3"; a reply needs none. */
+  readonly heading?: string;
+  readonly insertion?: TextInsertion | null;
   readonly hasPendingReview: boolean;
   /** On success the parent closes the form; a failure is shown in it. */
   readonly onSubmit: SubmitDraft;
@@ -17,26 +24,6 @@ interface CommentFormProps {
 function modeLabel(t: Messages, mode: CommentMode, hasPendingReview: boolean): string {
   if (mode === "single") return t.singleComment;
   return hasPendingReview ? t.addToReview : t.startReview;
-}
-
-function EditorTabs({
-  isPreview,
-  onChange,
-}: {
-  readonly isPreview: boolean;
-  readonly onChange: (isPreview: boolean) => void;
-}) {
-  const t = useMessages();
-  return (
-    <div class="mhr-form__tabs" role="tablist">
-      <button type="button" role="tab" aria-selected={!isPreview} onClick={() => onChange(false)}>
-        {t.write}
-      </button>
-      <button type="button" role="tab" aria-selected={isPreview} onClick={() => onChange(true)}>
-        {t.preview}
-      </button>
-    </div>
-  );
 }
 
 interface SubmitButtonsProps {
@@ -64,11 +51,23 @@ function SubmitButtons({ hasPendingReview, canSubmit, onSubmit }: SubmitButtonsP
   );
 }
 
-export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: CommentFormProps) {
+export function CommentForm({
+  heading,
+  insertion,
+  hasPendingReview,
+  onSubmit,
+  onCancel,
+}: CommentFormProps) {
   const t = useMessages();
   const draft = useCommentDraft(onSubmit);
   const [isPreview, setIsPreview] = useState(false);
-  const shortcutMode: CommentMode = hasPendingReview ? "review" : "single";
+  useEffect(() => {
+    if (!insertion) return;
+    draft.setBody((body) => (body ? `${body}\n\n${insertion.text}` : insertion.text));
+    setIsPreview(false);
+  }, [insertion]);
+  // As in GitHub's own form, the shortcut keeps the comment for the review; publishing is a click.
+  const shortcutMode: CommentMode = "review";
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key === "Escape" && !draft.isSubmitting) onCancel();
@@ -77,7 +76,7 @@ export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: Co
 
   return (
     <form class="mhr-form" onSubmit={(event) => event.preventDefault()}>
-      <div class="mhr-form__target">{t.commentOn(formatLineRange(target.side, target.lines))}</div>
+      {heading && <div class="mhr-form__target">{heading}</div>}
       <EditorTabs isPreview={isPreview} onChange={setIsPreview} />
       {isPreview ? (
         <CommentPreview body={draft.body} />
@@ -85,7 +84,7 @@ export function CommentForm({ target, hasPendingReview, onSubmit, onCancel }: Co
         <textarea
           class="mhr-form__body"
           value={draft.body}
-          placeholder={t.bodyPlaceholder}
+          placeholder={t.bodyPlaceholder(modeLabel(t, shortcutMode, hasPendingReview))}
           onInput={(event) => draft.setBody((event.target as HTMLTextAreaElement).value)}
           onKeyDown={handleKeyDown}
           // biome-ignore lint/a11y/noAutofocus: the form opens because the reviewer asked to write, as on GitHub

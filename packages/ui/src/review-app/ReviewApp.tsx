@@ -7,6 +7,7 @@ import type { LoadFailure } from "../host-errors/load-failure";
 import { I18nProvider, useMessages } from "../i18n/i18n";
 import type { Locale } from "../i18n/locale";
 import type { DiffLayout } from "../split-view/layout";
+import { createThreadActions, ThreadActionsContext } from "../threads/thread-actions";
 import { createThreadStore, useThreadStore } from "../threads/thread-store";
 import { FileList } from "./FileList";
 import { type AsyncState, useAsync } from "./use-async";
@@ -95,6 +96,11 @@ function ReviewAppBody({ backend, onClose, layout }: Omit<ReviewAppProps, "local
   const files = useAsync(() => backend.listChangedMarkdownFiles(), [backend]);
   const store = useMemo(() => createThreadStore(backend), [backend]);
   const threads = useThreadStore(store);
+  const hasPendingReview = threads.snapshot?.hasPendingReview === true;
+  const threadActions = useMemo(
+    () => createThreadActions(backend, store, hasPendingReview),
+    [backend, store, hasPendingReview],
+  );
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
 
   useEffect(() => {
@@ -115,15 +121,17 @@ function ReviewAppBody({ backend, onClose, layout }: Omit<ReviewAppProps, "local
     <div class="mhr-root mhr-app">
       <AppHeader path={selected?.path ?? null} threadsFailure={threads.error} onClose={onClose} />
       <div class="mhr-app__body">
-        <AppBody
-          backend={backend}
-          files={files}
-          selected={selected}
-          onSelect={setSelectedPath}
-          threads={threads.snapshot}
-          onSubmitComment={submitComment}
-          layout={layout}
-        />
+        <ThreadActionsContext.Provider value={threadActions}>
+          <AppBody
+            backend={backend}
+            files={files}
+            selected={selected}
+            onSelect={setSelectedPath}
+            threads={threads.snapshot}
+            onSubmitComment={submitComment}
+            layout={layout}
+          />
+        </ThreadActionsContext.Provider>
       </div>
     </div>
   );
