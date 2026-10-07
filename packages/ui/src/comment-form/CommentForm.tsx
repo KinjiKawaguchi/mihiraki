@@ -1,13 +1,20 @@
 import { availableCommentModes, type CommentMode } from "@mihiraki/core";
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { useMessages } from "../i18n/i18n";
 import type { Messages } from "../i18n/messages";
 import { CommentPreview } from "./CommentPreview";
+import { EditorTabs } from "./EditorTabs";
 import { type SubmitDraft, useCommentDraft } from "./use-comment-draft";
+
+/** Text to add to the draft, such as a quote; a new object for each addition. */
+export interface TextInsertion {
+  readonly text: string;
+}
 
 interface CommentFormProps {
   /** What the comment is about, e.g. "Comment on R3"; a reply needs none. */
   readonly heading?: string;
+  readonly insertion?: TextInsertion | null;
   readonly hasPendingReview: boolean;
   /** On success the parent closes the form; a failure is shown in it. */
   readonly onSubmit: SubmitDraft;
@@ -17,26 +24,6 @@ interface CommentFormProps {
 function modeLabel(t: Messages, mode: CommentMode, hasPendingReview: boolean): string {
   if (mode === "single") return t.singleComment;
   return hasPendingReview ? t.addToReview : t.startReview;
-}
-
-function EditorTabs({
-  isPreview,
-  onChange,
-}: {
-  readonly isPreview: boolean;
-  readonly onChange: (isPreview: boolean) => void;
-}) {
-  const t = useMessages();
-  return (
-    <div class="mhr-form__tabs" role="tablist">
-      <button type="button" role="tab" aria-selected={!isPreview} onClick={() => onChange(false)}>
-        {t.write}
-      </button>
-      <button type="button" role="tab" aria-selected={isPreview} onClick={() => onChange(true)}>
-        {t.preview}
-      </button>
-    </div>
-  );
 }
 
 interface SubmitButtonsProps {
@@ -64,10 +51,21 @@ function SubmitButtons({ hasPendingReview, canSubmit, onSubmit }: SubmitButtonsP
   );
 }
 
-export function CommentForm({ heading, hasPendingReview, onSubmit, onCancel }: CommentFormProps) {
+export function CommentForm({
+  heading,
+  insertion,
+  hasPendingReview,
+  onSubmit,
+  onCancel,
+}: CommentFormProps) {
   const t = useMessages();
   const draft = useCommentDraft(onSubmit);
   const [isPreview, setIsPreview] = useState(false);
+  useEffect(() => {
+    if (!insertion) return;
+    draft.setBody((body) => (body ? `${body}\n\n${insertion.text}` : insertion.text));
+    setIsPreview(false);
+  }, [insertion]);
   // As in GitHub's own form, the shortcut keeps the comment for the review; publishing is a click.
   const shortcutMode: CommentMode = "review";
 

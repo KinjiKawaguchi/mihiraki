@@ -1,9 +1,12 @@
 import type {
   CommentMode,
+  EditCommentError,
   HostError,
   PostCommentError,
+  ReactionKind,
   Result,
   ReviewBackend,
+  ReviewComment,
   ReviewThread,
 } from "@mihiraki/core";
 import { createContext } from "preact";
@@ -22,6 +25,21 @@ export interface ThreadActions {
     thread: ReviewThread,
     isResolved: boolean,
   ) => Promise<Result<void, HostError>>;
+  readonly editComment: (
+    thread: ReviewThread,
+    comment: ReviewComment,
+    body: string,
+  ) => Promise<Result<void, EditCommentError>>;
+  readonly deleteComment: (
+    thread: ReviewThread,
+    comment: ReviewComment,
+  ) => Promise<Result<void, HostError>>;
+  readonly setReaction: (
+    thread: ReviewThread,
+    comment: ReviewComment,
+    kind: ReactionKind,
+    isOn: boolean,
+  ) => Promise<Result<void, HostError>>;
 }
 
 /** Absent where threads are only shown, e.g. in a view without a backend to write to. */
@@ -33,7 +51,7 @@ export function useThreadActions(): ThreadActions | null {
 
 /**
  * Thread actions against `backend` that reload the shared threads afterwards, also after
- * a failure: the thread may be what changed (resolved or deleted elsewhere).
+ * a failure: the thread may be what changed (resolved, edited or deleted elsewhere).
  */
 export function createThreadActions(
   backend: ReviewBackend,
@@ -49,5 +67,9 @@ export function createThreadActions(
     hasPendingReview,
     reply: (thread, body, mode) => thenRefresh(backend.replyToThread(thread, body, mode)),
     setResolved: (thread, isResolved) => thenRefresh(backend.setThreadResolved(thread, isResolved)),
+    editComment: (thread, comment, body) => thenRefresh(backend.editComment(thread, comment, body)),
+    deleteComment: (thread, comment) => thenRefresh(backend.deleteComment(thread, comment)),
+    setReaction: (thread, comment, kind, isOn) =>
+      thenRefresh(backend.setReaction(thread, comment, kind, isOn)),
   };
 }
