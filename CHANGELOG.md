@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0](https://github.com/KinjiKawaguchi/mihiraki/compare/v0.2.1...v0.3.0) (2026-10-01)
+
+
+### Features
+
+* **extension:** rename to Mihiraki – Markdown Diff & Review for GitHub ([#43](https://github.com/KinjiKawaguchi/mihiraki/issues/43)) ([4cc3042](https://github.com/KinjiKawaguchi/mihiraki/commit/4cc3042ab7b7ed2d841b530fc19c53a0594137ea))
+
+
+### Bug Fixes
+
+* **extension:** work on every extension GitHub renders as Markdown ([#37](https://github.com/KinjiKawaguchi/mihiraki/issues/37)) ([2537b59](https://github.com/KinjiKawaguchi/mihiraki/commit/2537b5983943b92164512b859e996e456d44fc41))
+* **ui:** make ⌘/Ctrl+Enter start a review instead of publishing ([#45](https://github.com/KinjiKawaguchi/mihiraki/issues/45)) ([65fa1aa](https://github.com/KinjiKawaguchi/mihiraki/commit/65fa1aa41fedaf67bb031d944fd9a5744240ac70))
+
 ## [0.2.1](https://github.com/KinjiKawaguchi/mihiraki/compare/v0.2.0...v0.2.1) (2026-09-28)
 
 

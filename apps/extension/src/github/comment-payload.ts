@@ -1,4 +1,4 @@
-import type { CommentMode, CommentTarget, Side } from "@mihiraki/core";
+import type { CommentMode, CommentTarget, ReviewThread, Side } from "@mihiraki/core";
 
 const PAYLOAD_SIDE: Readonly<Record<Side, "left" | "right">> = { base: "left", head: "right" };
 
@@ -52,5 +52,23 @@ export function buildCreateCommentPayload(target: CommentTarget, body: string, m
       endLine: end,
       endCommitOid: sideOid,
     },
+  };
+}
+
+/**
+ * Body for the same endpoint when replying in a thread. GitHub's own reply box names the
+ * thread by the database id of its last comment.
+ */
+export function buildReplyPayload(
+  thread: ReviewThread,
+  lastCommentId: number,
+  body: string,
+  mode: CommentMode,
+) {
+  return {
+    text: body,
+    submitBatch: mode === "single",
+    inReplyTo: lastCommentId,
+    path: thread.path,
   };
 }

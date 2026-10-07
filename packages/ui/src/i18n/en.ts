@@ -12,7 +12,7 @@ export const en: Messages = {
   write: "Write",
   preview: "Preview",
   nothingToPreview: "Nothing to preview",
-  bodyPlaceholder: "Leave a comment (Markdown supported, ⌘/Ctrl+Enter to send)",
+  bodyPlaceholder: (action) => `Leave a comment (Markdown supported, ⌘/Ctrl+Enter: ${action})`,
   cancel: "Cancel",
   loading: "Loading…",
   staleRevision:
@@ -48,4 +48,9 @@ export const en: Messages = {
   referenceInNewIssue: "Reference in a new issue",
   commentCount: (count) => (count === 1 ? "1 comment" : `${count} comments`),
   unplacedThreads: "Comments that cannot be shown beside the text",
+  reply: "Reply",
+  resolveConversation: "Resolve conversation",
+  unresolveConversation: "Unresolve conversation",
+  couldNotResolve: "Could not resolve the conversation",
+  couldNotUnresolve: "Could not unresolve the conversation",
 };

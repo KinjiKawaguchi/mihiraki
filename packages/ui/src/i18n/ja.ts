@@ -12,7 +12,7 @@ export const ja: Messages = {
   write: "書く",
   preview: "プレビュー",
   nothingToPreview: "プレビューする内容がありません",
-  bodyPlaceholder: "コメントを書く（Markdown可、⌘/Ctrl+Enterで送信）",
+  bodyPlaceholder: (action) => `コメントを書く（Markdown可、⌘/Ctrl+Enterで「${action}」）`,
   cancel: "キャンセル",
   loading: "読み込み中…",
   staleRevision:
@@ -48,4 +48,9 @@ export const ja: Messages = {
   referenceInNewIssue: "新しいIssueで参照",
   commentCount: (count) => `${count}件`,
   unplacedThreads: "本文の横に表示できないコメント",
+  reply: "返信",
+  resolveConversation: "解決済みにする",
+  unresolveConversation: "未解決に戻す",
+  couldNotResolve: "スレッドを解決済みにできませんでした",
+  couldNotUnresolve: "スレッドを未解決に戻せませんでした",
 };

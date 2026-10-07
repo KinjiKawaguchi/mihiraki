@@ -58,6 +58,8 @@ export interface ReviewThread {
   readonly lines: LineRange;
   readonly isResolved: boolean;
   readonly isOutdated: boolean;
+  /** Whether the viewer may reply in this thread. */
+  readonly canReply: boolean;
   readonly comments: readonly ReviewComment[];
 }
 

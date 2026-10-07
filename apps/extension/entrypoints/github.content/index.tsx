@@ -12,7 +12,7 @@ import cssText from "./style.css?inline";
 async function startReview(pr: PullRequestLocation): Promise<Result<() => void, HostError>> {
   const hostSync = createHostSyncClient(document);
   const backend = createGitHubBackend(pr, undefined, {
-    onThreadCreated: (created) => hostSync.announceThreadCreated(created),
+    onHostChanged: (change) => hostSync.announceChange(change),
   });
   return startInlineReview({
     document,
