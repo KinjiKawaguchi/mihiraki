@@ -29,11 +29,13 @@ jobs:
   # Uploads the package attached to the release to the store, so a failed submission (e.g.
   # while an earlier version is still in review) can be re-run later. Keyless: GitHub's
   # OIDC token is exchanged for a short-lived Google token through Workload Identity
-  # Federation, which only accepts v* tags of this repository (see
-  # apps/extension/store/README.md).
+  # Federation, which only accepts v* tags of this repository deployed to the
+  # chrome-web-store environment. That environment waits for the owner's approval, so no
+  # tag alone can submit a version (see apps/extension/store/README.md).
   submit-chrome-web-store:
     needs: publish-release
     if: vars.CWS_EXTENSION_ID != ''
+    environment: chrome-web-store
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
