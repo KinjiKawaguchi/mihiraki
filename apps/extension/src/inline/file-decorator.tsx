@@ -13,6 +13,7 @@ import {
   setRenderedViewActive,
   viewSlotOf,
 } from "./github-file-dom";
+import { githubImageSource, imageKeyOf } from "./github-images";
 import { createShadowHost, type ShadowHost } from "./shadow-host";
 
 export interface FileDecoratorContext {
@@ -35,6 +36,8 @@ interface RenderedView extends ShadowHost {
   /** What it was rendered with, so it is rendered again only when that changes. */
   readonly notice: string | undefined;
   readonly layout: DiffLayout;
+  /** GitHub's proxied images in the file block when rendered; images switch to them as they arrive. */
+  readonly imageKey: string;
 }
 
 type ViewsByPath = Map<string, RenderedView>;
@@ -45,9 +48,15 @@ function unmount(view: ShadowHost | undefined): void {
   view.host.remove();
 }
 
-function renderView(context: FileDecoratorContext, host: ShadowHost, file: ChangedFile) {
+function renderView(
+  context: FileDecoratorContext,
+  host: ShadowHost,
+  file: ChangedFile,
+  container: HTMLElement,
+) {
   const notice = context.pendingReviewNotice();
   const layout = context.layout();
+  const imageKey = imageKeyOf(container);
   render(
     <InlineFileReview
       backend={context.backend}
@@ -57,14 +66,23 @@ function renderView(context: FileDecoratorContext, host: ShadowHost, file: Chang
       locale={context.locale}
       layout={layout}
       renderDiagram={context.renderDiagram}
+      imageSource={githubImageSource(container)}
     />,
     host.mount,
   );
-  return { ...host, notice, layout };
+  return { ...host, notice, layout, imageKey };
 }
 
-function isUpToDate(context: FileDecoratorContext, view: RenderedView): boolean {
-  return view.notice === context.pendingReviewNotice() && view.layout === context.layout();
+function isUpToDate(
+  context: FileDecoratorContext,
+  view: RenderedView,
+  container: HTMLElement,
+): boolean {
+  return (
+    view.notice === context.pendingReviewNotice() &&
+    view.layout === context.layout() &&
+    view.imageKey === imageKeyOf(container)
+  );
 }
 
 /**
@@ -87,13 +105,14 @@ function syncView(
   }
   if (view && container.contains(view.host)) {
     // Rendering again keeps the view's state; only needed when its inputs changed.
-    if (!isUpToDate(context, view)) views.set(file.path, renderView(context, view, file));
+    if (!isUpToDate(context, view, container))
+      views.set(file.path, renderView(context, view, file, container));
     return;
   }
   unmount(view);
   const created = createShadowHost(context.document, REVIEW_VIEW_TAG, context.cssText);
   viewSlotOf(container).append(created.host);
-  views.set(file.path, renderView(context, created, file));
+  views.set(file.path, renderView(context, created, file, container));
   context.onViewShown();
 }
 

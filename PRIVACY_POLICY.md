@@ -14,7 +14,7 @@ Mihiraki – Markdown Diff & Review for GitHub (the "extension") does not collec
 
 ## Images in the Markdown being reviewed
 
-Images referenced by a Markdown file (for example `![](https://example.com/a.png)`) are loaded from the address written in the file when the extension shows it, as when the file is opened anywhere else. The site hosting such an image can see your IP address, as with any image on the web.
+Images that a Markdown file takes from another site (for example `![](https://example.com/a.png)`) are not loaded from that site. As on GitHub's own page, the extension shows them through GitHub's image proxy, using the proxied address GitHub gave the same image. If GitHub has given none, the image is held back behind a button that names the site, and it loads from that site only if you press it; that site can then see your IP address, as with any image on the web. Images served by GitHub itself load as on GitHub.
 
 ## Changes and contact
 
@@ -38,7 +38,7 @@ Mihiraki – GitHub の Markdown 差分レビュー（以下「本拡張機能�
 
 ## レビュー中のMarkdownに含まれる画像
 
-Markdownファイルが参照している画像（例: `![](https://example.com/a.png)`）は、本拡張機能で表示するとき、ファイルに書かれたアドレスから読み込まれます。ほかの場所でそのファイルを開いた場合と同じです。画像を置いているサイトには、ウェブ上のほかの画像と同様に、あなたのIPアドレスが伝わります。
+Markdownファイルがほかのサイトから参照している画像（例: `![](https://example.com/a.png)`）を、そのサイトから直接は読み込みません。GitHub自身のページと同じく、GitHubが同じ画像に付けた画像プロキシ経由のアドレスで表示します。GitHubがアドレスを付けていない画像は、サイト名を書いたボタンに置き換えます。押したときに限り、そのサイトから読み込みます（そのサイトには、ウェブ上のほかの画像と同様に、あなたのIPアドレスが伝わります）。GitHub自身が配信する画像は、GitHub上と同じように読み込みます。
 
 ## 変更と問い合わせ
 

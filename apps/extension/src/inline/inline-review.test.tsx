@@ -124,6 +124,30 @@ describe("startInlineReview", () => {
     await waitFor(() => expect(viewText(late)).toContain("Bravo changed."));
   });
 
+  it("loads an external image through GitHub's proxy once GitHub's own rendering has it", async () => {
+    const withImage = createMemoryBackend({
+      "docs/a.md": { base: "Text.\n", head: "Text.\n\n![pixel](https://tracker.example/p.png)\n" },
+    });
+    const container = await appendFileBlock(document, "docs/a.md");
+    await start(withImage);
+    showRichDiff(container, true);
+    await waitFor(() =>
+      expect(viewText(container)).toContain("外部の画像を表示（tracker.example）"),
+    );
+    expect(viewRoot(container)?.querySelector("img")).toBeNull();
+
+    container.children[1]?.insertAdjacentHTML(
+      "beforeend",
+      '<div><article itemprop="text"><img src="https://camo.githubusercontent.com/p" data-canonical-src="https://tracker.example/p.png"></article></div>',
+    );
+
+    await waitFor(() =>
+      expect(viewRoot(container)?.querySelector("img")?.getAttribute("src")).toBe(
+        "https://camo.githubusercontent.com/p",
+      ),
+    );
+  });
+
   it("keeps GitHub's own file comments in view, above the rendered view", async () => {
     const container = await appendFileBlock(document, "docs/a.md");
     const body = container.children[1] as HTMLElement;
