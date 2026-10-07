@@ -64,6 +64,42 @@ describe("createGitHubBackend", () => {
     );
   });
 
+  it("fetches each version of a file once, since the text at a commit never changes", async () => {
+    const { fetchFn, requests } = fakeGitHub({
+      [changesUrl]: json(routeJson()),
+      [styledUrl(BASE, "docs/a.md")]: styledBlob(["old"]),
+      [styledUrl(HEAD, "docs/a.md")]: styledBlob(["new"]),
+    });
+    const backend = createGitHubBackend(pr, fetchFn);
+    const file: ChangedFile = { path: "docs/a.md", changeType: "MODIFIED" };
+
+    await backend.loadFileVersions(file);
+    expect(await backend.loadFileVersions(file)).toEqual(
+      ok({ revision, base: "old", head: "new" }),
+    );
+
+    expect(requests.filter((request) => request.url.includes("/_styled/"))).toHaveLength(2);
+  });
+
+  it("fetches a version again after a failed attempt", async () => {
+    let attempts = 0;
+    const { fetchFn } = fakeGitHub({
+      [changesUrl]: json(routeJson()),
+      [styledUrl(BASE, "docs/a.md")]: styledBlob(["old"]),
+      [styledUrl(HEAD, "docs/a.md")]: () => {
+        attempts += 1;
+        return attempts === 1 ? new Response("busy", { status: 503 }) : styledBlob(["new"])();
+      },
+    });
+    const backend = createGitHubBackend(pr, fetchFn);
+    const file: ChangedFile = { path: "docs/a.md", changeType: "MODIFIED" };
+
+    expect((await backend.loadFileVersions(file)).ok).toBe(false);
+    expect(await backend.loadFileVersions(file)).toEqual(
+      ok({ revision, base: "old", head: "new" }),
+    );
+  });
+
   it("does not fetch a base version for an added file", async () => {
     const { fetchFn, requests } = fakeGitHub({
       [changesUrl]: json(routeJson()),

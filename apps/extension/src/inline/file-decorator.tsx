@@ -99,11 +99,12 @@ function syncView(
   const isShown = isRichDiffShown(container);
   setRenderedViewActive(container, isShown);
   if (!isShown) {
-    unmount(view);
-    views.delete(file.path);
+    // Hidden, not removed: switching back to the rich diff shows it at once, as it was left.
+    if (view) view.host.hidden = true;
     return;
   }
   if (view && container.contains(view.host)) {
+    view.host.hidden = false;
     // Rendering again keeps the view's state; only needed when its inputs changed.
     if (!isUpToDate(context, view, container))
       views.set(file.path, renderView(context, view, file, container));

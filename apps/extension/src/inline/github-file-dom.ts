@@ -71,6 +71,7 @@ const PAGE_STYLE = `
 [${VIEW_ATTR}] > :not(${HEADER_SELECTOR}):not([${BODY_ATTR}]):not(${REVIEW_VIEW_TAG}) { display: none !important; }
 [${VIEW_ATTR}] > [${BODY_ATTR}] > :not(${REVIEW_VIEW_TAG}):not(:has(${FILE_COMMENTS})) { display: none !important; }
 ${REVIEW_VIEW_TAG} { display: block; }
+${REVIEW_VIEW_TAG}[hidden] { display: none !important; }
 `;
 
 export function installPageStyle(document: Document): void {

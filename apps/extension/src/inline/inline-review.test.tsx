@@ -80,8 +80,35 @@ describe("startInlineReview", () => {
 
     showRichDiff(container, false);
 
-    await waitFor(() => expect(container.querySelector(REVIEW_VIEW_TAG)).toBeNull());
-    expect(isRenderedViewActive(container)).toBe(false);
+    await waitFor(() => expect(isRenderedViewActive(container)).toBe(false));
+    const view = container.querySelector(REVIEW_VIEW_TAG);
+    expect(view === null || getComputedStyle(view).display === "none").toBe(true);
+  });
+
+  it("shows the view again at once after a round trip through the source diff", async () => {
+    let loads = 0;
+    const counting: ReviewBackend = {
+      ...backend,
+      loadFileVersions: (file) => {
+        loads += 1;
+        return backend.loadFileVersions(file);
+      },
+    };
+    const container = await appendFileBlock(document, "docs/a.md");
+    await start(counting);
+    showRichDiff(container, true);
+    await waitFor(() => expect(viewText(container)).toContain("Alpha version two."));
+
+    showRichDiff(container, false);
+    await waitFor(() => expect(isRenderedViewActive(container)).toBe(false));
+    showRichDiff(container, true);
+
+    await waitFor(() => expect(isRenderedViewActive(container)).toBe(true));
+    expect(viewText(container)).toContain("Alpha version two.");
+    expect(getComputedStyle(container.querySelector(REVIEW_VIEW_TAG) as Element).display).not.toBe(
+      "none",
+    );
+    expect(loads).toBe(1);
   });
 
   it("leaves files other than changed Markdown files alone", async () => {
