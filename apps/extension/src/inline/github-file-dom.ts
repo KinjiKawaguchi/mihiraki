@@ -8,6 +8,7 @@ export const REVIEW_VIEW_TAG = "mhr-review";
 const HEADER_SELECTOR = "[data-diff-header-wrapper]";
 const VIEW_SWITCHER_SELECTOR = `${HEADER_SELECTOR} [data-component="SegmentedControl"]`;
 const VIEW_ATTR = "data-mhr-view";
+const BODY_ATTR = "data-mhr-body";
 const PAGE_STYLE_ATTR = "data-mhr-page-style";
 
 /** A button's accessible name; GitHub labels these by pointing at their tooltip. */
@@ -29,21 +30,46 @@ export function isRichDiffShown(container: Element): boolean {
   return rich?.getAttribute("aria-pressed") === "true";
 }
 
+/** The file's body under its header: the diff, plus GitHub's file-level comments above it. */
+function bodyOf(container: Element): Element | null {
+  return container.querySelector(`:scope > :not(${HEADER_SELECTOR}):not(${REVIEW_VIEW_TAG})`);
+}
+
+/**
+ * Where the rendered view goes: inside the body, after GitHub's file-level comments, so
+ * "Comment on this file" keeps working. The file block itself when there is no body yet.
+ */
+export function viewSlotOf(container: Element): Element {
+  return bodyOf(container) ?? container;
+}
+
 /**
  * Files showing the rendered view are marked with an attribute rather than by styling
  * GitHub's nodes directly, so React re-renders cannot undo it and removing it leaves no trace.
  */
 export function setRenderedViewActive(container: Element, isActive: boolean): void {
-  if (isActive) container.setAttribute(VIEW_ATTR, "");
-  else container.removeAttribute(VIEW_ATTR);
+  const body = bodyOf(container);
+  if (isActive) {
+    container.setAttribute(VIEW_ATTR, "");
+    body?.setAttribute(BODY_ATTR, "");
+  } else {
+    container.removeAttribute(VIEW_ATTR);
+    body?.removeAttribute(BODY_ATTR);
+  }
 }
 
 export function isRenderedViewActive(container: Element): boolean {
   return container.hasAttribute(VIEW_ATTR);
 }
 
+/**
+ * Only GitHub's diff is hidden. Its file-level comment form (it has a textarea) and file-level
+ * threads (they have a data-marker-id) stay, since the rendered view has no file-level comments.
+ */
+const FILE_COMMENTS = "textarea, [data-marker-id]";
 const PAGE_STYLE = `
-[${VIEW_ATTR}] > :not(${HEADER_SELECTOR}):not(${REVIEW_VIEW_TAG}) { display: none !important; }
+[${VIEW_ATTR}] > :not(${HEADER_SELECTOR}):not([${BODY_ATTR}]):not(${REVIEW_VIEW_TAG}) { display: none !important; }
+[${VIEW_ATTR}] > [${BODY_ATTR}] > :not(${REVIEW_VIEW_TAG}):not(:has(${FILE_COMMENTS})) { display: none !important; }
 ${REVIEW_VIEW_TAG} { display: block; }
 ${REVIEW_VIEW_TAG}[hidden] { display: none !important; }
 `;

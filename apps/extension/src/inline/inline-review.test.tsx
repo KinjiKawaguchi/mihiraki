@@ -151,6 +151,60 @@ describe("startInlineReview", () => {
     await waitFor(() => expect(viewText(late)).toContain("Bravo changed."));
   });
 
+  it("loads an external image through GitHub's proxy once GitHub's own rendering has it", async () => {
+    const withImage = createMemoryBackend({
+      "docs/a.md": { base: "Text.\n", head: "Text.\n\n![pixel](https://tracker.example/p.png)\n" },
+    });
+    const container = await appendFileBlock(document, "docs/a.md");
+    await start(withImage);
+    showRichDiff(container, true);
+    await waitFor(() =>
+      expect(viewText(container)).toContain("外部の画像を表示（tracker.example）"),
+    );
+    expect(viewRoot(container)?.querySelector("img")).toBeNull();
+
+    container.children[1]?.insertAdjacentHTML(
+      "beforeend",
+      '<div><article itemprop="text"><img src="https://camo.githubusercontent.com/p" data-canonical-src="https://tracker.example/p.png"></article></div>',
+    );
+
+    await waitFor(() =>
+      expect(viewRoot(container)?.querySelector("img")?.getAttribute("src")).toBe(
+        "https://camo.githubusercontent.com/p",
+      ),
+    );
+  });
+
+  it("keeps GitHub's own file comments in view, above the rendered view", async () => {
+    const container = await appendFileBlock(document, "docs/a.md");
+    const body = container.children[1] as HTMLElement;
+    body.insertAdjacentHTML(
+      "afterbegin",
+      '<div id="composer"><textarea></textarea></div><div id="threads"><div data-marker-id="7"></div></div>',
+    );
+    body.insertAdjacentHTML(
+      "beforeend",
+      '<div id="prose"><div><article itemprop="text"></article></div></div>',
+    );
+    await start();
+
+    showRichDiff(container, true);
+    await waitFor(() => expect(viewText(container)).toContain("Alpha version two."));
+
+    // An element is hidden when it or any ancestor up to the file block is not displayed.
+    const isShown = (selector: string) => {
+      let element = container.querySelector(selector);
+      for (; element && element !== container; element = element.parentElement)
+        if (getComputedStyle(element).display === "none") return false;
+      return true;
+    };
+    expect(isShown("#composer")).toBe(true);
+    expect(isShown("#threads")).toBe(true);
+    expect(isShown("#prose")).toBe(false);
+    expect(isShown("table")).toBe(false);
+    expect(container.querySelector(REVIEW_VIEW_TAG)?.parentElement).toBe(body);
+  });
+
   it("removes every trace when stopped", async () => {
     const container = await appendFileBlock(document, "docs/a.md");
     await start();

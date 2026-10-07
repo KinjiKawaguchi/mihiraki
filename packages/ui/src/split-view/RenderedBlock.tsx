@@ -4,6 +4,7 @@ import { createPortal } from "preact/compat";
 import { useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { useDiagram } from "../diagrams/diagrams";
 import { useMessages } from "../i18n/i18n";
+import { HELD_IMAGE_ATTR, holdImages, useImagePolicy } from "../safe-html/images";
 import { SafeHtml } from "../safe-html/SafeHtml";
 import { type SanitizedHtml, sanitizeHtml } from "../safe-html/sanitize";
 import { insertSlotBelow, lineElementAt, markSelectedElements, readLines } from "./rendered-dom";
@@ -92,7 +93,12 @@ export function RenderedBlock(props: RenderedBlockProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState<HoveredElement | null>(null);
-  const safeHtml = useMemo(() => sanitizeHtml(html), [html]);
+  const t = useMessages();
+  const imagePolicy = useImagePolicy();
+  const safeHtml = useMemo(() => {
+    const clean = sanitizeHtml(html);
+    return imagePolicy ? holdImages(clean, imagePolicy, t.showExternalImage) : clean;
+  }, [html, imagePolicy, t]);
   const slot = useFormSlot(contentRef, safeHtml, formAfterLines);
   useDiagram(contentRef, safeHtml, isDiagram);
 
@@ -120,12 +126,19 @@ export function RenderedBlock(props: RenderedBlockProps) {
     // Hovering only reveals the "+" button; the rendered content itself is not interactive.
     // biome-ignore lint/a11y/noStaticElementInteractions: pointer tracking for the hover affordance
     // biome-ignore lint/a11y/useKeyWithMouseEvents: see above; keyboard access is a known gap
+    // biome-ignore lint/a11y/useKeyWithClickEvents: clicks come from held-image buttons inside, which keyboards press too
     <div
       class="mhr-block"
       ref={containerRef}
       onMouseOver={handlePointer}
       onMouseMove={handlePointer}
       onMouseLeave={() => setHovered(null)}
+      // A held-back image's button is part of the inserted HTML, so its clicks are caught here.
+      onClick={(event) => {
+        const held = (event.target as Element).closest(`[${HELD_IMAGE_ATTR}]`);
+        const src = held?.getAttribute(HELD_IMAGE_ATTR);
+        if (src) imagePolicy?.allow(src);
+      }}
     >
       <SafeHtml class="markdown-body" html={safeHtml} elementRef={contentRef} />
       {isActive && hovered && (

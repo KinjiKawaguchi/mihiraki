@@ -11,7 +11,8 @@ export type SanitizedHtml = string & { readonly [sanitizedHtmlBrand]: true };
  */
 export function sanitizeHtml(html: string): SanitizedHtml {
   return DOMPurify.sanitize(html, {
-    FORBID_TAGS: ["style", "form"],
+    // Media elements would load their sources from anywhere; images go through holdImages.
+    FORBID_TAGS: ["style", "form", "video", "audio", "source", "track"],
     FORBID_ATTR: ["style"],
   }) as SanitizedHtml;
 }
