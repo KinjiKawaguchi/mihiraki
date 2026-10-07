@@ -6,7 +6,7 @@
  */
 import type { DiffLayout } from "@mihiraki/ui";
 import { parseDiffLayout } from "../github/diff-layout";
-import { asRecord, asString } from "../github/json";
+import { asArray, asRecord, asString, type JsonRecord, pick } from "../github/json";
 import { type CheckedHostChange, diffLineKeyOf, threadSubjectOf } from "./protocol";
 
 export interface ZustandStore {
@@ -192,6 +192,93 @@ function registerResolution(
   }
 }
 
+type CommentChangeKind = "commentEdited" | "commentDeleted" | "reactionsChanged";
+
+/**
+ * Replays what GitHub does after its own edit form or reaction buttons: the comment, found by
+ * its database id, gets `fields`. GitHub appends whatever the transform returns for a comment
+ * it does not find, so nothing is returned then.
+ */
+function updateComment(
+  stores: ReviewStores,
+  change: CheckedChangeOf<CommentChangeKind>,
+  fields: JsonRecord,
+): boolean {
+  const updateThreadComment = actionOf(
+    stores.layout.getState(),
+    "markersActions",
+    "updateThreadComment",
+  );
+  if (!updateThreadComment) return false;
+  try {
+    updateThreadComment({
+      threadID: change.threadId,
+      filePath: change.target.path,
+      lineMarkersKey: diffLineKeyOf(change.target),
+      match: (comment: unknown) => asRecord(comment)?.databaseId === change.commentId,
+      transform: (comment: unknown) => {
+        const current = asRecord(comment);
+        return current ? { ...current, ...fields } : undefined;
+      },
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** The node id GitHub's stores know a comment by, found from its database id. */
+function commentNodeIdOf(layout: unknown, change: CheckedChangeOf<"commentDeleted">) {
+  const threads = pick(
+    layout,
+    "markers",
+    change.target.path,
+    diffLineKeyOf(change.target),
+    "threads",
+  );
+  const thread = asArray(threads).find(
+    (candidate) => Number(pick(candidate, "id")) === change.threadId,
+  );
+  const comment = asArray(pick(thread, "commentsData", "comments")).find(
+    (candidate) => pick(candidate, "databaseId") === change.commentId,
+  );
+  return asString(pick(comment, "id"));
+}
+
+/** Replays the store updates GitHub performs after its own Delete. */
+function registerDeletion(
+  stores: ReviewStores,
+  change: CheckedChangeOf<"commentDeleted">,
+): boolean {
+  const layout = stores.layout.getState();
+  const deleteThreadComment = actionOf(layout, "markersActions", "deleteThreadComment");
+  const removePendingComment = actionOf(layout, "pendingReviewActions", "removePendingComment");
+  const removeItemsForComment = actionOf(layout, "unifiedBatchActions", "removeItemsForComment");
+  const onCommentThreadDeleted = actionOf(
+    stores.page.getState(),
+    "diffSummariesActions",
+    "onCommentThreadDeleted",
+  );
+  const nodeId = commentNodeIdOf(layout, change);
+  if (!deleteThreadComment || !nodeId) return false;
+  const { path } = change.target;
+  try {
+    removeItemsForComment?.(change.commentId);
+    const outcome = deleteThreadComment(
+      change.threadId,
+      nodeId,
+      path,
+      diffLineKeyOf(change.target),
+    );
+    removePendingComment?.(change.threadId);
+    if (outcome === "thread_deleted")
+      onCommentThreadDeleted?.({ path, threadID: String(change.threadId) });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Shows a change made through GitHub's endpoints in GitHub's own UI; false when it cannot.
  * `viewerLogin` is who resolves a thread, as GitHub records it.
@@ -208,6 +295,12 @@ export function applyHostChange(
       return registerReply(stores, change);
     case "threadResolved":
       return registerResolution(stores, change, viewerLogin);
+    case "commentEdited":
+      return updateComment(stores, change, { ...change.comment });
+    case "reactionsChanged":
+      return updateComment(stores, change, { reactionGroups: change.reactionGroups });
+    case "commentDeleted":
+      return registerDeletion(stores, change);
   }
 }
 
