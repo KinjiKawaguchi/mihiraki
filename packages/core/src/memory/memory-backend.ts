@@ -3,7 +3,13 @@ import { err, ok } from "../result";
 import type { ChangedFile, ReviewBackend } from "../review/backend";
 import { availableCommentModes } from "../review/comment-modes";
 import { commitId } from "../review/commit-id";
-import type { CommentMode, CommentTarget, ReviewThread, Revision } from "../review/types";
+import type {
+  CommentMode,
+  CommentTarget,
+  ReviewComment,
+  ReviewThread,
+  Revision,
+} from "../review/types";
 
 export interface MemoryFile {
   /** null when the file does not exist in the base revision. */
@@ -51,6 +57,20 @@ export function createMemoryBackend(
     return isTaken ? nextId() : id;
   };
 
+  const toComment = (id: string, body: string, mode: CommentMode): ReviewComment => ({
+    id,
+    isPending: mode === "review",
+    author: "you",
+    avatarUrl: "",
+    isByChangeAuthor: false,
+    bodyHtml: md.render(body),
+    bodyMarkdown: body,
+    createdAt: new Date().toISOString(),
+    url: "",
+    reactions: [],
+    newIssueUrl: null,
+  });
+
   const toThread = (target: CommentTarget, body: string, mode: CommentMode): ReviewThread => {
     const id = nextId();
     return {
@@ -60,23 +80,18 @@ export function createMemoryBackend(
       lines: target.lines,
       isResolved: false,
       isOutdated: false,
-      comments: [
-        {
-          id,
-          isPending: mode === "review",
-          author: "you",
-          avatarUrl: "",
-          isByChangeAuthor: false,
-          bodyHtml: md.render(body),
-          bodyMarkdown: body,
-          createdAt: new Date().toISOString(),
-          url: "",
-          reactions: [],
-          newIssueUrl: null,
-        },
-      ],
+      canReply: true,
+      comments: [toComment(id, body, mode)],
     };
   };
+
+  /** Replaces the thread with `id` by `change(thread)`; false when there is no such thread. */
+  const updateThread = (id: string, change: (thread: ReviewThread) => ReviewThread): boolean => {
+    if (!threads.some((thread) => thread.id === id)) return false;
+    threads = threads.map((thread) => (thread.id === id ? change(thread) : thread));
+    return true;
+  };
+  const noSuchThread = { kind: "rejected", detail: "No such thread" } as const;
 
   return {
     listChangedMarkdownFiles: async () =>
@@ -94,5 +109,19 @@ export function createMemoryBackend(
       threads = [...threads, toThread(target, body, mode)];
       return ok(undefined);
     },
+    replyToThread: async (thread, body, mode) => {
+      if (!availableCommentModes(hasPendingReview()).includes(mode))
+        return err({ kind: "pendingReviewConflict" });
+      const comment = toComment(nextId(), body, mode);
+      const isFound = updateThread(thread.id, (found) => ({
+        ...found,
+        comments: [...found.comments, comment],
+      }));
+      return isFound ? ok(undefined) : err(noSuchThread);
+    },
+    setThreadResolved: async (thread, isResolved) =>
+      updateThread(thread.id, (found) => ({ ...found, isResolved }))
+        ? ok(undefined)
+        : err(noSuchThread),
   };
 }
