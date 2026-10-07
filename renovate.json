@@ -21,6 +21,11 @@
       "matchDepTypes": ["devDependencies"],
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "devDependencies (non-major)"
+    },
+    {
+      "description": "Lock file maintenance has no release timestamp, so Renovate's age check would stay pending forever. pnpm enforces the same age while it resolves (minimumReleaseAge in pnpm-workspace.yaml).",
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "minimumReleaseAge": null
     }
   ]
 }
