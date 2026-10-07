@@ -56,7 +56,7 @@ pnpm build:extension    # apps/extension/.output/chrome-mv3 に出力
   - GitHub内部の仕様に依存するため、見つからない・形が違うときは何もせず、再読み込みを促す案内を出す方式に自動で戻る。
 - **組み込み先のDOM**: ファイル枠 `div#diff-<パスのSHA-256>`、見出し `[data-diff-header-wrapper]`、切り替え `[data-component="SegmentedControl"]` だけに依存する（ハッシュ化されたクラス名は使わない）。前提は `apps/extension/src/inline/github-file-dom.ts` に集約している。GitHub側が変わったときは `apps/extension/harness/` のスクリプトをPlaywrightで注入して確かめられる。
 - **配色**: github.com上ではGitHubのテーマ変数をそのまま使うので、dark dimmedやハイコントラストにも追従する。
-- **描画**: markdown-itによる自前描画。GitHubとの差として、シンタックスハイライト、数式の描画、脚注には未対応。mermaidの図はGitHub自身と同じ描画サービス（viewscreen.githubusercontent.com）のフレームで描き、Splitでは変更前後を左右に並べる。相対パスの画像も表示されない。
+- **描画**: markdown-itによる自前描画。GitHubとの差として、シンタックスハイライト、数式の描画、脚注には未対応。mermaidの図はGitHub自身と同じ描画サービス（viewscreen.githubusercontent.com）のフレームで描き、Splitでは変更前後を左右に並べる。相対パスの画像も表示されない。ほかのサイトの画像は、GitHub自身と同じく画像プロキシ（Camo）経由で表示し、GitHubがプロキシのアドレスを付けていないものは、押したときだけ読み込むボタンに置き換える（PRの作成者が、追跡用の画像で誰がいつファイルを開いたかを知ることを防ぐため）。
 - **コメント可能な行**: 変更されたファイルなら、差分のhunkの外の行にもコメントできる（github.comで確認）。
 - **未検証**: 左側（変更前）への複数行コメント。
 

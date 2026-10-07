@@ -7,7 +7,13 @@ import {
   type ThreadStore,
 } from "@mihiraki/ui";
 import { render } from "preact";
-import { isRichDiffShown, REVIEW_VIEW_TAG, setRenderedViewActive } from "./github-file-dom";
+import {
+  isRichDiffShown,
+  REVIEW_VIEW_TAG,
+  setRenderedViewActive,
+  viewSlotOf,
+} from "./github-file-dom";
+import { githubImageSource, imageKeyOf } from "./github-images";
 import { createShadowHost, type ShadowHost } from "./shadow-host";
 
 export interface FileDecoratorContext {
@@ -32,6 +38,8 @@ interface RenderedView extends ShadowHost {
   readonly notice: string | undefined;
   readonly layout: DiffLayout;
   readonly locale: Locale;
+  /** GitHub's proxied images in the file block when rendered; images switch to them as they arrive. */
+  readonly imageKey: string;
 }
 
 type ViewsByPath = Map<string, RenderedView>;
@@ -42,10 +50,16 @@ function unmount(view: ShadowHost | undefined): void {
   view.host.remove();
 }
 
-function renderView(context: FileDecoratorContext, host: ShadowHost, file: ChangedFile) {
+function renderView(
+  context: FileDecoratorContext,
+  host: ShadowHost,
+  file: ChangedFile,
+  container: HTMLElement,
+) {
   const notice = context.pendingReviewNotice();
   const layout = context.layout();
   const locale = context.locale();
+  const imageKey = imageKeyOf(container);
   render(
     <InlineFileReview
       backend={context.backend}
@@ -55,17 +69,23 @@ function renderView(context: FileDecoratorContext, host: ShadowHost, file: Chang
       locale={locale}
       layout={layout}
       renderDiagram={context.renderDiagram}
+      imageSource={githubImageSource(container)}
     />,
     host.mount,
   );
-  return { ...host, notice, layout, locale };
+  return { ...host, notice, layout, locale, imageKey };
 }
 
-function isUpToDate(context: FileDecoratorContext, view: RenderedView): boolean {
+function isUpToDate(
+  context: FileDecoratorContext,
+  view: RenderedView,
+  container: HTMLElement,
+): boolean {
   return (
     view.notice === context.pendingReviewNotice() &&
     view.layout === context.layout() &&
-    view.locale === context.locale()
+    view.locale === context.locale() &&
+    view.imageKey === imageKeyOf(container)
   );
 }
 
@@ -83,19 +103,21 @@ function syncView(
   const isShown = isRichDiffShown(container);
   setRenderedViewActive(container, isShown);
   if (!isShown) {
-    unmount(view);
-    views.delete(file.path);
+    // Hidden, not removed: switching back to the rich diff shows it at once, as it was left.
+    if (view) view.host.hidden = true;
     return;
   }
   if (view && container.contains(view.host)) {
+    view.host.hidden = false;
     // Rendering again keeps the view's state; only needed when its inputs changed.
-    if (!isUpToDate(context, view)) views.set(file.path, renderView(context, view, file));
+    if (!isUpToDate(context, view, container))
+      views.set(file.path, renderView(context, view, file, container));
     return;
   }
   unmount(view);
   const created = createShadowHost(context.document, REVIEW_VIEW_TAG, context.cssText);
-  container.append(created.host);
-  views.set(file.path, renderView(context, created, file));
+  viewSlotOf(container).append(created.host);
+  views.set(file.path, renderView(context, created, file, container));
   context.onViewShown();
 }
 

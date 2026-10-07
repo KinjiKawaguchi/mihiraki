@@ -6,6 +6,7 @@ import { FileSplitReview } from "../file-review/FileSplitReview";
 import { describeLoadFailure } from "../host-errors/describe";
 import { I18nProvider, useMessages } from "../i18n/i18n";
 import type { Locale } from "../i18n/locale";
+import { ImagePolicyProvider, type ImageSource } from "../safe-html/images";
 import type { DiffLayout } from "../split-view/layout";
 import { createThreadActions, ThreadActionsContext } from "../threads/thread-actions";
 import { type ThreadStore, useThreadStore } from "../threads/thread-store";
@@ -22,6 +23,8 @@ export interface InlineFileReviewProps {
   readonly layout?: DiffLayout;
   /** Draws diagrams as the host does; without it they stay code blocks. */
   readonly renderDiagram?: DiagramRenderer;
+  /** Where images of the document load from; without it they load as written. */
+  readonly imageSource?: ImageSource;
 }
 
 function InlineFileReviewBody({
@@ -30,7 +33,7 @@ function InlineFileReviewBody({
   store,
   pendingReviewNotice,
   layout,
-}: Omit<InlineFileReviewProps, "locale" | "renderDiagram">) {
+}: Omit<InlineFileReviewProps, "locale" | "renderDiagram" | "imageSource">) {
   const t = useMessages();
   const { snapshot, error } = useThreadStore(store);
   const hasPendingReview = snapshot?.hasPendingReview === true;
@@ -71,12 +74,15 @@ function InlineFileReviewBody({
 export function InlineFileReview({
   locale = "en",
   renderDiagram,
+  imageSource,
   ...props
 }: InlineFileReviewProps) {
   return (
     <I18nProvider locale={locale}>
       <DiagramRendererContext.Provider value={renderDiagram ?? null}>
-        <InlineFileReviewBody {...props} />
+        <ImagePolicyProvider source={imageSource}>
+          <InlineFileReviewBody {...props} />
+        </ImagePolicyProvider>
       </DiagramRendererContext.Provider>
     </I18nProvider>
   );
