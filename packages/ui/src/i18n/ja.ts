@@ -12,7 +12,7 @@ export const ja: Messages = {
   write: "書く",
   preview: "プレビュー",
   nothingToPreview: "プレビューする内容がありません",
-  bodyPlaceholder: "コメントを書く（Markdown可、⌘/Ctrl+Enterで送信）",
+  bodyPlaceholder: (action) => `コメントを書く（Markdown可、⌘/Ctrl+Enterで「${action}」）`,
   cancel: "キャンセル",
   loading: "読み込み中…",
   staleRevision:

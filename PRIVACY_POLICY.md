@@ -1,8 +1,8 @@
-# Privacy Policy — Mihiraki for GitHub
+# Privacy Policy — Mihiraki
 
-Effective: September 28, 2026 ([日本語](#プライバシーポリシー--mihiraki-for-github))
+Effective: September 28, 2026 ([日本語](#プライバシーポリシー--mihiraki))
 
-Mihiraki for GitHub (the "extension") does not collect, store or share any personal data.
+Mihiraki – Markdown Diff & Review for GitHub (the "extension") does not collect, store or share any personal data.
 
 ## What the extension does with data
 
@@ -22,11 +22,11 @@ Changes to this policy are published in this file, and its history is kept in th
 
 ---
 
-# プライバシーポリシー — Mihiraki for GitHub
+# プライバシーポリシー — Mihiraki
 
 施行日: 2026年9月28日
 
-Mihiraki for GitHub（以下「本拡張機能」）は、個人情報を収集・保存・共有しません。
+Mihiraki – GitHub の Markdown 差分レビュー（以下「本拡張機能」）は、個人情報を収集・保存・共有しません。
 
 ## 本拡張機能によるデータの扱い
 

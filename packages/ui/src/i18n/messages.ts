@@ -15,7 +15,8 @@ export interface Messages {
   readonly write: string;
   readonly preview: string;
   readonly nothingToPreview: string;
-  readonly bodyPlaceholder: string;
+  /** The empty comment box, naming what ⌘/Ctrl+Enter does (e.g. "Start a review"). */
+  readonly bodyPlaceholder: (shortcutAction: string) => string;
   readonly cancel: string;
   readonly loading: string;
   readonly staleRevision: string;

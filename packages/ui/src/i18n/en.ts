@@ -12,7 +12,7 @@ export const en: Messages = {
   write: "Write",
   preview: "Preview",
   nothingToPreview: "Nothing to preview",
-  bodyPlaceholder: "Leave a comment (Markdown supported, ⌘/Ctrl+Enter to send)",
+  bodyPlaceholder: (action) => `Leave a comment (Markdown supported, ⌘/Ctrl+Enter: ${action})`,
   cancel: "Cancel",
   loading: "Loading…",
   staleRevision:
