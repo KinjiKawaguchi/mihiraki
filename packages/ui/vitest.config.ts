@@ -6,5 +6,8 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    // These render whole views in jsdom; the first test of a file also pays for loading
+    // Markdown and sanitiser modules, which under parallel runs exceeded the 5 s default.
+    testTimeout: 15_000,
   },
 });

@@ -1,10 +1,10 @@
 {
   "extName": {
-    "message": "Mihiraki for GitHub",
+    "message": "Mihiraki – GitHub の Markdown 差分レビュー",
     "description": "ブラウザとChromeウェブストアに表示する拡張機能の名前。"
   },
   "extDescription": {
-    "message": "GitHubのプルリクエストで、Markdownの変更をレンダリングしたまま左右に並べて確認し、その場でコメントできます。",
+    "message": "GitHub のプルリクエストで Markdown の差分を、レンダリングしたまま左右に並べて確認し、その場でコメントできます。",
     "description": "ブラウザとChromeウェブストアに表示する短い説明（132文字以内）。"
   }
 }

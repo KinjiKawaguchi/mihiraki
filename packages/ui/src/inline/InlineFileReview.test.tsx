@@ -19,6 +19,7 @@ function threadOn(path: string, text: string): ReviewThread {
     lines: { start: 1, end: 1 },
     isResolved: false,
     isOutdated: false,
+    canReply: true,
     comments: [
       {
         id: path,
@@ -32,6 +33,10 @@ function threadOn(path: string, text: string): ReviewThread {
         bodyMarkdown: "",
         reactions: [],
         newIssueUrl: null,
+        version: null,
+        canEdit: false,
+        canDelete: false,
+        canReact: false,
       },
     ],
   };
@@ -86,6 +91,30 @@ describe("InlineFileReview", () => {
     fireEvent.click(screen.getByRole("button", { name: "コメント" }));
 
     expect(await screen.findByText("Posted inline")).toBeTruthy();
+  });
+
+  it("starts a review on ⌘/Ctrl+Enter, as GitHub's own form does, instead of publishing", async () => {
+    const backend = createMemoryBackend(files);
+    const { container } = await renderInline(backend);
+
+    fireEvent.mouseOver(container.querySelector('[data-side="head"] p') as Element);
+    fireEvent.click(screen.getByRole("button", { name: "コメントを追加" }));
+    const body = screen.getByRole("textbox");
+    fireEvent.input(body, { target: { value: "Kept for my review" } });
+    fireEvent.keyDown(body, { key: "Enter", metaKey: true });
+
+    await screen.findByText("Kept for my review");
+    const loaded = await backend.loadThreads();
+    expect(loaded.ok && loaded.value.threads[0]?.comments[0]?.isPending).toBe(true);
+  });
+
+  it("says in the box what ⌘/Ctrl+Enter does", async () => {
+    const { container } = await renderInline(createMemoryBackend(files));
+
+    fireEvent.mouseOver(container.querySelector('[data-side="head"] p') as Element);
+    fireEvent.click(screen.getByRole("button", { name: "コメントを追加" }));
+
+    expect(screen.getByRole("textbox").getAttribute("placeholder")).toContain("レビューを開始");
   });
 
   it("offers adding to the review when the viewer has a pending review in any file", async () => {

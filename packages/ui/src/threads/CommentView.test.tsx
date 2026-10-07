@@ -1,4 +1,4 @@
-import type { ReviewComment } from "@mihiraki/core";
+import type { ReviewComment, ReviewThread } from "@mihiraki/core";
 import { fireEvent, render, screen } from "@testing-library/preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "../i18n/i18n";
@@ -16,6 +16,21 @@ const comment: ReviewComment = {
   url: "https://github.com/acme/docs/pull/1#discussion_r1",
   reactions: [],
   newIssueUrl: "https://github.com/acme/docs/issues/new?body=quote",
+  version: null,
+  canEdit: false,
+  canDelete: false,
+  canReact: false,
+};
+
+const thread: ReviewThread = {
+  id: "t1",
+  path: "docs/a.md",
+  side: "head",
+  lines: { start: 1, end: 1 },
+  isResolved: false,
+  isOutdated: false,
+  canReply: true,
+  comments: [comment],
 };
 
 const writeText = vi.fn().mockResolvedValue(undefined);
@@ -34,7 +49,7 @@ afterEach(() => {
 function renderComment(overrides: Partial<ReviewComment> = {}) {
   return render(
     <I18nProvider locale="en">
-      <CommentView comment={{ ...comment, ...overrides }} />
+      <CommentView thread={thread} comment={{ ...comment, ...overrides }} />
     </I18nProvider>,
   );
 }

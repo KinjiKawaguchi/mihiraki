@@ -1,6 +1,8 @@
 import type { CommentTarget, Revision, Side } from "@mihiraki/core";
 import { CommentForm } from "../comment-form/CommentForm";
 import type { SubmitComment } from "../comment-form/submit-comment";
+import { formatLineRange } from "../format";
+import { useMessages } from "../i18n/i18n";
 import { selectionEnd, selectionRange, useBlockSelection } from "./block-selection";
 import type { CommentCellProps } from "./SplitCellView";
 
@@ -19,6 +21,7 @@ export function useCommentSelection({
   hasPendingReview,
   onSubmitComment,
 }: CommentSelectionOptions) {
+  const t = useMessages();
   const selection = useBlockSelection();
   const current = selection.selection;
   const range = current ? selectionRange(current) : null;
@@ -28,7 +31,7 @@ export function useCommentSelection({
   const form = current && target && (
     <CommentForm
       key={current.serial}
-      target={target}
+      heading={t.commentOn(formatLineRange(target.side, target.lines))}
       hasPendingReview={hasPendingReview}
       onSubmit={async (body, mode) => {
         const result = await onSubmitComment(target, body, mode);
