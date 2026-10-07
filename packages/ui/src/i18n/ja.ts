@@ -48,4 +48,9 @@ export const ja: Messages = {
   referenceInNewIssue: "新しいIssueで参照",
   commentCount: (count) => `${count}件`,
   unplacedThreads: "本文の横に表示できないコメント",
+  reply: "返信",
+  resolveConversation: "解決済みにする",
+  unresolveConversation: "未解決に戻す",
+  couldNotResolve: "スレッドを解決済みにできませんでした",
+  couldNotUnresolve: "スレッドを未解決に戻せませんでした",
 };

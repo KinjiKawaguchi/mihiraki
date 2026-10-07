@@ -105,6 +105,8 @@ function toThread(
     ...location,
     isResolved: thread.isResolved === true,
     isOutdated: thread.isOutdated === true,
+    // Older payloads did not say; GitHub still refuses a reply the viewer may not make.
+    canReply: thread.viewerCanReply !== false,
     comments: rawComments.flatMap((comment) => toComment(comment, changeAuthor) ?? []),
   };
 }

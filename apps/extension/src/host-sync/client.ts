@@ -5,14 +5,14 @@
 import type { DiffLayout } from "@mihiraki/ui";
 import { parseDiffLayout } from "../github/diff-layout";
 import { asRecord } from "../github/json";
-import { HOST_SYNC_EVENTS, parseJson, type ThreadCreatedMessage } from "./protocol";
+import { HOST_SYNC_EVENTS, type HostChange, parseJson } from "./protocol";
 
 export interface HostSyncClient {
   isHostAvailable(): Promise<boolean>;
-  /** Asks the bridge to show a thread just created through the API in GitHub's own UI. */
-  announceThreadCreated(message: ThreadCreatedMessage): Promise<boolean>;
+  /** Asks the bridge to show a change just made through GitHub's endpoints in GitHub's own UI. */
+  announceChange(change: HostChange): Promise<boolean>;
   onHostThreadsChanged(listener: () => void): () => void;
-  /** Called when a created thread could not be shown in GitHub's own UI, which then stays stale. */
+  /** Called when a change could not be shown in GitHub's own UI, which then stays stale. */
   onSyncLost(listener: () => void): () => void;
   /** Reports GitHub's split / unified setting once the bridge answers, then on every change. */
   watchDiffLayout(listener: (layout: DiffLayout) => void): () => void;
@@ -66,17 +66,17 @@ export function createHostSyncClient(
         isAnswer: () => true,
         outcome: (detail) => detail.isAvailable === true,
       }),
-    announceThreadCreated: async (message) => {
+    announceChange: async (change) => {
       const requestId = crypto.randomUUID();
-      const isRegistered = await exchange({
-        send: HOST_SYNC_EVENTS.threadCreated,
-        receive: HOST_SYNC_EVENTS.threadRegistered,
-        payload: { requestId, message },
+      const isApplied = await exchange({
+        send: HOST_SYNC_EVENTS.change,
+        receive: HOST_SYNC_EVENTS.changeApplied,
+        payload: { requestId, change },
         isAnswer: (detail) => detail.requestId === requestId,
-        outcome: (detail) => detail.isRegistered === true,
+        outcome: (detail) => detail.isApplied === true,
       });
-      if (!isRegistered) for (const listener of syncLostListeners) listener();
-      return isRegistered;
+      if (!isApplied) for (const listener of syncLostListeners) listener();
+      return isApplied;
     },
     onSyncLost: (listener) => {
       syncLostListeners = [...syncLostListeners, listener];

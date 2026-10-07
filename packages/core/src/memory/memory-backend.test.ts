@@ -95,6 +95,7 @@ describe("createMemoryBackend", () => {
       lines: { start: 1, end: 1 },
       isResolved: false,
       isOutdated: false,
+      canReply: true,
       comments: [],
     };
     const backend = createMemoryBackend(files, [existing]);
@@ -117,5 +118,58 @@ describe("createMemoryBackend", () => {
     expect(
       await backend.loadFileVersions({ path: "docs/a.md", changeType: "MODIFIED" }),
     ).toMatchObject(ok({ revision }));
+  });
+
+  it("adds a reply at the end of its thread", async () => {
+    const backend = createMemoryBackend(files);
+    await backend.postComment(target, "First", "single");
+    const [thread] = (await loadSnapshot(backend)).threads;
+    if (!thread) throw new Error("no thread");
+
+    expect(await backend.replyToThread(thread, "**Agreed**", "single")).toEqual(ok(undefined));
+
+    const [replied] = (await loadSnapshot(backend)).threads;
+    expect(replied?.comments.map((comment) => comment.bodyMarkdown)).toEqual([
+      "First",
+      "**Agreed**",
+    ]);
+    expect(replied?.comments[1]?.bodyHtml).toContain("<strong>Agreed</strong>");
+    expect(replied?.comments[1]?.isPending).toBe(false);
+  });
+
+  it("keeps a reply added to a review pending, and refuses a single one meanwhile", async () => {
+    const backend = createMemoryBackend(files);
+    await backend.postComment(target, "First", "single");
+    const [thread] = (await loadSnapshot(backend)).threads;
+    if (!thread) throw new Error("no thread");
+
+    await backend.replyToThread(thread, "Pending reply", "review");
+
+    const [replied] = (await loadSnapshot(backend)).threads;
+    expect(replied?.comments[1]?.isPending).toBe(true);
+    expect(await backend.replyToThread(thread, "Now", "single")).toEqual({
+      ok: false,
+      error: { kind: "pendingReviewConflict" },
+    });
+  });
+
+  it("resolves a thread and opens it again", async () => {
+    const backend = createMemoryBackend(files);
+    await backend.postComment(target, "First", "single");
+    const [thread] = (await loadSnapshot(backend)).threads;
+    if (!thread) throw new Error("no thread");
+
+    expect(await backend.setThreadResolved(thread, true)).toEqual(ok(undefined));
+    expect((await loadSnapshot(backend)).threads[0]?.isResolved).toBe(true);
+
+    await backend.setThreadResolved(thread, false);
+    expect((await loadSnapshot(backend)).threads[0]?.isResolved).toBe(false);
+  });
+
+  it("lets the viewer reply to the threads it creates", async () => {
+    const backend = createMemoryBackend(files);
+    await backend.postComment(target, "First", "single");
+
+    expect((await loadSnapshot(backend)).threads[0]?.canReply).toBe(true);
   });
 });
