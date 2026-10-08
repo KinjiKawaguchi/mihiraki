@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.4.0](https://github.com/KinjiKawaguchi/mihiraki/compare/v0.3.0...v0.4.0) (2026-10-07)
+
+
+### Features
+
+* コメントの編集・削除・引用返信とリアクションを Mihiraki の表示内でできるようにする ([#53](https://github.com/KinjiKawaguchi/mihiraki/issues/53)) ([e5da33a](https://github.com/KinjiKawaguchi/mihiraki/commit/e5da33ab6981aaee4e870eeb92c674203d6dfc3e))
+* スレッドへの返信と解決を Mihiraki の表示内でできるようにする ([#39](https://github.com/KinjiKawaguchi/mihiraki/issues/39)) ([ad81705](https://github.com/KinjiKawaguchi/mihiraki/commit/ad8170589756c9d03c3070ff9d2bfcc3519f0a78))
+* ファイルごとに GitHub 本来の rich diff に戻せるようにする ([#40](https://github.com/KinjiKawaguchi/mihiraki/issues/40)) ([faf7a1a](https://github.com/KinjiKawaguchi/mihiraki/commit/faf7a1a06fe055e661ad9bfe64987233fc2b5e6d))
+* 表示言語をツールバーのポップアップで選べるようにする ([#41](https://github.com/KinjiKawaguchi/mihiraki/issues/41)) ([81bd24c](https://github.com/KinjiKawaguchi/mihiraki/commit/81bd24c673dcf26acd0d90229e354e3f0a32c633))
+
+
+### Bug Fixes
+
+* **core:** show multi-line threads below the last line of their range ([#48](https://github.com/KinjiKawaguchi/mihiraki/issues/48)) ([c1715f1](https://github.com/KinjiKawaguchi/mihiraki/commit/c1715f18e0e5d528e33088b5804351c538876712))
+* **extension:** keep GitHub's file-level comments usable in the rendered view ([#42](https://github.com/KinjiKawaguchi/mihiraki/issues/42)) ([18bee85](https://github.com/KinjiKawaguchi/mihiraki/commit/18bee85eebe0e41fa769bab2566c8fa9d69c4aee))
+* never load external Markdown images straight from their site ([#49](https://github.com/KinjiKawaguchi/mihiraki/issues/49)) ([9b187c1](https://github.com/KinjiKawaguchi/mihiraki/commit/9b187c1c4a27700961ec6b759c6d85f34c261896))
+
+
+### Performance
+
+* **extension:** show the rendered view again at once after the source diff ([#46](https://github.com/KinjiKawaguchi/mihiraki/issues/46)) ([9cbf1e2](https://github.com/KinjiKawaguchi/mihiraki/commit/9cbf1e271161d8a51615da8653968d5d26c835bb))
+
 ## [0.3.0](https://github.com/KinjiKawaguchi/mihiraki/compare/v0.2.1...v0.3.0) (2026-10-01)
 
 
